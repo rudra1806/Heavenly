@@ -28,6 +28,10 @@ const listingSchema = new Schema({
     location: { 
         type: String, 
         required: true 
+    },
+    country: { 
+        type: String, 
+        required: true 
     }
 });
 

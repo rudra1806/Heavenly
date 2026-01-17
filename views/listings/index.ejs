@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavenly</title>
+</head>
+<body>
+    <h3>All Listings</h3>
+    <ul>
+        <% for(let listing of listings) { %>
+            <li>
+                <a href="http://localhost:8080/listings/<%= listing._id %>"><h4><%= listing.title %></h4></a>
+                <img src="<%= listing.image.url %>" alt="image" width="200"/>
+                <p><%= listing.description %></p>
+                <p><b>Price:</b> $<%= listing.price %></p>
+                <p><b>Location:</b> <%= listing.location %></p>
+                <p><b>Country:</b> <%= listing.country %></p>
+            </li>
+        <% } %>
+    </ul>
+</body>
+</html>
