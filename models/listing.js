@@ -11,9 +11,15 @@ const listingSchema = new Schema({
         required: true 
     },
     image: {
-        type: String,
-        default: 'https://www.pexels.com/photo/a-blank-banner-on-a-brick-wall-12883028/',
-        set: (url) => url === '' ? 'https://www.pexels.com/photo/a-blank-banner-on-a-brick-wall-12883028/' : url
+        filename : {
+            type: String,
+            default: ''
+        },
+        url: {
+            type: String,
+            default: 'https://www.pexels.com/photo/a-blank-banner-on-a-brick-wall-12883028/',
+            set: (v) => v === '' ? 'https://www.pexels.com/photo/a-blank-banner-on-a-brick-wall-12883028/' : v
+        }
     },
     price: { 
         type: Number, 

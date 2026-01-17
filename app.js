@@ -17,24 +17,6 @@ app.get('/', (req, res) => {
     res.send('Hello, server is up and running!');
 });
 
-// demo route to create a listing
-app.get('/listing', async (req, res) => {
-    const newListing = new Listing({
-        title: 'Cozy Cottage',
-        description: 'A cozy cottage in the countryside.',
-        image: '',
-        price: 150,
-        location: 'Countryside'
-    });
-
-    try {
-        const savedListing = await newListing.save();
-        res.json(savedListing);
-    } catch (err) {
-        res.status(500).send(err);
-    }
-});
-
 app.listen(port,()=>{
     console.log(`Server is running on http://localhost:${port}`);
 });
