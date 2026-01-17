@@ -1,0 +1,33 @@
+/* ===== Base / Global Styles ===== */
+
+:root {
+  --accent-start: #c084fc;
+  --accent-end: #818cf8;
+
+  --text-dark: #111827;
+  --text-main: #374151;
+  --text-muted: #6b7280;
+
+  --bg-light: #ffffff;
+  --bg-soft: #fafafa;
+
+  --border-light: rgba(0, 0, 0, 0.06);
+  --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text-main);
+  background: var(--bg-light);
+  line-height: 1.6;
+}
+
+a {
+  text-decoration: none;
+}

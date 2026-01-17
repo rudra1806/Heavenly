@@ -6,15 +6,16 @@ const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
 const Listing = require('./models/listing');
 const path = require('path');
 const methodOverride = require('method-override');
-const ejsMate = require('ejs-mate');
+const ejsMate = require('ejs-mate'); // Import ejs-mate for EJS template layouts
 
-app.engine('ejs', ejsMate);
+app.engine('ejs', ejsMate); // Use ejs-mate for EJS templates
 
 app.use(methodOverride('_method'));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
 
 main()
 .then(() => console.log('Successfully Connected to MongoDB'))

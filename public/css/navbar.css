@@ -1,0 +1,79 @@
+/* ===== Navbar Styling ===== */
+
+.navbar {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+/* Brand */
+.navbar-brand {
+  font-weight: 600;
+  font-size: 1.35rem;
+  letter-spacing: 0.3px;
+  color: var(--text-dark) !important;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.navbar-brand i {
+  font-size: 1.1rem;
+  background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Nav links */
+.navbar-nav {
+  gap: 1.5rem;
+}
+
+.nav-link {
+  position: relative;
+  font-weight: 500;
+  color: var(--text-main) !important;
+  padding: 0.25rem 0;
+  transition: color 0.25s ease;
+}
+
+/* Hover underline animation */
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 0%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+.nav-link:hover {
+  color: var(--text-dark) !important;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+/* Mobile toggler */
+.navbar-toggler {
+  border: none;
+}
+
+.navbar-toggler:focus {
+  box-shadow: none;
+}
+
+/* Scroll elevation (optional JS) */
+.navbar.scrolled {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== End Navbar ===== */
