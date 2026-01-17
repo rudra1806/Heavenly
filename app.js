@@ -93,6 +93,17 @@ app.put('/listings/:id', async (req, res) => {
     }
 });
 
+app.delete('/listings/:id', async (req, res) => {
+    let id = req.params.id;
+    try{
+        let deletedListing = await Listing.findByIdAndDelete(id);
+        console.log('Deleted Listing:', deletedListing); // for debugging
+        res.redirect('/listings');
+    }catch(err){
+        res.status(500).send('Error deleting listing');
+    }
+});
+
 app.listen(port,()=>{
     console.log(`Server is running on http://localhost:${port}`);
 });
