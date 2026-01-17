@@ -13,5 +13,8 @@
     <p><b>Price:</b> ₹ <%= listing.price.toLocaleString("en-IN") %></p>
     <p><b>Location:</b> <%= listing.location %></p>
     <p><b>Country:</b> <%= listing.country %></p>
+    <form action="/listings/<%= listing._id %>/edit" method="get">
+        <button type="submit">Edit Listing</button>
+    </form>
 </body>
 </html>

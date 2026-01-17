@@ -5,6 +5,9 @@ const mongoose = require('mongoose');
 const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
 const Listing = require('./models/listing');
 const path = require('path');
+const methodOverride = require('method-override');
+
+app.use(methodOverride('_method'));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -61,6 +64,32 @@ app.get('/listings/:id', async (req, res) => {
         }
     }catch(err){
         res.status(500).send('Error retrieving listing');
+    }
+});
+
+// Edit Listing Form Route
+app.get('/listings/:id/edit',async (req, res) => {
+    let id = req.params.id;
+    try{
+        let listing = await Listing.findById(id);
+        if(listing){
+            res.render('listings/edit.ejs', { listing: listing });
+        }else{
+            res.status(404).send('Listing not found');
+        }
+    }catch(err){
+        res.status(500).send('Error retrieving listing for edit');
+    }
+});
+
+// Update Listing Route
+app.put('/listings/:id', async (req, res) => {
+    let id = req.params.id;
+    try{
+        await Listing.findByIdAndUpdate(id, req.body, { runValidators: true });
+        res.redirect(`/listings/${id}`);
+    }catch(err){
+        res.status(500).send('Error updating listing');
     }
 });
 

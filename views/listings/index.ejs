@@ -14,7 +14,7 @@
         <% for(let listing of listings) { %>
             <li>
                 <a href="http://localhost:8080/listings/<%= listing._id %>"><h4><%= listing.title %></h4></a>
-                <img src="<%= listing.image.url %>" alt="image" width="200"/>
+                <img src="<%= listing.image.url %>" alt="<%= listing.image.filename %>" width="200"/>
                 <p><b>Price:</b> ₹ <%= listing.price %></p>
                 <p><b>Country:</b> <%= listing.country %></p>
             </li>
