@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heavenly - <%= listing.title %></title>
+</head>
+<body>
+    <h2><%= listing.title %></h2>
+    <img src="<%= listing.image.url %>" alt="image" width="400"/>
+    <p><%= listing.description %></p>
+    <p><b>Price:</b> ₹ <%= listing.price.toLocaleString("en-IN") %></p>
+    <p><b>Location:</b> <%= listing.location %></p>
+    <p><b>Country:</b> <%= listing.country %></p>
+</body>
+</html>
