@@ -7,12 +7,15 @@
 </head>
 <body>
     <h3>All Listings</h3>
+    <form action="/listings/new" method="get">
+        <button type="submit">Create New Listing</button>
+    </form>
     <ul>
         <% for(let listing of listings) { %>
             <li>
                 <a href="http://localhost:8080/listings/<%= listing._id %>"><h4><%= listing.title %></h4></a>
                 <img src="<%= listing.image.url %>" alt="image" width="200"/>
-                <p><b>Price:</b> $<%= listing.price %></p>
+                <p><b>Price:</b> ₹ <%= listing.price %></p>
                 <p><b>Country:</b> <%= listing.country %></p>
             </li>
         <% } %>

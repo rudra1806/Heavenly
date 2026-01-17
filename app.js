@@ -8,6 +8,7 @@ const path = require('path');
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(express.urlencoded({ extended: true }));
 
 main()
 .then(() => console.log('Successfully Connected to MongoDB'))
@@ -31,6 +32,22 @@ app.get('/listings', async (req, res) => {
         res.status(500).send('Error retrieving listings');
     }
 });
+
+// New Listing Form Route
+app.get('/listings/new', (req, res) => {
+    res.render('listings/new.ejs');
+});
+
+app.post('/listings', async (req, res) => {
+    try{
+        let newListing = new Listing(req.body);
+        await newListing.save();
+        res.redirect('/listings');
+    }catch(err){
+        res.status(500).send('Error creating listing');
+    }
+});
+
 
 // Single Listing Route
 app.get('/listings/:id', async (req, res) => {
