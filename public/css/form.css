@@ -45,7 +45,7 @@
   width: 100%;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--border-light);
-  border-radius: 6px;
+  border-radius: 8px;
   font-family: inherit;
   font-size: 0.9rem;
   color: var(--text-main);
@@ -70,7 +70,7 @@
 .image-group {
   background: var(--bg-soft);
   padding: 0.9rem;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 1rem;
   border: 1px solid var(--border-light);
 }
@@ -96,7 +96,7 @@ button[type="submit"],
 button[type="reset"] {
   padding: 0.65rem 1.25rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
