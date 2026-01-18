@@ -13,7 +13,8 @@ const listingSchema = new Schema({
     image: {
         filename : {
             type: String,
-            default: ''
+            default: 'default.jpg',
+            set: (v) => v === '' ? 'default.jpg' : v
         },
         url: {
             type: String,

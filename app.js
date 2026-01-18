@@ -7,6 +7,9 @@ const Listing = require('./models/listing');
 const path = require('path');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate'); // Import ejs-mate for EJS template layouts
+const wrapAsync = require('./utils/wrapAsync'); // Import error handling wrapper
+const ExpressError = require('./utils/ExpressError.js'); // Import custom error class
+
 
 app.engine('ejs', ejsMate); // Use ejs-mate for EJS templates
 
@@ -25,87 +28,107 @@ async function main() {
   await mongoose.connect(MONGO_URL);
 }
 
-// Routes
+//Home Routes
 app.get('/', (req, res) => {
     res.send('Hello, server is up and running!');
 });
 
 // Listings Route
-app.get('/listings', async (req, res) => {
-    try{
-        let allListings = await Listing.find({});
-        res.render('listings/index.ejs', { listings: allListings });
-    }catch(err){
-        res.status(500).send('Error retrieving listings');
-    }
-});
+app.get('/listings', wrapAsync(async (req, res) => {
+    let allListings = await Listing.find({});
+    res.render('listings/index.ejs', { listings: allListings });
+}));
 
 // New Listing Form Route
 app.get('/listings/new', (req, res) => {
     res.render('listings/new.ejs');
 });
 
-app.post('/listings', async (req, res) => {
-    try{
-        let newListing = new Listing(req.body);
-        await newListing.save();
-        res.redirect('/listings');
-    }catch(err){
-        res.status(500).send('Error creating listing');
+// Create Listing Route
+app.post('/listings', wrapAsync(async (req, res) => {
+    const { title, description, price, location, country } = req.body;
+    
+    // Validate required fields
+    if (!title?.trim() || !description?.trim() || !price || !location?.trim() || !country?.trim()) {
+        throw new ExpressError(400, 'All fields are required and cannot be empty');
     }
-});
 
+    // Validate numeric values
+    if (price <= 0) {
+        throw new ExpressError(400, 'Price must be a positive number');
+    }
+    
+    let newListing = new Listing(req.body);
+    await newListing.save();
+    res.redirect('/listings');
+}));
 
 // Single Listing Route
-app.get('/listings/:id', async (req, res) => {
-    let id = req.params.id;
-    try{
-        let listing = await Listing.findById(id);
-        if(listing){
-            res.render('listings/show.ejs', { listing: listing });
-        }else{
-            res.status(404).send('Listing not found');
-        }
-    }catch(err){
-        res.status(500).send('Error retrieving listing');
+app.get('/listings/:id', wrapAsync(async (req, res) => {
+    let listing = await Listing.findById(req.params.id);
+    if (!listing) {
+        throw new ExpressError(404, 'Listing not found');
     }
-});
+    res.render('listings/show.ejs', { listing });
+}));
 
 // Edit Listing Form Route
-app.get('/listings/:id/edit',async (req, res) => {
-    let id = req.params.id;
-    try{
-        let listing = await Listing.findById(id);
-        if(listing){
-            res.render('listings/edit.ejs', { listing: listing });
-        }else{
-            res.status(404).send('Listing not found');
-        }
-    }catch(err){
-        res.status(500).send('Error retrieving listing for edit');
+app.get('/listings/:id/edit', wrapAsync(async (req, res) => {
+    let listing = await Listing.findById(req.params.id);
+    if (!listing) {
+        throw new ExpressError(404, 'Listing not found');
     }
-});
+    res.render('listings/edit.ejs', { listing });
+}));
 
 // Update Listing Route
-app.put('/listings/:id', async (req, res) => {
-    let id = req.params.id;
-    try{
-        await Listing.findByIdAndUpdate(id, req.body, { runValidators: true });
-        res.redirect(`/listings/${id}`);
-    }catch(err){
-        res.status(500).send('Error updating listing');
+app.put('/listings/:id', wrapAsync(async (req, res) => {
+    const { title, description, price, location, country, image } = req.body;
+    
+    // Validate required fields
+    if (!title?.trim() || !description?.trim() || !price || !location?.trim() || !country?.trim()) {
+        throw new ExpressError(400, 'All fields are required and cannot be empty');
     }
+
+    // Validate numeric values
+    if (price <= 0) {
+        throw new ExpressError(400, 'Price must be a positive number');
+    }
+    
+    // Validate image fields
+    if (!image || !image.url || !image.filename) {
+        throw new ExpressError(400, 'Image URL and filename are required');
+    }
+    
+    // Validate if ID exists
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) {
+        throw new ExpressError(404, 'Listing not found');
+    }
+    
+    await Listing.findByIdAndUpdate(req.params.id, req.body, { runValidators: true });
+    res.redirect(`/listings/${req.params.id}`);
+}));
+
+// Delete Listing Route
+app.delete('/listings/:id', wrapAsync(async (req, res) => {
+    const listing = await Listing.findById(req.params.id);
+    if (!listing) {
+        throw new ExpressError(404, 'Listing not found');
+    }
+    await Listing.findByIdAndDelete(req.params.id);
+    res.redirect('/listings');
+}));
+
+// 404 Handler for unmatched routes
+app.use((req, res, next) => {
+    next(new ExpressError(404, 'Page Not Found'));
 });
 
-app.delete('/listings/:id', async (req, res) => {
-    let id = req.params.id;
-    try{
-        let deletedListing = await Listing.findByIdAndDelete(id);
-        console.log('Deleted Listing:', deletedListing); // for debugging
-        res.redirect('/listings');
-    }catch(err){
-        res.status(500).send('Error deleting listing');
-    }
+// Global Error Handler
+app.use((err, req, res, next) => {
+    let { statusCode = 500, message = 'Something went wrong!' } = err;
+    res.status(statusCode).send(message);
 });
 
 app.listen(port,()=>{
