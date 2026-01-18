@@ -2,44 +2,65 @@
 
 <div class="form-container">
     <h2>Edit your Listing</h2>
-    <form action="/listings/<%= listing._id %>?_method=PUT" method="post">
+    <form action="/listings/<%= listing._id %>?_method=PUT" method="post" novalidate class="needs-validation">
         <div class="form-group">
             <label for="title">Title:</label>
-            <input type="text" id="title" name="title" value="<%= listing.title %>" required/>
+            <input type="text" id="title" name="title" class="form-control" value="<%= listing.title %>" required/>
+            <div class="invalid-feedback">
+              Please provide a listing title.
+            </div>
         </div>
 
         <div class="image-group">
             <div class="form-row">
                 <div class="form-group">
                     <label for="image[url]">Image URL:</label>
-                    <input type="url" id="image[url]" name="image[url]" value="<%= listing.image.url %>"/>
+                    <input type="url" id="image[url]" name="image[url]" class="form-control" value="<%= listing.image.url %>" required/>
+                    <div class="invalid-feedback">
+                      Please provide a valid image URL.
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="image[filename]">Image Filename:</label>
-                    <input type="text" id="image[filename]" name="image[filename]" value="<%= listing.image.filename %>"/>
+                    <input type="text" id="image[filename]" name="image[filename]" class="form-control" value="<%= listing.image.filename %>" required/>
+                    <div class="invalid-feedback">
+                      Please provide an image filename.
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="form-group">
             <label for="description">Description:</label>
-            <textarea id="description" name="description" required><%= listing.description %></textarea>
+            <textarea id="description" name="description" class="form-control" required><%= listing.description %></textarea>
+            <div class="invalid-feedback">
+              Please provide a description.
+            </div>
         </div>
         
         <div class="form-row">
             <div class="form-group">
                 <label for="price">Price (₹):</label>
-                <input type="number" id="price" name="price" value="<%= listing.price %>" required/>
+                <input type="number" id="price" name="price" class="form-control" value="<%= listing.price %>" required/>
+                <div class="invalid-feedback">
+                  Please provide a valid price.
+                </div>
             </div>
             <div class="form-group">
                 <label for="location">Location:</label>
-                <input type="text" id="location" name="location" value="<%= listing.location %>" required/>
+                <input type="text" id="location" name="location" class="form-control" value="<%= listing.location %>" required/>
+                <div class="invalid-feedback">
+                  Please provide a location.
+                </div>
             </div>
         </div>
         
         <div class="form-group">
             <label for="country">Country:</label>
-            <input type="text" id="country" name="country" value="<%= listing.country %>" required/>
+            <input type="text" id="country" name="country" class="form-control" value="<%= listing.country %>" required/>
+            <div class="invalid-feedback">
+              Please provide a country.
+            </div>
         </div>
         
         <div class="form-actions">
