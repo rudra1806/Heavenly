@@ -1,17 +1,26 @@
 <% layout('/layouts/boilerplate') -%>
-<body>
-    <h3>All Listings</h3>
-    <!-- <form action="/listings/new" method="get">
-        <button type="submit">Create New Listing</button>
-    </form> -->
-    <ul>
-        <% for(let listing of listings) { %>
-            <li>
-                <a href="http://localhost:8080/listings/<%= listing._id %>"><h4><%= listing.title %></h4></a>
-                <img src="<%= listing.image.url %>" alt="<%= listing.image.filename %>" width="200"/>
-                <p><b>Price:</b> ₹ <%= listing.price.toLocaleString('en-IN') %></p>
-                <p><b>Country:</b> <%= listing.country %></p>
-            </li>
-        <% } %>
-    </ul>
-</body>
+
+<section class="listings-page">
+  <h3 class="mb-4">All Listings</h3>
+
+  <div class="row g-4">
+    <% for (let listing of listings) { %>
+      <div class="col-sm-6 col-md-4 col-lg-3">
+        <a href="/listings/<%= listing._id %>" class="listing-card-link">
+          <div class="card listing-card h-100">
+            <img 
+              src="<%= listing.image.url %>" 
+              class="card-img-top" 
+              alt="<%= listing.image.filename %>"
+            >
+            <div class="card-body">
+              <p class="card-title"><%= listing.title %></p>
+              <p class="price">₹ <%= listing.price.toLocaleString('en-IN') %> / night</p>
+              <p class="country"><%= listing.country %></p>
+            </div>
+          </div>
+        </a>
+      </div>
+    <% } %>
+  </div>
+</section>

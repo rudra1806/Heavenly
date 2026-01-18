@@ -1,0 +1,61 @@
+/* ===== Listings Page Styling ===== */
+
+.listings-page {
+  padding: 1rem 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Remove default link styling */
+.listing-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Card polish */
+.listing-card {
+  border: none;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.listing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+/* Image */
+.listing-card img {
+  height: 180px;
+  object-fit: cover;
+}
+
+/* Text */
+.listing-card .card-body {
+  padding: 1.25rem;
+}
+
+.listing-card .card-body p {
+  margin-bottom: 0;
+}
+
+.listing-card .card-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-dark);
+}
+
+.listing-card .price {
+  font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: 0.25rem;
+}
+
+.listing-card .country {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0;
+}
