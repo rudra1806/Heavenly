@@ -99,7 +99,7 @@ app.put('/listings/:id', wrapAsync(async (req, res) => {
     if (!image || !image.url || !image.filename) {
         throw new ExpressError(400, 'Image URL and filename are required');
     }
-    
+
     // Validate if ID exists
     const listing = await Listing.findById(req.params.id);
     if (!listing) {
@@ -128,7 +128,7 @@ app.use((req, res, next) => {
 // Global Error Handler
 app.use((err, req, res, next) => {
     let { statusCode = 500, message = 'Something went wrong!' } = err;
-    res.status(statusCode).send(message);
+    res.render('error.ejs', { statusCode, message });
 });
 
 app.listen(port,()=>{
