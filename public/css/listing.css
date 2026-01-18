@@ -1,9 +1,17 @@
 /* ===== Listings Page Styling ===== */
 
 .listings-page {
-  padding: 1rem 1.5rem;
+  padding: 2rem 1.5rem;
   max-width: 1400px;
   margin: 0 auto;
+}
+
+/* Page title */
+.page-title {
+  color: var(--text-dark);
+  font-weight: 700;
+  font-size: 1.75rem;
+  margin-bottom: 1.5rem;
 }
 
 /* Remove default link styling */
