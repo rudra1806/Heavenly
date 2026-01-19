@@ -25,6 +25,7 @@ Heavenly is a property listing platform that enables users to create, view, upda
 ## Features
 
 - **CRUD Operations** – Full create, read, update, and delete functionality for listings
+- **Reviews System** – Users can add star ratings (1-5) and comments on listings
 - **Schema Validation** – Server-side validation using Joi
 - **Async Error Handling** – Centralized error handling with custom error classes
 - **Responsive UI** – Bootstrap-based responsive design
@@ -47,7 +48,8 @@ Heavenly is a property listing platform that enables users to create, view, upda
 ├── app.js                  # Application entry point & route definitions
 ├── schemas.js              # Joi validation schemas
 ├── models/
-│   └── listing.js          # Mongoose schema & model
+│   ├── listing.js          # Listing Mongoose schema & model
+│   └── review.js           # Review Mongoose schema & model
 ├── views/
 │   ├── layouts/            # EJS layout templates
 │   ├── listings/           # CRUD view templates
@@ -59,7 +61,8 @@ Heavenly is a property listing platform that enables users to create, view, upda
 ├── utils/
 │   ├── ExpressError.js     # Custom error class
 │   ├── wrapAsync.js        # Async wrapper utility
-│   └── validateListing.js  # Validation middleware
+│   ├── validateListing.js  # Listing validation middleware
+│   └── validateReview.js   # Review validation middleware
 └── init/
     ├── data.js             # Seed data
     └── index.js            # Database seeder
@@ -102,9 +105,12 @@ The application runs on `http://localhost:8080`
 | `GET` | `/listings/:id/edit` | Render edit form |
 | `PUT` | `/listings/:id` | Update listing |
 | `DELETE` | `/listings/:id` | Delete listing |
+| `POST` | `/listings/:id/reviews` | Add review to listing |
+| `DELETE` | `/listings/:id/reviews/:reviewId` | Delete review |
 
 ## Data Model
 
+### Listing
 ```javascript
 {
   title: String,        // required
@@ -115,7 +121,17 @@ The application runs on `http://localhost:8080`
   },
   price: Number,        // required
   location: String,     // required
-  country: String       // required
+  country: String,      // required
+  reviews: [ObjectId]   // references to Review model
+}
+```
+
+### Review
+```javascript
+{
+  comment: String,      // required, 5-500 chars
+  rating: Number,       // required, 1-5
+  createdAt: Date       // auto-generated
 }
 ```
 

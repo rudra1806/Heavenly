@@ -11,9 +11,11 @@ const ejsMate = require('ejs-mate');
 const wrapAsync = require('./utils/wrapAsync.js');
 const ExpressError = require('./utils/ExpressError.js');
 const validateListing = require('./utils/validateListing.js');
+const validateReview = require('./utils/validateReview.js');
 
 // Models
 const Listing = require('./models/listing.js');
+const Review = require('./models/review.js');
 
 // Database connection
 const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
@@ -62,7 +64,7 @@ app.get('/listings/:id', wrapAsync(async (req, res) => {
     if (!listing) {
         throw new ExpressError(404, 'Listing not found');
     }
-    res.render('listings/show.ejs', { listing });
+    res.render('listings/show.ejs', { listing: await listing.populate('reviews') }); // Populate reviews for display 
 }));
 
 // Edit - Show edit form
@@ -93,6 +95,26 @@ app.delete('/listings/:id', wrapAsync(async (req, res) => {
     }
     res.redirect('/listings');
 }));
+
+// Review Route
+app.post('/listings/:id/reviews',validateReview, wrapAsync(async (req, res) => {
+    const listing = await Listing.findById(req.params.id);
+    const review = new Review(req.body.review);
+    console.log(review); // Debugging line to check review data
+    listing.reviews.push(review);
+    await review.save();
+    await listing.save();
+    res.redirect(`/listings/${listing._id}`);
+}));
+
+//delete review
+app.delete('/listings/:id/reviews/:reviewId', wrapAsync(async (req, res) => {
+    const { id, reviewId } = req.params;
+    await Listing.findByIdAndUpdate(id, { $pull: { reviews: reviewId } }); // Remove review reference from listing
+    await Review.findByIdAndDelete(reviewId);
+    res.redirect(`/listings/${id}`);
+}));
+
 
 // ===== Error Handling =====
 
