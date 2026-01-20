@@ -6,6 +6,10 @@ const path = require('path');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
 
+// Session management
+const session = require('express-session');
+const flash = require('connect-flash');
+
 // Routes
 const listingsRoutes = require('./routes/listings.js');
 const reviewsRoutes = require('./routes/reviews.js');
@@ -28,6 +32,28 @@ app.use(methodOverride('_method'));
 mongoose.connect(MONGO_URL)
     .then(() => console.log('Successfully Connected to MongoDB'))
     .catch(err => console.log('MongoDB Connection Error:', err));
+
+
+// Session configuration
+const sessionOptions = {
+    secret: 'thisshouldbeabettersecret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 1 week
+        maxAge: 1000 * 60 * 60 * 24 * 7
+    }
+};
+app.use(session(sessionOptions));
+app.use(flash());
+
+// Flash message middleware
+app.use((req, res, next) => {
+    res.locals.success = req.flash('success');
+    res.locals.error = req.flash('error');
+    next();
+});
 
 // ===== Routes =====
 
