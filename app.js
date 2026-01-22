@@ -10,9 +10,17 @@ const ejsMate = require('ejs-mate');
 const session = require('express-session');
 const flash = require('connect-flash');
 
+// Authentication
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+
+// User model
+const User = require('./models/user.js');
+
 // Routes
 const listingsRoutes = require('./routes/listings.js');
 const reviewsRoutes = require('./routes/reviews.js');
+const usersRoutes = require('./routes/users.js');
 
 // Custom utilities
 const ExpressError = require('./utils/ExpressError.js');
@@ -48,6 +56,16 @@ const sessionOptions = {
 app.use(session(sessionOptions));
 app.use(flash());
 
+// ===== Passport Configuration =====
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+// ===== Flash Messages Middleware =====
+
 // Flash message middleware
 app.use((req, res, next) => {
     res.locals.success = req.flash('success');
@@ -62,6 +80,11 @@ app.get('/', (req, res) => {
     res.send('Hello, server is up and running!');
 });
 
+// User Routes
+
+app.use('/', usersRoutes);
+
+
 //listings Route
 
 app.use('/', listingsRoutes);
@@ -69,7 +92,6 @@ app.use('/', listingsRoutes);
 // Review Routes
 
 app.use('/', reviewsRoutes);
-
 
 // ===== Error Handling =====
 
