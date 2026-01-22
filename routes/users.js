@@ -26,4 +26,13 @@ router.post('/signup',wrapAsync(async (req, res, next) => {
     }
 }));
 
+router.get('/login', (req, res) => {
+    res.render('../views/users/login.ejs');
+});
+
+router.post('/login', passport.authenticate('local', { failureFlash: true, failureRedirect: '/login' }), (req, res) => {
+    req.flash('success', 'Welcome back!');
+    res.redirect('/listings');
+});
+
 module.exports = router;
