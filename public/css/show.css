@@ -110,6 +110,22 @@
   color: var(--accent-end);
 }
 
+.detail-value.owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.detail-value.owner-badge i {
+  font-size: 0.95rem;
+}
+
 /* Description */
 .listing-description {
   background: var(--bg-light);

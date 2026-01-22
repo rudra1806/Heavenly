@@ -26,6 +26,12 @@
             <span class="detail-label">Country:</span>
             <span class="detail-value"><%= listing.country %></span>
         </div>
+        <div class="detail-item">
+            <span class="detail-label">Hosted by:</span>
+            <span class="detail-value owner-badge">
+                <i class="fa-solid fa-user-circle"></i> @<%= listing.owner.username %>
+            </span>
+        </div>
     </div>
 
     <div class="listing-description">
@@ -33,6 +39,7 @@
         <p><%= listing.description %></p>
     </div>
 
+    <% if (currentUser && listing.owner._id.equals(currentUser._id)) { %>
     <div class="listing-actions">
         <form action="/listings/<%= listing._id %>/edit" method="get">
             <button type="submit">
@@ -47,6 +54,7 @@
             </button>
         </form>
     </div>
+    <% } %>
 
     <div class="review-section">
         <h4>Leave a Review</h4>
