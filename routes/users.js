@@ -26,13 +26,27 @@ router.post('/signup',wrapAsync(async (req, res, next) => {
     }
 }));
 
+// Login routes 
 router.get('/login', (req, res) => {
     res.render('../views/users/login.ejs');
 });
 
+// Handle user login 
 router.post('/login', passport.authenticate('local', { failureFlash: true, failureRedirect: '/login' }), (req, res) => {
     req.flash('success', 'Welcome back!');
     res.redirect('/listings');
+});
+
+
+// logout route 
+router.get('/logout', (req, res, next) => {
+    req.logout((err) => {
+        if (err) {
+            return next(err);
+        }
+        req.flash('success', 'Logged you out!');
+        res.redirect('/listings');
+    });
 });
 
 module.exports = router;
