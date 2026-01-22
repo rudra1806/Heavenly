@@ -1,8 +1,13 @@
-<nav class="navbar navbar-expand-md navbar-light bg-light sticky-top">
+<nav class="navbar navbar-expand-md sticky-top">
   <div class="container-fluid">
+    <!-- Brand -->
     <a class="navbar-brand" href="/">
-      <i class="fa-solid fa-archway"></i> Heavenly</a
-    >
+      <div class="brand-icon">
+        <i class="fa-solid fa-archway"></i>
+      </div>
+      <span>Heavenly</span>
+    </a>
+    
     <button
       class="navbar-toggler"
       type="button"
@@ -11,11 +16,43 @@
     >
       <span class="navbar-toggler-icon"></span>
     </button>
+    
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-      <div class="navbar-nav ms-auto">
-        <a class="nav-link" href="/">Home</a>
-        <a class="nav-link" href="/listings">All Listings</a>
-        <a class="nav-link" href="/listings/new">Create Listing</a>
+      <!-- Center Navigation -->
+      <div class="navbar-nav navbar-center">
+        <a class="nav-link" href="/">
+          <i class="fa-solid fa-home"></i> Home
+        </a>
+        <a class="nav-link" href="/listings">
+          <i class="fa-solid fa-compass"></i> Explore
+        </a>
+        <a class="nav-link" href="/listings/new">
+          <i class="fa-solid fa-plus"></i> Create
+        </a>
+      </div>
+      
+      <!-- Auth Navigation (Right) -->
+      <div class="navbar-nav navbar-auth ms-auto">
+        <% if (!currentUser) { %>
+          <a class="nav-link auth-link" href="/login">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            <span>Login</span>
+          </a>
+          <a class="nav-link auth-btn" href="/signup">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Sign Up</span>
+          </a>
+        <% } else { %>
+          <div class="nav-user-dropdown">
+            <div class="nav-user-avatar">
+              <%= currentUser.username.charAt(0).toUpperCase() %>
+            </div>
+            <span class="nav-username"><%= currentUser.username %></span>
+            <a class="logout-btn" href="/logout">
+              <i class="fa-solid fa-right-from-bracket"></i>
+            </a>
+          </div>
+        <% } %>
       </div>
     </div>
   </div>

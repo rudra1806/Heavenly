@@ -3,6 +3,7 @@ const router = express.Router();
 const passport = require('passport');
 const User = require('../models/user.js');
 const wrapAsync = require('../utils/wrapAsync');
+const { saveRedirectTo } = require('../utils/isLoggedIn.js');
 
 // Register route
 router.get('/signup', (req, res) => {
@@ -10,7 +11,7 @@ router.get('/signup', (req, res) => {
 });
 
 // Handle user registration
-router.post('/signup',wrapAsync(async (req, res, next) => {
+router.post('/signup', saveRedirectTo, wrapAsync(async (req, res, next) => {
     try {
         const { username, email, password } = req.body;
         const user = new User({ username, email });
@@ -18,7 +19,9 @@ router.post('/signup',wrapAsync(async (req, res, next) => {
         req.login(registeredUser, err => {
             if (err) return next(err);
             req.flash('success', 'Welcome to Heavenly!');
-            res.redirect('/listings');
+            const redirectUrl = res.locals.redirectTo || '/listings';
+            delete req.session.redirectTo; // Clear after successful signup
+            res.redirect(redirectUrl);
         });
     } catch (e) {
         req.flash('error', e.message);
@@ -32,9 +35,11 @@ router.get('/login', (req, res) => {
 });
 
 // Handle user login 
-router.post('/login', passport.authenticate('local', { failureFlash: true, failureRedirect: '/login' }), (req, res) => {
+router.post('/login', saveRedirectTo, passport.authenticate('local', { failureFlash: true, failureRedirect: '/login' }), (req, res) => {
+    const redirectUrl = res.locals.redirectTo || '/listings';
+    delete req.session.redirectTo; // Clear after successful login
     req.flash('success', 'Welcome back!');
-    res.redirect('/listings');
+    res.redirect(redirectUrl);
 });
 
 
