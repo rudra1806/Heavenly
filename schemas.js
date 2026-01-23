@@ -67,4 +67,29 @@ const listingSchema = Joi.object({
     }).optional()
 });
 
-module.exports = { listingSchema };
+const reviewSchema = Joi.object({
+    rating: Joi.number()
+        .min(1)
+        .max(5)
+        .required()
+        .messages({
+            'number.base': 'Rating must be a number',
+            'number.min': 'Rating must be at least 1',
+            'number.max': 'Rating cannot exceed 5',
+            'any.required': 'Rating is required'
+        }),
+    
+    comment: Joi.string()
+        .trim()
+        .min(5)
+        .max(500)
+        .required()
+        .messages({
+            'string.empty': 'Comment is required',
+            'string.min': 'Comment must be at least 5 characters',
+            'string.max': 'Comment cannot exceed 500 characters'
+        })
+});
+
+
+module.exports = { listingSchema, reviewSchema };

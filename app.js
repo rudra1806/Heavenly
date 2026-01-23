@@ -6,14 +6,24 @@ const path = require('path');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
 
+// Session management
+const session = require('express-session');
+const flash = require('connect-flash');
+
+// Authentication
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+
+// User model
+const User = require('./models/user.js');
+
+// Routes
+const listingsRoutes = require('./routes/listings.js');
+const reviewsRoutes = require('./routes/reviews.js');
+const usersRoutes = require('./routes/users.js');
 
 // Custom utilities
-const wrapAsync = require('./utils/wrapAsync.js');
 const ExpressError = require('./utils/ExpressError.js');
-const validateListing = require('./utils/validateListing.js');
-
-// Models
-const Listing = require('./models/listing.js');
 
 // Database connection
 const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
@@ -31,6 +41,39 @@ mongoose.connect(MONGO_URL)
     .then(() => console.log('Successfully Connected to MongoDB'))
     .catch(err => console.log('MongoDB Connection Error:', err));
 
+
+// Session configuration
+const sessionOptions = {
+    secret: 'thisshouldbeabettersecret',
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7, // 1 week
+        maxAge: 1000 * 60 * 60 * 24 * 7
+    }
+};
+app.use(session(sessionOptions));
+app.use(flash());
+
+// ===== Passport Configuration =====
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
+
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
+// ===== Flash Messages Middleware =====
+
+// Flash message middleware
+app.use((req, res, next) => {
+    res.locals.currentUser = req.user;
+    res.locals.success = req.flash('success');
+    res.locals.error = req.flash('error');
+    next();
+});
+
 // ===== Routes =====
 
 // Home
@@ -38,61 +81,18 @@ app.get('/', (req, res) => {
     res.send('Hello, server is up and running!');
 });
 
-// Index - Show all listings
-app.get('/listings', wrapAsync(async (req, res) => {
-    const allListings = await Listing.find({});
-    res.render('listings/index.ejs', { listings: allListings });
-}));
+// User Routes
 
-// New - Show create form
-app.get('/listings/new', (req, res) => {
-    res.render('listings/new.ejs');
-});
+app.use('/', usersRoutes);
 
-// Create - Add new listing
-app.post('/listings', validateListing, wrapAsync(async (req, res) => {
-    const newListing = new Listing(req.body);
-    await newListing.save();
-    res.redirect('/listings');
-}));
 
-// Show - Display single listing
-app.get('/listings/:id', wrapAsync(async (req, res) => {
-    const listing = await Listing.findById(req.params.id);
-    if (!listing) {
-        throw new ExpressError(404, 'Listing not found');
-    }
-    res.render('listings/show.ejs', { listing });
-}));
+//listings Route
 
-// Edit - Show edit form
-app.get('/listings/:id/edit', wrapAsync(async (req, res) => {
-    const listing = await Listing.findById(req.params.id);
-    if (!listing) {
-        throw new ExpressError(404, 'Listing not found');
-    }
-    res.render('listings/edit.ejs', { listing });
-}));
+app.use('/', listingsRoutes);
 
-// Update - Modify existing listing
-app.put('/listings/:id', validateListing, wrapAsync(async (req, res) => {
-    const { id } = req.params;
-    const listing = await Listing.findByIdAndUpdate(id, req.body, { runValidators: true, new: true });
-    if (!listing) {
-        throw new ExpressError(404, 'Listing not found');
-    }
-    res.redirect(`/listings/${id}`);
-}));
+// Review Routes
 
-// Delete - Remove listing
-app.delete('/listings/:id', wrapAsync(async (req, res) => {
-    const { id } = req.params;
-    const listing = await Listing.findByIdAndDelete(id);
-    if (!listing) {
-        throw new ExpressError(404, 'Listing not found');
-    }
-    res.redirect('/listings');
-}));
+app.use('/', reviewsRoutes);
 
 // ===== Error Handling =====
 

@@ -1,7 +1,15 @@
 const mongoose = require("mongoose");
 const initData = require("./data.js");
 const Listing = require("../models/listing.js");
+const User = require("../models/user.js");
 const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
+
+// Superuser credentials
+const SUPERUSER = {
+    username: 'admin',
+    email: 'admin@heavenly.com',
+    password: 'admin123'
+};
 
 main()
 .then(() => console.log('Successfully Connected to MongoDB'))
@@ -12,9 +20,27 @@ async function main() {
 }
 
 const initDB = async () => {
-  await Listing.deleteMany({});
-  await Listing.insertMany(initData.data);
-  console.log("data was initialized Successfully !");
+    // Clear existing data
+    await Listing.deleteMany({});
+    await User.deleteMany({});
+    
+    // Create superuser
+    const superuser = new User({
+        username: SUPERUSER.username,
+        email: SUPERUSER.email
+    });
+    const registeredUser = await User.register(superuser, SUPERUSER.password);
+    console.log(`Superuser '${SUPERUSER.username}' created successfully!`);
+    
+    // Add owner to all listings
+    const listingsWithOwner = initData.data.map((listing) => ({
+        ...listing,
+        owner: registeredUser._id
+    }));
+    
+    await Listing.insertMany(listingsWithOwner);
+    console.log("Data was initialized successfully!");
+    console.log(`All listings owned by superuser: ${SUPERUSER.username}`);
 };
 
 initDB();
