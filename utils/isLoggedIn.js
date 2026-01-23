@@ -12,20 +12,6 @@ module.exports = function isLoggedIn(req, res, next) {
                 reviewData: req.body.review
             };
             req.session.redirectTo = `/listings/${listingId}`;
-        } 
-        // For DELETE requests to reviews, store the delete operation in session
-        else if (req.method === 'DELETE' && req.originalUrl.includes('/reviews')) {
-            // Extract listing ID and review ID from URL: /listings/:id/reviews/:reviewId
-            // Remove query string before matching
-            const urlWithoutQuery = req.originalUrl.split('?')[0]; // Remove query string if present 
-            const match = urlWithoutQuery.match(/\/listings\/([^\/]+)\/reviews\/([^\/]+)/); // Regex to capture listing ID and review ID
-            if (match) {
-                req.session.pendingDeleteReview = {
-                    listingId: match[1],
-                    reviewId: match[2]
-                };
-                req.session.redirectTo = `/listings/${match[1]}`;
-            }
         } else {
             req.session.redirectTo = req.originalUrl;
         }
@@ -42,9 +28,6 @@ module.exports.saveRedirectTo = function(req, res, next) {
     }
     if (req.session.pendingReview) {
         res.locals.pendingReview = req.session.pendingReview;
-    }
-    if (req.session.pendingDeleteReview) {
-        res.locals.pendingDeleteReview = req.session.pendingDeleteReview;
     }
     next();
 }

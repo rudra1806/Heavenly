@@ -3,6 +3,7 @@ const router = express.Router();
 const wrapAsync = require('../utils/wrapAsync.js');
 const validateReview = require('../utils/validateReview.js');
 const isLoggedIn = require('../utils/isLoggedIn.js');
+const isAuthor = require('../utils/isAuthor.js');
 
 // Models
 const Listing = require('../models/listing.js');
@@ -12,7 +13,8 @@ const Review = require('../models/review.js');
 router.post('/listings/:id/reviews',isLoggedIn, validateReview, wrapAsync(async (req, res) => {
     const listing = await Listing.findById(req.params.id);
     const review = new Review(req.body.review);
-    console.log(review); // Debugging line to check review data
+    review.author = req.user._id; // Associate review with logged-in user
+    // console.log(review); // Debugging line to check review data
     listing.reviews.push(review);
     await review.save();
     await listing.save();
@@ -21,7 +23,7 @@ router.post('/listings/:id/reviews',isLoggedIn, validateReview, wrapAsync(async 
 }));
 
 //delete review
-router.delete('/listings/:id/reviews/:reviewId',isLoggedIn, wrapAsync(async (req, res) => {
+router.delete('/listings/:id/reviews/:reviewId',isLoggedIn,isAuthor, wrapAsync(async (req, res) => {
     const { id, reviewId } = req.params;
     await Listing.findByIdAndUpdate(id, { $pull: { reviews: reviewId } }); // Remove review reference from listing
     await Review.findByIdAndDelete(reviewId);

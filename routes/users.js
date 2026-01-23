@@ -6,6 +6,7 @@ const wrapAsync = require('../utils/wrapAsync');
 const { saveRedirectTo } = require('../utils/isLoggedIn.js');
 const Listing = require('../models/listing.js');
 const Review = require('../models/review.js');
+const { reviewSchema } = require('../schemas.js');
 
 // Register route
 router.get('/signup', (req, res) => {
@@ -34,8 +35,11 @@ router.post('/signup', saveRedirectTo, wrapAsync(async (req, res, next) => {
             if (res.locals.pendingReview) {
                 const { listingId, reviewData } = res.locals.pendingReview;
                 const listing = await Listing.findById(listingId);
-                if (listing && reviewData) {
+                // Validate the review data before saving
+                const { error } = reviewSchema.validate(reviewData);
+                if (listing && reviewData && !error) {
                     const review = new Review(reviewData);
+                    review.author = registeredUser._id; // Associate review with new user
                     listing.reviews.push(review);
                     await review.save();
                     await listing.save();
@@ -43,18 +47,14 @@ router.post('/signup', saveRedirectTo, wrapAsync(async (req, res, next) => {
                     delete req.session.redirectTo;
                     req.flash('success', 'Welcome to Heavenly! Your review has been added.');
                     return res.redirect(`/listings/${listingId}`);
+                } else {
+                    delete req.session.pendingReview;
+                    // If validation failed, redirect to listing so they can try again
+                    if (error) {
+                        req.flash('error', 'Review validation failed. Please try again.');
+                        return res.redirect(`/listings/${listingId}`);
+                    }
                 }
-            }
-            
-            // Check if there's a pending review to delete
-            if (res.locals.pendingDeleteReview) {
-                const { listingId, reviewId } = res.locals.pendingDeleteReview;
-                await Listing.findByIdAndUpdate(listingId, { $pull: { reviews: reviewId } });
-                await Review.findByIdAndDelete(reviewId);
-                delete req.session.pendingDeleteReview;
-                delete req.session.redirectTo;
-                req.flash('success', 'Welcome to Heavenly! The review has been deleted.');
-                return res.redirect(`/listings/${listingId}`);
             }
             
             req.flash('success', 'Welcome to Heavenly!');
@@ -88,8 +88,11 @@ router.post('/login', saveRedirectTo, passport.authenticate('local', { failureFl
     if (res.locals.pendingReview) {
         const { listingId, reviewData } = res.locals.pendingReview;
         const listing = await Listing.findById(listingId);
-        if (listing && reviewData) {
+        // Validate the review data before saving
+        const { error } = reviewSchema.validate(reviewData);
+        if (listing && reviewData && !error) {
             const review = new Review(reviewData);
+            review.author = req.user._id; // Associate review with logged-in user
             listing.reviews.push(review);
             await review.save();
             await listing.save();
@@ -97,18 +100,14 @@ router.post('/login', saveRedirectTo, passport.authenticate('local', { failureFl
             delete req.session.redirectTo;
             req.flash('success', 'Welcome back! Your review has been added.');
             return res.redirect(`/listings/${listingId}`);
+        } else {
+            delete req.session.pendingReview;
+            // If validation failed, redirect to listing so they can try again
+            if (error) {
+                req.flash('error', 'Review validation failed. Please try again.');
+                return res.redirect(`/listings/${listingId}`);
+            }
         }
-    }
-    
-    // Check if there's a pending review to delete
-    if (res.locals.pendingDeleteReview) {
-        const { listingId, reviewId } = res.locals.pendingDeleteReview;
-        await Listing.findByIdAndUpdate(listingId, { $pull: { reviews: reviewId } });
-        await Review.findByIdAndDelete(reviewId);
-        delete req.session.pendingDeleteReview;
-        delete req.session.redirectTo;
-        req.flash('success', 'Welcome back! The review has been deleted.');
-        return res.redirect(`/listings/${listingId}`);
     }
     
     const redirectUrl = res.locals.redirectTo || '/listings';
