@@ -4,9 +4,20 @@ const passport = require('passport');
 const User = require('../models/user.js');
 const wrapAsync = require('../utils/wrapAsync');
 const { saveRedirectTo } = require('../utils/isLoggedIn.js');
+const Listing = require('../models/listing.js');
+const Review = require('../models/review.js');
 
 // Register route
 router.get('/signup', (req, res) => {
+    // Save the referer URL if user came from a listing page (voluntary signup from navbar)
+    if (!req.session.redirectTo && req.get('Referer')) {
+        const referer = req.get('Referer');
+        const url = new URL(referer);
+        // Only save if it's a local path (not login/signup pages)
+        if (url.pathname && !url.pathname.includes('/login') && !url.pathname.includes('/signup')) {
+            req.session.redirectTo = url.pathname;
+        }
+    }
     res.render('../views/users/signup.ejs');
 });
 
@@ -16,8 +27,36 @@ router.post('/signup', saveRedirectTo, wrapAsync(async (req, res, next) => {
         const { username, email, password } = req.body;
         const user = new User({ username, email });
         const registeredUser = await User.register(user, password);
-        req.login(registeredUser, err => {
+        req.login(registeredUser, async (err) => {
             if (err) return next(err);
+            
+            // Check if there's a pending review to submit
+            if (res.locals.pendingReview) {
+                const { listingId, reviewData } = res.locals.pendingReview;
+                const listing = await Listing.findById(listingId);
+                if (listing && reviewData) {
+                    const review = new Review(reviewData);
+                    listing.reviews.push(review);
+                    await review.save();
+                    await listing.save();
+                    delete req.session.pendingReview;
+                    delete req.session.redirectTo;
+                    req.flash('success', 'Welcome to Heavenly! Your review has been added.');
+                    return res.redirect(`/listings/${listingId}`);
+                }
+            }
+            
+            // Check if there's a pending review to delete
+            if (res.locals.pendingDeleteReview) {
+                const { listingId, reviewId } = res.locals.pendingDeleteReview;
+                await Listing.findByIdAndUpdate(listingId, { $pull: { reviews: reviewId } });
+                await Review.findByIdAndDelete(reviewId);
+                delete req.session.pendingDeleteReview;
+                delete req.session.redirectTo;
+                req.flash('success', 'Welcome to Heavenly! The review has been deleted.');
+                return res.redirect(`/listings/${listingId}`);
+            }
+            
             req.flash('success', 'Welcome to Heavenly!');
             const redirectUrl = res.locals.redirectTo || '/listings';
             delete req.session.redirectTo; // Clear after successful signup
@@ -31,16 +70,53 @@ router.post('/signup', saveRedirectTo, wrapAsync(async (req, res, next) => {
 
 // Login routes 
 router.get('/login', (req, res) => {
+    // Save the referer URL if user came from a listing page (voluntary login from navbar)
+    if (!req.session.redirectTo && req.get('Referer')) {
+        const referer = req.get('Referer');
+        const url = new URL(referer);
+        // Only save if it's a local path (not login/signup pages)
+        if (url.pathname && !url.pathname.includes('/login') && !url.pathname.includes('/signup')) {
+            req.session.redirectTo = url.pathname;
+        }
+    }
     res.render('../views/users/login.ejs');
 });
 
 // Handle user login 
-router.post('/login', saveRedirectTo, passport.authenticate('local', { failureFlash: true, failureRedirect: '/login' }), (req, res) => {
+router.post('/login', saveRedirectTo, passport.authenticate('local', { failureFlash: true, failureRedirect: '/login' }), wrapAsync(async (req, res) => {
+    // Check if there's a pending review to submit
+    if (res.locals.pendingReview) {
+        const { listingId, reviewData } = res.locals.pendingReview;
+        const listing = await Listing.findById(listingId);
+        if (listing && reviewData) {
+            const review = new Review(reviewData);
+            listing.reviews.push(review);
+            await review.save();
+            await listing.save();
+            delete req.session.pendingReview;
+            delete req.session.redirectTo;
+            req.flash('success', 'Welcome back! Your review has been added.');
+            return res.redirect(`/listings/${listingId}`);
+        }
+    }
+    
+    // Check if there's a pending review to delete
+    if (res.locals.pendingDeleteReview) {
+        const { listingId, reviewId } = res.locals.pendingDeleteReview;
+        await Listing.findByIdAndUpdate(listingId, { $pull: { reviews: reviewId } });
+        await Review.findByIdAndDelete(reviewId);
+        delete req.session.pendingDeleteReview;
+        delete req.session.redirectTo;
+        req.flash('success', 'Welcome back! The review has been deleted.');
+        return res.redirect(`/listings/${listingId}`);
+    }
+    
     const redirectUrl = res.locals.redirectTo || '/listings';
+    // console.log('Redirecting to:', redirectUrl); // Debugging line
     delete req.session.redirectTo; // Clear after successful login
     req.flash('success', 'Welcome back!');
     res.redirect(redirectUrl);
-});
+}));
 
 
 // logout route 
