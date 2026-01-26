@@ -1,18 +1,16 @@
 /* ===== Base / Global Styles ===== */
 
 :root {
-  --accent-start: #c084fc;
-  --accent-end: #818cf8;
-
-  --text-dark: #111827;
-  --text-main: #374151;
-  --text-muted: #6b7280;
-
-  --bg-light: #ffffff;
-  --bg-soft: #fafafa;
-
-  --border-light: rgba(0, 0, 0, 0.06);
-  --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.06);
+  --primary-dark: #11120D;
+  --secondary: #565449;
+  --surface: #D8CFBC;
+  --bg-main: #FFFBF4;
+  --text-dark: #11120D;
+  --text-main: #333333;
+  --text-muted: #565449;
+  --border-light: rgba(86, 84, 73, 0.2);
+  --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 * {
@@ -22,12 +20,192 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Inter', 'Open Sans', system-ui, -apple-system, sans-serif;
   color: var(--text-main);
-  background: var(--bg-light);
+  background: var(--bg-main);
   line-height: 1.6;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', 'Playfair Display', serif;
+  color: var(--text-dark);
 }
 
 a {
   text-decoration: none;
+}
+
+
+/* ===== Flash Messages ===== */
+.container.mt-3 {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1040;
+  width: 90%;
+  max-width: 600px;
+  pointer-events: none;
+}
+
+.container.mt-3 .alert {
+  pointer-events: auto;
+  margin-bottom: 0;
+  border-radius: 10px;
+  border: none;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alert-success {
+  background: #d1fae5;
+  color: #065f46;
+  border-left: 4px solid #10b981;
+}
+
+.alert-danger {
+  background: #fee2e2;
+  color: #991b1b;
+  border-left: 4px solid #ef4444;
+}
+
+.alert .btn-close {
+  opacity: 0.5;
+}
+
+.alert .btn-close:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .container.mt-3 {
+    top: 70px;
+    width: 95%;
+  }
+  
+  .alert {
+    font-size: 0.85rem;
+    padding: 0.875rem 1rem;
+  }
+}
+
+/* ===== Error Page ===== */
+.error-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 10.5rem;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 600px;
+}
+
+.error-icon {
+  font-size: 4rem;
+  color: var(--secondary);
+  margin-bottom: 1.5rem;
+}
+
+.error-code {
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  font-size: 1.5rem;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.error-description {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-error-primary,
+.btn-error-secondary {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-error-primary {
+  background: var(--secondary);
+  color: var(--bg-main);
+  box-shadow: var(--shadow-card);
+}
+
+.btn-error-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  color: var(--bg-main);
+}
+
+.btn-error-secondary {
+  background: transparent;
+  color: var(--text-dark);
+  border: 2px solid var(--secondary);
+}
+
+.btn-error-secondary:hover {
+  background: var(--primary-dark);
+  color: var(--bg-main);
+  border-color: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .error-page {
+    padding-top: 100px;
+  }
+  
+  .error-code {
+    font-size: 3rem;
+  }
+  
+  .error-message {
+    font-size: 1.25rem;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .btn-error-primary,
+  .btn-error-secondary {
+    width: 100%;
+    justify-content: center;
+  }
 }
