@@ -1,11 +1,11 @@
 /* ===== Footer Styling ===== */
 
 .site-footer {
-  background: var(--bg-soft);
-  border-top: 1px solid var(--border-light);
+  background: var(--primary-dark);
+  border-top: none;
   padding: 3rem 1.5rem;
   font-size: 0.95rem;
-  color: var(--text-muted);
+  color: var(--bg-main);
 }
 
 .footer-inner {
@@ -28,23 +28,28 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  background: var(--bg-light);
+  background: var(--secondary);
   display: grid;
   place-items: center;
-  color: var(--text-main);
+  color: var(--bg-main);
   box-shadow: var(--shadow-soft);
   transition: all 0.25s ease;
 }
 
 .footer-socials a:hover {
   transform: translateY(-3px);
-  color: var(--accent-end);
+  background: var(--surface);
+  color: var(--primary-dark);
 }
 
 /* Copyright */
+.footer-copy {
+  color: var(--bg-main);
+}
+
 .footer-copy span {
   font-weight: 600;
-  color: var(--text-dark);
+  color: var(--bg-main);
 }
 
 /* Footer links */
@@ -57,7 +62,7 @@
 
 .footer-links a {
   position: relative;
-  color: var(--text-muted);
+  color: var(--bg-main);
   transition: color 0.25s ease;
 }
 
@@ -68,12 +73,12 @@
   bottom: -4px;
   width: 0%;
   height: 1.5px;
-  background: var(--accent-end);
+  background: var(--surface);
   transition: width 0.3s ease;
 }
 
 .footer-links a:hover {
-  color: var(--text-dark);
+  color: var(--surface);
 }
 
 .footer-links a:hover::after {
@@ -88,5 +93,3 @@
     text-align: left;
   }
 }
-
-/* ===== End Footer ===== */
