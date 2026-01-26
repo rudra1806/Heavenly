@@ -15,7 +15,7 @@ A full-stack property rental web application built with Node.js, Express, MongoD
 
 ## Overview
 
-Heavenly is a property listing platform that enables users to create, view, update, and delete rental property listings. Users can register, login, and leave reviews on properties. Built following the MVC architecture pattern with server-side rendering.
+Heavenly is a property listing platform that enables users to create, view, update, and delete rental property listings. Users can register, login, and leave reviews on properties. Built following the MVC architecture pattern with server-side rendering and featuring a paradise-inspired design theme that makes every stay feel heavenly.
 
 ---
 
@@ -46,10 +46,14 @@ Heavenly is a property listing platform that enables users to create, view, upda
 - **Flash Messages** – User feedback for actions (success/error)
 
 ### 🎨 UI/UX
-- **Responsive Design** – Bootstrap 5-based responsive layout
-- **Custom Styling** – Modular CSS architecture
+- **Heavenly Theme** – Custom-designed paradise-inspired aesthetic with custom logo
+- **Responsive Design** – Bootstrap 5-based responsive layout with mobile-first approach
+- **Custom Styling** – Modular CSS architecture with warm, earthy color palette
 - **Interactive Star Rating** – Visual star picker for reviews
 - **Form Validation** – Client-side validation feedback
+- **Beautiful Landing Page** – Hero section with logo and features showcase
+- **Smooth Animations** – 0.3s transitions throughout
+- **Dark Navigation** – Professional dark navbar and footer with custom branding
 
 ---
 
@@ -104,12 +108,13 @@ heavenly/
 │   │   ├── new.ejs           # Create listing form
 │   │   └── edit.ejs          # Edit listing form
 │   ├── users/
-│   │   ├── login.ejs         # Login form
-│   │   └── signup.ejs        # Registration form
+│   │   ├── login.ejs         # Login form with split layout
+│   │   └── signup.ejs        # Registration form with split layout
 │   ├── includes/
 │   │   ├── navbar.ejs        # Navigation bar
 │   │   ├── footer.ejs        # Footer
 │   │   └── flash.ejs         # Flash messages
+│   ├── home.ejs              # Landing page with hero, logo & features
 │   └── error.ejs             # Error page
 │
 ├── public/
