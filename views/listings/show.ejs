@@ -101,7 +101,7 @@
                             <div class="review-header">
                                 <div class="review-user">
                                     <i class="fa-solid fa-user-circle"></i>
-                                    <span class="review-author"><%= review.author.username %></span>
+                                    <span class="review-author"><%= review.author %></span>
                                 </div>
                                 <% if (currentUser && review.author._id.equals(currentUser._id)) { %>
                                 <form action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE" method="post" class="delete-review-form">
