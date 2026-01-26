@@ -78,7 +78,7 @@ app.use((req, res, next) => {
 
 // Home
 app.get('/', (req, res) => {
-    res.send('Hello, server is up and running!');
+    res.render('home.ejs');
 });
 
 // User Routes

@@ -1,5 +1,6 @@
 <% layout('/layouts/boilerplate') -%>
 
+<div class="form-page-wrapper">
 <div class="form-container">
     <h2>Edit your Listing</h2>
     <form action="/listings/<%= listing._id %>?_method=PUT" method="post" novalidate class="needs-validation">
@@ -68,4 +69,5 @@
             <button type="reset">Clear</button>
         </div>
     </form>
+</div>
 </div>
