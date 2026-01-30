@@ -1,0 +1,5 @@
+# Ignore styling and template files from GitHub language statistics
+*.css linguist-ignore
+
+# Ignore images and assets
+*.svg linguist-ignore
