@@ -13,6 +13,11 @@ const Listing = require('../models/listing.js');
 
 const listingController = require('../controllers/listing.js');
 
+
+// Here we could use router.route() for cleaner code, but keeping it explicit for clarity and ease of understanding.
+
+
+
 // Index - Show all listings
 router.get('/listings', wrapAsync(listingController.index));
 
