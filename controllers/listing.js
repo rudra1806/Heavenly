@@ -1,4 +1,5 @@
 const Listing = require('../models/listing.js');
+const { cloudinary } = require('../cloudConfig.js');
 
 // Index - Show all listings
 module.exports.index = async (req, res) => {
@@ -72,6 +73,11 @@ module.exports.update = async (req, res) => {
     
     // If a new file was uploaded, update the image URL and filename
     if (req.file) {
+        // Delete old image from Cloudinary if it exists and is not the default
+        if (existingListing.image.filename && existingListing.image.filename !== 'default.jpg') {
+            await cloudinary.uploader.destroy(existingListing.image.filename);
+        }
+        
         listing.image = {
             url: req.file.path,
             filename: req.file.filename
@@ -91,6 +97,12 @@ module.exports.delete = async (req, res) => {
         req.flash('error', 'Listing not found!');
         return res.redirect('/listings');
     }
+    
+    // Delete image from Cloudinary if it exists and is not the default
+    if (listing.image.filename && listing.image.filename !== 'default.jpg') {
+        await cloudinary.uploader.destroy(listing.image.filename);
+    }
+    
     req.flash('success', 'Successfully deleted the listing!');
     res.redirect('/listings');
 };
