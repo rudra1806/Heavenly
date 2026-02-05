@@ -14,6 +14,15 @@ module.exports.newForm = (req, res) => {
 // create - Add new listing
 module.exports.create = async (req, res) => {
     const newListing = new Listing(req.body);
+    
+    // If file was uploaded, update the image URL and filename
+    if (req.file) {
+        newListing.image = {
+            url: req.file.path,
+            filename: req.file.filename
+        };
+    }
+    
     newListing.owner = req.user._id; // Set the owner to current logged in user
     await newListing.save();
     req.flash('success', 'Successfully created a new listing!');
@@ -46,11 +55,30 @@ module.exports.editForm = async (req, res) => {
 
 module.exports.update = async (req, res) => {
     const { id } = req.params;
-    const listing = await Listing.findByIdAndUpdate(id, req.body, { runValidators: true, new: true });
-    if (!listing) {
+    
+    // Get the existing listing first to check if it exists
+    const existingListing = await Listing.findById(id);
+    if (!existingListing) {
         req.flash('error', 'Listing not found!');
         return res.redirect('/listings');
     }
+    
+    // Remove empty image object from req.body to prevent overwriting existing image
+    if (req.body.image && !req.file) {
+        delete req.body.image;
+    }
+    
+    const listing = await Listing.findByIdAndUpdate(id, req.body, { runValidators: true, new: true });
+    
+    // If a new file was uploaded, update the image URL and filename
+    if (req.file) {
+        listing.image = {
+            url: req.file.path,
+            filename: req.file.filename
+        };
+        await listing.save();
+    }
+    
     req.flash('success', 'Successfully updated the listing!');
     res.redirect(`/listings/${id}`);
 };
