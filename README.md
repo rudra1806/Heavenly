@@ -1,6 +1,6 @@
 # Heavenly
 
-A full-stack property rental web application built with Node.js, Express, MongoDB, and EJS. Features complete user authentication, authorization, and a comprehensive review system with MVC architecture.
+A full-stack property rental web application built with Node.js, Express, MongoDB, and EJS. Features complete user authentication, authorization, comprehensive review system, and interactive maps with automatic geocoding. Built with MVC architecture and free, open-source mapping technology.
 
 [![Node.js](https://img.shields.io/badge/Node.js-v14+-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express.js-v5-000000?logo=express&logoColor=white)](https://expressjs.com/)
@@ -10,12 +10,14 @@ A full-stack property rental web application built with Node.js, Express, MongoD
 [![EJS](https://img.shields.io/badge/EJS-Template%20Engine-B4CA65?logo=ejs&logoColor=black)](https://ejs.co/)
 [![Joi](https://img.shields.io/badge/Joi-Validation-4A90E2)](https://joi.dev/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
+[![MapLibre](https://img.shields.io/badge/MapLibre-v4.7.1-396CB2?logo=maplibre&logoColor=white)](https://maplibre.org/)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-Image%20Cloud-3448C5?logo=cloudinary&logoColor=white)](https://cloudinary.com/)
 
 ---
 
 ## Overview
 
-Heavenly is a modern property listing platform that enables users to create, view, update, and delete rental property listings. Users can register, login, and leave reviews on properties. Built following the **MVC (Model-View-Controller)** architecture pattern with server-side rendering and featuring a paradise-inspired design theme that makes every stay feel heavenly.
+Heavenly is a modern property listing platform that enables users to create, view, update, and delete rental property listings. Users can register, login, and leave reviews on properties. **Interactive maps automatically display each listing's location with no API keys required.** Built following the **MVC (Model-View-Controller)** architecture pattern with server-side rendering and featuring a paradise-inspired design theme that makes every stay feel heavenly.
 
 ---
 
@@ -24,10 +26,24 @@ Heavenly is a modern property listing platform that enables users to create, vie
 ### 🏠 Listings Management
 - **Full CRUD Operations** – Create, read, update, and delete property listings with ease
 - **Owner Authorization** – Only listing owners can edit or delete their listings
-- **Image Support** – Custom image URLs with default fallback images
+- **Cloud Image Upload** – Direct image upload to Cloudinary with custom filename support
+- **Automatic Image Management** – Old images automatically deleted when updating or removing listings
+- **Multiple Format Support** – Accepts JPG, JPEG, PNG, and AVIF image formats
+- **Default Fallback Images** – Beautiful default images when no upload provided
 - **Detailed Property Info** – Title, description, price, location, and country fields
 - **Owner Display** – Each listing shows the owner's username
 - **Listing Not Found Handling** – Graceful error handling with flash messages
+
+### 🗺️ Interactive Maps & Geolocation
+- **MapLibre GL JS Integration** – Free, open-source map rendering with no API keys required
+- **Auto-Geocoding** – Automatic coordinate lookup using Nominatim (OpenStreetMap) API
+- **Single Listing Maps** – Individual property location display with custom markers and popups
+- **Cluster Maps** – Index page shows all listings with intelligent marker clustering
+- **GeoJSON Format** – Standard geographic data structure for coordinates
+- **Invalid Location Filtering** – Gracefully handles ungeocoded or invalid locations
+- **Responsive Map Design** – Beautiful map styling with branded colors and mobile support
+- **Interactive Features** – Click clusters to zoom, click markers for listing details
+- **Migration Script** – One-time geocoding tool for existing listings
 
 ### 👤 Authentication & Authorization
 - **User Registration** – Secure signup with email, username, and password hashing
@@ -54,18 +70,23 @@ Heavenly is a modern property listing platform that enables users to create, vie
 - **Error Handling** – Custom ExpressError class with global error handler
 - **Async Error Wrapper** – wrapAsync utility for clean async/await error handling
 - **404 Handling** – Custom 404 page for unmatched routes
+- **Environment Variables** – Sensitive data protected using dotenv
+- **File Upload Security** – Restricted file types and format validation
+- **Password Encryption** – Automatic password hashing with passport-local-mongoose
 
 ### 🎨 Modern UI/UX
 - **Heavenly Theme** – Custom-designed paradise-inspired aesthetic with custom logo
 - **Responsive Design** – Bootstrap 5-based responsive layout with mobile-first approach
-- **Modular CSS Architecture** – Separate stylesheets for base, navbar, footer, listings, forms, and auth pages
+- **Modular CSS Architecture** – Separate stylesheets for base, navbar, footer, listings, forms, maps, and auth pages
 - **Warm Color Palette** – Earthy tones with golden accents (#d4a574, #8b6f47)
 - **Interactive Star Rating** – Visual star picker for reviews with hover effects
 - **Client-Side Form Validation** – Bootstrap validation with real-time feedback
+- **File Upload UI** – Intuitive file input with current image preview on edit pages
 - **Beautiful Landing Page** – Hero section with logo, tagline, and features showcase
 - **Smooth Animations** – 0.3s transitions throughout the application
 - **Dark Navigation** – Professional dark navbar (#2c3e50) and footer with custom branding
 - **Split Layout Auth Pages** – Modern login/signup pages with image and form sections
+- **Interactive Maps** – Beautiful map displays with clustering and custom markers
 
 ### 🏗️ Architecture & Code Quality
 - **MVC Pattern** – Clean separation of concerns with Models, Views, and Controllers
@@ -75,6 +96,8 @@ Heavenly is a modern property listing platform that enables users to create, vie
 - **Partial Views** – Reusable navbar, footer, and flash message components
 - **Method Override** – RESTful routes with PUT and DELETE support
 - **Express 5** – Latest Express.js version with improved performance
+- **Environment Configuration** – dotenv for managing sensitive credentials
+- **Auto-reload Development** – nodemon for instant server restarts during development
 
 ---
 
@@ -82,6 +105,11 @@ Heavenly is a modern property listing platform that enables users to create, vie
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
+| Maps | MapLibre GL JS v4.7.1 | Interactive map rendering |
+| Geocoding | Nominatim API | Free location-to-coordinates conversion |
+| Image Storage | Cloudinary | Cloud-based image hosting and management |
+| File Upload | Multer v2 + multer-storage-cloudinary | Handle multipart/form-data file uploads |
+| Environment | dotenv | Environment variable management |
 | Runtime | Node.js | JavaScript runtime environment |
 | Framework | Express.js v5 | Web application framework |
 | Database | MongoDB | NoSQL database |
@@ -104,8 +132,10 @@ Heavenly is a modern property listing platform that enables users to create, vie
 ```
 heavenly/
 ├── app.js                    # Application entry point & middleware setup
+├── cloudConfig.js            # Cloudinary configuration & multer storage setup
 ├── schemas.js                # Joi validation schemas
 ├── package.json              # Dependencies and scripts
+├── .env                      # Environment variables (not in git)
 │
 ├── controllers/              # MVC Controllers (Business Logic)
 │   ├── listing.js            # Listing CRUD operations
@@ -129,7 +159,8 @@ heavenly/
 │   ├── isOwner.js            # Listing ownership verification
 │   ├── isAuthor.js           # Review authorship verification
 │   ├── validateListing.js    # Listing validation middleware
-│   └── validateReview.js     # Review validation middleware
+│   ├── validateReview.js     # Review validation middleware
+│   └── geocode.js            # Geocoding utility (Nominatim API)
 │
 ├── views/                    # EJS Templates (Presentation Layer)
 │   ├── layouts/
@@ -158,14 +189,18 @@ heavenly/
 │   │   ├── listing.css       # Listing cards styles
 │   │   ├── show.css          # Show page & review styles
 │   │   ├── form.css          # Form styles
-│   │   └── auth.css          # Auth pages styles (login/signup)
+│   │   ├── auth.css          # Auth pages styles (login/signup)
+│   │   └── map.css           # Map styling (show & cluster maps)
 │   ├── js/
-│   │   └── formvalidation.js # Bootstrap client-side validation
+│   │   ├── formvalidation.js # Bootstrap client-side validation
+│   │   ├── showMap.js        # Single listing map rendering
+│   │   └── clusterMap.js     # Cluster map for index page
 │   └── favicon.svg           # Site favicon
 │
 └── init/                     # Database Initialization
     ├── data.js               # Seed data
-    └── index.js              # Database seeder with superuser
+    ├── index.js              # Database seeder with superuser
+    └── geocodeExisting.js    # Migration script for geocoding existing listings
 ```
 
 ---
@@ -176,6 +211,7 @@ heavenly/
 
 - Node.js v14+
 - MongoDB v4.4+ (running locally or MongoDB Atlas)
+- Cloudinary Account (free tier available at [cloudinary.com](https://cloudinary.com/))
 
 ### Installation
 
@@ -187,17 +223,29 @@ cd heavenly
 # Install dependencies
 npm install
 
+# Create .env file with required environment variables
+cat > .env << EOF
+CLOUD_NAME=your_cloudinary_cloud_name
+CLOUD_API_KEY=your_cloudinary_api_key
+CLOUD_API_SECRET=your_cloudinary_api_secret
+EOF
+
 # Start MongoDB (if running locally)
 mongod
 
 # Seed the database with sample data (optional)
 node init/index.js
 
+# If you have existing listings without coordinates, run this once
+node init/geocodeExisting.js
+
 # Start development server
 npx nodemon app.js
 ```
 
 The application runs on `http://localhost:8080`
+
+**Note:** Initial seeding with `node init/index.js` already includes geocoding. The `geocodeExisting.js` script is only needed if you have old data or manually added listings without coordinates.
 
 ### Default Admin User (after seeding)
 
@@ -266,7 +314,11 @@ Password: admin123
   location: String,     // required
   country: String,      // required
   owner: ObjectId,      // ref: 'User', required
-  reviews: [ObjectId]   // ref: 'Review'
+  reviews: [ObjectId],  // ref: 'Review'
+  geometry: {           // GeoJSON Point for map display
+    type: String,       // always 'Point'
+    coordinates: [Number] // [longitude, latitude], auto-geocoded
+  }
 }
 ```
 
@@ -326,6 +378,45 @@ When an unauthenticated user tries to submit a review:
 - Referer tracking ensures users don't lose their place in the application
 - Excludes login/signup pages from redirect chain to prevent loops
 
+### Cloud Image Management
+
+The application uses Cloudinary for professional image hosting:
+
+#### Features
+
+- **Direct File Upload** – Users can upload images directly from their device
+- **Custom Filenames** – Option to set custom image filenames for better organization
+- **Format Support** – Accepts JPG, JPEG, PNG, and AVIF formats
+- **Automatic Cleanup** – Old images deleted from Cloudinary when:
+  - Listing is updated with a new image
+  - Listing is deleted entirely
+- **Organized Storage** – All images stored in `Heavenly_DEV` folder on Cloudinary
+- **Default Images** – Fallback to hosted default image if no upload provided
+
+#### How It Works
+
+1. **Upload Flow**
+   - User selects image file in create/edit form
+   - Multer middleware processes multipart form data
+   - CloudinaryStorage automatically uploads to cloud
+   - Image URL and filename saved to database
+
+2. **Update Flow**
+   - If new image uploaded, old image deleted from Cloudinary first
+   - New image uploaded and listing updated
+   - Prevents orphaned files accumulating in cloud storage
+
+3. **Delete Flow**
+   - When listing deleted, associated image removed from Cloudinary
+   - Default images never deleted (used across multiple listings)
+
+#### Configuration
+
+Image upload configured in `cloudConfig.js`:
+- Custom folder structure
+- Format validation
+- Filename customization support
+
 ### Authorization Layers
 
 Three levels of authorization middleware:
@@ -333,6 +424,46 @@ Three levels of authorization middleware:
 1. **isLoggedIn** – Checks if user is authenticated
 2. **isOwner** – Verifies user owns the listing (for edit/delete)
 3. **isAuthor** – Verifies user authored the review (for delete)
+
+### Map Integration & Geocoding
+
+The application includes a complete map visualization system using free, open-source tools:
+
+#### How It Works
+
+1. **User Creates/Updates Listing**
+   - User enters location (e.g., "Malibu") and country (e.g., "United States")
+   - No coordinate input needed - fully automatic
+
+2. **Server-Side Geocoding**
+   - Backend combines location + country → "Malibu, United States"
+   - `geocode.js` utility queries Nominatim API (OpenStreetMap's free geocoding service)
+   - Returns coordinates in GeoJSON format: `{ type: 'Point', coordinates: [lng, lat] }`
+   - Stored in listing's `geometry` field
+
+3. **Show Page Map** (`showMap.js`)
+   - EJS injects coordinates into HTML data attributes
+   - JavaScript reads coordinates and creates MapLibre map
+   - Centers map on listing location with zoom level 12
+   - Adds custom red marker with popup showing title, price, location
+   - Uses free OpenStreetMap raster tiles
+
+4. **Index Page Cluster Map** (`clusterMap.js`)
+   - All listings injected as JSON into `window.listingsData`
+   - Filters out invalid coordinates ([0,0])
+   - Creates GeoJSON FeatureCollection
+   - Enables clustering (groups nearby markers)
+   - Color-coded clusters: blue (<10), yellow (10-30), pink (30+)
+   - Click cluster to zoom in, click marker for listing details
+
+#### Technical Details
+
+- **MapLibre GL JS v4.7.1** – Open-source fork of Mapbox GL JS
+- **No API Keys** – Completely free, no credit card required
+- **Nominatim Rate Limit** – Respects 1 request/second policy
+- **User-Agent Header** – Required by Nominatim ('Heavenly-App/1.0')
+- **Default Coordinates** – Returns [0,0] if location not found (filtered from display)
+- **Migration Support** – `geocodeExisting.js` script for batch geocoding
 
 ### Error Handling Strategy
 
@@ -353,6 +484,9 @@ npx nodemon app.js
 # Seed database with sample listings and admin user
 node init/index.js
 
+# Geocode existing listings (one-time migration)
+node init/geocodeExisting.js
+
 # Production start
 node app.js
 
@@ -362,24 +496,40 @@ npm install
 
 ---
 
-## Environment Variables (Production)
+## Environment Variables
 
-For production deployment, configure these environment variables:
+Create a `.env` file in the root directory with the following variables:
+
+### Required for Development & Production
 
 ```env
+# Cloudinary Configuration (Required for image uploads)
+CLOUD_NAME=your_cloudinary_cloud_name
+CLOUD_API_KEY=your_cloudinary_api_key
+CLOUD_API_SECRET=your_cloudinary_api_secret
+```
+
+### Additional Production Variables
+
+```env
+# Database
 MONGO_URL=mongodb://your-production-url
+
+# Session Security
 SESSION_SECRET=your-secure-random-secret-key
+
+# Server
 PORT=8080
 NODE_ENV=production
 ```
 
-Update `app.js` to use environment variables:
+**Getting Cloudinary Credentials:**
+1. Sign up at [cloudinary.com](https://cloudinary.com/) (free tier available)
+2. Go to Dashboard
+3. Copy Cloud Name, API Key, and API Secret
+4. Add them to your `.env` file
 
-```javascript
-const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/heavenly';
-const sessionSecret = process.env.SESSION_SECRET || 'thisshouldbeabettersecret';
-const port = process.env.PORT || 8080;
-```
+**Note:** Never commit `.env` file to version control. It's already in `.gitignore`.
 
 ---
 
@@ -406,7 +556,10 @@ const port = process.env.PORT || 8080;
 
 Potential features for future development:
 
-- Image upload functionality (Cloudinary integration)
+- ~~Image upload functionality (Cloudinary integration)~~ ✅ **Implemented**
+- ~~Map integration for listing locations~~ ✅ **Implemented**
+- ~~Cloud image management with automatic cleanup~~ ✅ **Implemented**
+- ~~Multiple image format support~~ ✅ **Implemented**
 - Search and filter listings by location, price, etc.
 - User profiles with listing history
 - Favorite/bookmark listings
@@ -416,7 +569,8 @@ Potential features for future development:
 - Advanced review features (helpful votes, replies)
 - Admin dashboard for managing users and listings
 - Real-time notifications
-- Map integration for listing locations
+- Geolocation-based search ("listings near me")
+- Custom map markers with listing images
 
 ---
 
