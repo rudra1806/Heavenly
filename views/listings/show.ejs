@@ -39,6 +39,18 @@
         <p><%= listing.description %></p>
     </div>
 
+    <!-- Map Section — MapLibre renders the map using the geocoded coordinates -->
+    <div class="listing-map-section">
+        <h4>Where you'll be</h4>
+        <div id="map"
+            data-lng="<%= listing.geometry.coordinates[0] %>"
+            data-lat="<%= listing.geometry.coordinates[1] %>"
+            data-title="<%= listing.title %>"
+            data-location="<%= listing.location %>, <%= listing.country %>"
+            data-price="<%= listing.price %>">
+        </div>
+    </div>
+
     <% if (currentUser && listing.owner._id.equals(currentUser._id)) { %>
     <div class="listing-actions">
         <form action="/listings/<%= listing._id %>/edit" method="get">
@@ -127,3 +139,6 @@
         </div>
     </div>
 </div>
+
+<!-- Load the show page map script with defer to ensure MapLibre loads first -->
+<script defer src="/js/showMap.js"></script>

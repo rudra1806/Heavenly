@@ -64,6 +64,12 @@ const listingSchema = Joi.object({
         filename: Joi.string()
             .trim()
             .allow('')
+    }).optional(),
+
+    // Geometry is set server-side by geocoding, allow it to pass validation
+    geometry: Joi.object({
+        type: Joi.string().valid('Point'),
+        coordinates: Joi.array().items(Joi.number()).length(2)
     }).optional()
 });
 

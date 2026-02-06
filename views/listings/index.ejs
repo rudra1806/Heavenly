@@ -32,6 +32,14 @@
     <p class="page-subtitle">Find the perfect place for your next adventure</p>
   </div>
 
+  <!-- Cluster Map — shows all listings as clustered markers -->
+  <div id="cluster-map"></div>
+
+  <!-- Inject listing data as JSON for the cluster map script -->
+  <script>
+    window.listingsData = <%- JSON.stringify(listings) %>;
+  </script>
+
   <% if (listings.length === 0) { %>
     <div class="empty-state">
       <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,3 +80,6 @@
     </div>
   <% } %>
 </section>
+
+<!-- Load the cluster map script with defer to ensure MapLibre loads first -->
+<script defer src="/js/clusterMap.js"></script>

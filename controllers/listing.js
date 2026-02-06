@@ -1,5 +1,6 @@
 const Listing = require('../models/listing.js');
 const { cloudinary } = require('../cloudConfig.js');
+const geocode = require('../utils/geocode.js');
 
 // Index - Show all listings
 module.exports.index = async (req, res) => {
@@ -15,6 +16,10 @@ module.exports.newForm = (req, res) => {
 // create - Add new listing
 module.exports.create = async (req, res) => {
     const newListing = new Listing(req.body);
+    
+    // Geocode the location using Nominatim (free OpenStreetMap geocoder)
+    // Converts "Malibu, United States" → { type: 'Point', coordinates: [-118.78, 34.03] }
+    newListing.geometry = await geocode(`${req.body.location}, ${req.body.country}`);
     
     // If file was uploaded, update the image URL and filename
     if (req.file) {
@@ -70,6 +75,14 @@ module.exports.update = async (req, res) => {
     }
     
     const listing = await Listing.findByIdAndUpdate(id, req.body, { runValidators: true, new: true });
+    
+    // Re-geocode if location or country changed
+    if (req.body.location || req.body.country) {
+        listing.geometry = await geocode(
+            `${req.body.location || listing.location}, ${req.body.country || listing.country}`
+        );
+        await listing.save();
+    }
     
     // If a new file was uploaded, update the image URL and filename
     if (req.file) {
