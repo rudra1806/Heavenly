@@ -484,9 +484,6 @@ npx nodemon app.js
 # Seed database with sample listings and admin user
 node init/index.js
 
-# Geocode existing listings (one-time migration)
-node init/geocodeExisting.js
-
 # Production start
 node app.js
 
@@ -552,28 +549,6 @@ NODE_ENV=production
 
 ---
 
-## Future Enhancements
-
-Potential features for future development:
-
-- ~~Image upload functionality (Cloudinary integration)~~ ✅ **Implemented**
-- ~~Map integration for listing locations~~ ✅ **Implemented**
-- ~~Cloud image management with automatic cleanup~~ ✅ **Implemented**
-- ~~Multiple image format support~~ ✅ **Implemented**
-- Search and filter listings by location, price, etc.
-- User profiles with listing history
-- Favorite/bookmark listings
-- Email verification for new users
-- Password reset functionality
-- Pagination for listings
-- Advanced review features (helpful votes, replies)
-- Admin dashboard for managing users and listings
-- Real-time notifications
-- Geolocation-based search ("listings near me")
-- Custom map markers with listing images
-
----
-
 ## Contributing
 
 1. Fork the repository
@@ -581,12 +556,6 @@ Potential features for future development:
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
----
-
-## License
-
-This project is licensed under the ISC License.
 
 ---
 
