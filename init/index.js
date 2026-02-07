@@ -50,15 +50,15 @@ const initDB = async () => {
 };
 
 initDB()
-    .then(() => {
+    .then(async () => {
         // Close the database connection after initialization is complete to prevent hanging process and allow graceful exit
         console.log("Closing database connection...");
-        mongoose.connection.close();
+        await mongoose.connection.close();
         process.exit(0);
     })
-    .catch((err) => {
+    .catch(async (err) => {
         // Log the error and close the database connection to prevent hanging process and allow graceful exit
         console.error("Error during initialization:", err);
-        mongoose.connection.close();
+        await mongoose.connection.close();
         process.exit(1);
     });

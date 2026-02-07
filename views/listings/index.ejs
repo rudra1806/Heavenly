@@ -81,7 +81,7 @@
 
   <!-- Inject listing data as JSON for the cluster map script -->
   <script>
-    window.listingsData = <%- JSON.stringify(listings) %>; // Make sure to use <%- %> to avoid escaping the JSON string 
+    window.listingsData = <%- JSON.stringify(listings).replace(/</g, '\\u003c') %>; // Use <%- %> but escape `<` to prevent XSS breakout
   </script>
 
   <% if (listings.length === 0) { %>

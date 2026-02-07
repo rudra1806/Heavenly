@@ -42,7 +42,7 @@
         console.log('Map data:', { lng, lat, title, location, price });
 
         // If coordinates are default (0,0) or invalid — geocoding didn't find a result
-        if (!lng || !lat || (lng === 0 && lat === 0) || isNaN(lng) || isNaN(lat)) {
+        if (!Number.isFinite(lng) || !Number.isFinite(lat) || (lng === 0 && lat === 0)) {
             mapEl.innerHTML = '<p style="text-align:center;padding:2rem;color:#888;">Map not available for this location.</p>';
             return;
         }
