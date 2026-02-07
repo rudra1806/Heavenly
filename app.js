@@ -12,6 +12,7 @@ const ejsMate = require('ejs-mate');
 
 // Session management
 const session = require('express-session');
+const { MongoStore } = require('connect-mongo');
 const flash = require('connect-flash');
 
 // Authentication
@@ -48,7 +49,24 @@ mongoose.connect(MONGO_URL)
 
 
 // Session configuration
+
+// Use MongoDB to store session data for better scalability and persistence compared to in-memory store (which is not suitable for production)
+const store = MongoStore.create({
+    mongoUrl: MONGO_URL,
+    crypto: {
+        secret: process.env.SESSION_SECRET || 'thisshouldbeabettersecret',
+    },
+    touchAfter: 24 * 3600, // Lazy update session every 24 hours
+});
+
+// Log any session store errors to the console for debugging
+store.on('error', function (e) {
+    console.log('SESSION STORE ERROR:', e);
+});
+
+// Session configuration with secure defaults and environment variable for secret
 const sessionOptions = {
+    store,
     secret: process.env.SESSION_SECRET || 'thisshouldbeabettersecret',
     resave: false,
     saveUninitialized: true,
