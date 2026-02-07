@@ -45,6 +45,18 @@ const listingSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
+    },
+    // GeoJSON Point — stores [longitude, latitude] from Nominatim geocoding
+    geometry: {
+        type: {
+            type: String,
+            enum: ['Point'],
+            default: 'Point'
+        },
+        coordinates: {
+            type: [Number], // [longitude, latitude]
+            default: [0, 0]
+        }
     }
 });
 

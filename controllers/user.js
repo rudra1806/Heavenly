@@ -1,6 +1,7 @@
 const Listing = require('../models/listing.js');
 const Review = require('../models/review.js');
 const User = require('../models/user.js');
+const { reviewSchema } = require('../schemas.js');
 
 //Register route
 module.exports.renderSignupForm =  (req, res) => {

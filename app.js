@@ -1,3 +1,7 @@
+if(process.env.NODE_ENV !== 'production'){
+    require('dotenv').config();
+}
+
 const express = require('express');
 const app = express();
 const port = 8080;
@@ -8,6 +12,7 @@ const ejsMate = require('ejs-mate');
 
 // Session management
 const session = require('express-session');
+const { MongoStore } = require('connect-mongo');
 const flash = require('connect-flash');
 
 // Authentication
@@ -21,12 +26,13 @@ const User = require('./models/user.js');
 const listingsRoutes = require('./routes/listings.js');
 const reviewsRoutes = require('./routes/reviews.js');
 const usersRoutes = require('./routes/users.js');
+const pagesRoutes = require('./routes/pages.js');
 
 // Custom utilities
 const ExpressError = require('./utils/ExpressError.js');
 
 // Database connection
-const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/heavenly';
 
 // ===== Middleware Setup =====
 app.engine('ejs', ejsMate);
@@ -43,8 +49,25 @@ mongoose.connect(MONGO_URL)
 
 
 // Session configuration
+
+// Use MongoDB to store session data for better scalability and persistence compared to in-memory store (which is not suitable for production)
+const store = MongoStore.create({
+    mongoUrl: MONGO_URL,
+    crypto: {
+        secret: process.env.SESSION_SECRET || 'thisshouldbeabettersecret',
+    },
+    touchAfter: 24 * 3600, // Lazy update session every 24 hours
+});
+
+// Log any session store errors to the console for debugging
+store.on('error', function (e) {
+    console.log('SESSION STORE ERROR:', e);
+});
+
+// Session configuration with secure defaults and environment variable for secret
 const sessionOptions = {
-    secret: 'thisshouldbeabettersecret',
+    store,
+    secret: process.env.SESSION_SECRET || 'thisshouldbeabettersecret',
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -93,6 +116,10 @@ app.use('/', listingsRoutes);
 // Review Routes
 
 app.use('/', reviewsRoutes);
+
+// Static Pages Routes
+
+app.use('/', pagesRoutes);
 
 // ===== Error Handling =====
 

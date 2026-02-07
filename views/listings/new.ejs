@@ -3,7 +3,7 @@
 <div class="form-page-wrapper">
 <div class="form-container">
     <h2>Create a New Listing</h2>
-    <form action="/listings" method="post" novalidate class="needs-validation">
+    <form action="/listings" method="post" novalidate class="needs-validation" enctype="multipart/form-data">
         <div class="form-group">
             <label for="title">Title:</label>
             <input type="text" id="title" name="title" class="form-control" placeholder="Enter listing title" required/>
@@ -15,17 +15,17 @@
         <div class="image-group">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="image[url]">Image URL:</label>
-                    <input type="url" id="image[url]" name="image[url]" class="form-control" placeholder="https://example.com/image.jpg"/>
+                    <label for="image[filename]">Image Filename:</label>
+                    <input type="text" id="image[filename]" name="image[filename]" class="form-control" placeholder="custom-image-name"/>
                     <div class="invalid-feedback">
-                      Please provide a valid image URL.
+                      Please provide an image filename.
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="image[filename]">Image Filename:</label>
-                    <input type="text" id="image[filename]" name="image[filename]" class="form-control" placeholder="image.jpg"/>
+                    <label for="image[url]">Upload Image:</label>
+                    <input type="file" id="image[url]" name="image[url]" class="form-control" accept="image/*"/>
                     <div class="invalid-feedback">
-                      Please provide an image filename.
+                      Please select a valid image file.
                     </div>
                 </div>
             </div>
