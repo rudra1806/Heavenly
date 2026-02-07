@@ -2,21 +2,21 @@
 
 # 🏝️ Heavenly
 
-**A Full-Stack Property Rental Platform**
+**A Full-Stack Luxury Property Rental Platform**
 
 *Discover and list luxury vacation rentals with interactive maps, real-time reviews, and seamless authentication*
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Express](https://img.shields.io/badge/Express.js-5.x-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![Express](https://img.shields.io/badge/Express.js-5.2-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![Mongoose](https://img.shields.io/badge/Mongoose-9.x-880000?style=for-the-badge&logo=mongoose&logoColor=white)](https://mongoosejs.com/)
-[![EJS](https://img.shields.io/badge/EJS-Template-B4CA65?style=for-the-badge&logo=ejs&logoColor=black)](https://ejs.co/)
-[![Passport](https://img.shields.io/badge/Passport.js-Auth-34E27A?style=for-the-badge&logo=passport&logoColor=white)](http://www.passportjs.org/)
+[![Mongoose](https://img.shields.io/badge/Mongoose-9.1-880000?style=for-the-badge&logo=mongoose&logoColor=white)](https://mongoosejs.com/)
+[![EJS](https://img.shields.io/badge/EJS-4.0-B4CA65?style=for-the-badge&logo=ejs&logoColor=black)](https://ejs.co/)
+[![Passport](https://img.shields.io/badge/Passport.js-0.7-34E27A?style=for-the-badge&logo=passport&logoColor=white)](http://www.passportjs.org/)
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-Images-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)](https://cloudinary.com/)
 [![Bootstrap](https://img.shields.io/badge/Bootstrap-5-7952B3?style=for-the-badge&logo=bootstrap&logoColor=white)](https://getbootstrap.com/)
 [![MapLibre](https://img.shields.io/badge/MapLibre-Maps-396CB2?style=for-the-badge&logo=maplibre&logoColor=white)](https://maplibre.org/)
 
-[Features](#-features) • [Tech Stack](#%EF%B8%8F-tech-stack) • [Quick Start](#-quick-start) • [Architecture](#%EF%B8%8F-architecture) • [API Reference](#-api-reference)
+[Features](#-features) • [Tech Stack](#%EF%B8%8F-tech-stack) • [Quick Start](#-quick-start) • [Architecture](#%EF%B8%8F-architecture) • [API Reference](#-api-reference) • [Seed Data](#-seed-data)
 
 </div>
 
@@ -24,16 +24,21 @@
 
 ## 📋 Overview
 
-Heavenly is a production-ready, full-stack web application for property rentals built with the **MVC architecture pattern**. Users can browse listings, create accounts, post properties with cloud-hosted images, leave star-rated reviews, and explore locations on interactive maps—all with automatic geocoding requiring no API keys.
+Heavenly is a production-ready, full-stack web application for luxury property rentals built with the **MVC architecture pattern**. Users can browse listings, search across multiple fields, create accounts, post properties with cloud-hosted images, leave star-rated reviews, and explore locations on interactive clustered maps—all with automatic geocoding requiring zero API keys.
+
+The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**, an admin account, production-grade MongoDB-backed sessions, and a polished paradise-inspired UI with 3,300+ lines of custom CSS.
 
 ### ✨ Key Highlights
 
 - **Complete CRUD Operations** for property listings with owner authorization
-- **Interactive Maps** using MapLibre GL JS with intelligent marker clustering
-- **Automatic Geocoding** via Nominatim (OpenStreetMap) – no API keys required
-- **Cloud Image Management** with Cloudinary (upload, update, auto-cleanup)
-- **Secure Authentication** with Passport.js and session management
-- **Smart UX Features** like pending review submission and redirect preservation
+- **Regex-Powered Search** across title, description, location, and country
+- **Interactive Cluster Maps** using MapLibre GL JS with color-coded marker groups
+- **Automatic Geocoding** via Nominatim (OpenStreetMap) — no API keys required
+- **Full Image Lifecycle** with Cloudinary (upload, replace with old-image cleanup, delete)
+- **Production-Ready Sessions** stored in MongoDB via connect-mongo with lazy touch
+- **Pending Review Replay** — guest reviews are saved in session and auto-submitted after login
+- **Smart Redirect Preservation** — users return to their previous page after authentication
+- **Static Legal Pages** — Privacy Policy, Terms of Service, and Contact form
 
 ---
 
@@ -45,64 +50,97 @@ Heavenly is a production-ready, full-stack web application for property rentals 
 
 ### 🏠 Property Management
 - Full CRUD with owner-only edit/delete
-- Cloud image upload via Cloudinary
+- Cloud image upload via Cloudinary (`Heavenly_DEV` folder)
 - Auto-cleanup of old images on update/delete
-- Default fallback images
-- Supports JPG, PNG, AVIF formats
+- Default fallback images via Mongoose setters
+- Supports JPG, JPEG, PNG, AVIF formats
+- Custom image filenames
 
 </td>
 <td width="50%">
 
 ### 🗺️ Maps & Geolocation
-- MapLibre GL JS (free, no API keys)
-- Auto-geocoding on listing creation
-- Individual property maps with markers
-- Index page cluster map with zoom
-- GeoJSON coordinate storage
+- MapLibre GL JS with free OSM raster tiles
+- Auto-geocoding on listing creation & update
+- Re-geocodes when location/country changes
+- Individual property maps with red markers & popups
+- Index page cluster map with color-coded groups
+- GeoJSON Point coordinate storage
+- Graceful fallback for unmapped locations
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-### 👤 Authentication
-- User registration with email validation
-- Session-based auth with Passport.js
-- Password hashing via passport-local-mongoose
-- Smart redirects after login/signup
-- Protected routes with middleware
+### 🔍 Search
+- Regex-based search across multiple fields
+- Searches title, description, location, and country
+- Real-time result counts
+- Clear search button
+- Case-insensitive matching
+- Special characters safely escaped
 
 </td>
 <td width="50%">
 
 ### ⭐ Reviews System
-- 1-5 star ratings with visual display
-- Author tracking with timestamps
+- 1–5 star ratings with CSS-only interactive picker
+- Author tracking with automatic timestamps
 - Author-only delete permissions
-- Pending review auto-submission
-- Client + server-side validation
+- Pending review auto-submission for guests
+- Client + server-side Joi validation (5–500 char comments)
 
 </td>
 </tr>
 <tr>
 <td width="50%">
 
-### 🛡️ Security
-- Joi schema validation
-- Authorization middleware layers
-- HTTP-only session cookies
-- Environment variable protection
-- File type restrictions
+### 👤 Authentication & Authorization
+- User registration with email validation
+- Session-based auth with Passport.js local strategy
+- Password hashing via passport-local-mongoose
+- MongoDB-backed sessions (connect-mongo) with 7-day cookies
+- Lazy session touch every 24 hours
+- Smart redirects via `Referer` header capture
+- Three middleware layers: `isLoggedIn`, `isOwner`, `isAuthor`
 
 </td>
 <td width="50%">
 
-### 🎨 Modern UI/UX
-- Responsive Bootstrap 5 design
-- Custom paradise-inspired theme
-- Modular CSS architecture
-- Interactive star rating picker
-- Split-layout auth pages
+### 🛡️ Security & Validation
+- Joi schema validation (listing: title 3–100 chars, description 10–1000, positive price; review: rating 1–5, comment 5–500)
+- Authorization middleware at every protected route
+- HTTP-only session cookies with encrypted secrets
+- Environment variable protection via dotenv
+- File type & format restrictions on uploads
+- Cascading review deletion via Mongoose `post('findOneAndDelete')` hook
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🎨 Luxury UI/UX
+- Paradise-inspired warm color palette (`#FFFBF4`, gold `#C2A86D`)
+- Glassmorphism sticky navbar with backdrop blur
+- Full-viewport hero sections with slow-zoom animation
+- Split-screen auth pages with feature icons
+- Responsive Bootstrap 5 grid (`col-sm-6 col-md-4 col-lg-3`)
+- Google Fonts (Playfair Display, Inter, Poppins)
+- Font Awesome 7 icons
+- 3,300+ lines of modular custom CSS (11 files)
+- CSS custom properties for consistent theming
+
+</td>
+<td width="50%">
+
+### 📄 Static Pages
+- **Privacy Policy** — comprehensive 8-section policy
+- **Terms of Service** — detailed 12-section terms
+- **Contact Page** — form with subject dropdown, loading state, and info cards (email, phone, location)
+- **Custom Error Page** — styled error display with status code and navigation
+- **Landing Page** — hero section, trust cards, featured destinations grid, experience section, testimonial, and CTA
 
 </td>
 </tr>
@@ -110,18 +148,22 @@ Heavenly is a production-ready, full-stack web application for property rentals 
 
 ---
 
-## 🛠️ Tech-Stack
+## 🛠️ Tech Stack
 
 | Category | Technologies |
 |----------|-------------|
-| **Backend** | Node.js, Express.js 5, Mongoose 9 |
-| **Database** | MongoDB |
-| **Authentication** | Passport.js, passport-local-mongoose |
+| **Runtime** | Node.js 18+ |
+| **Backend** | Express.js 5.2, Mongoose 9.1 |
+| **Database** | MongoDB (local or Atlas) |
+| **Sessions** | express-session, connect-mongo 6, connect-flash |
+| **Authentication** | Passport.js 0.7, passport-local, passport-local-mongoose 9 |
 | **Validation** | Joi 18 |
-| **File Upload** | Multer 2, Cloudinary |
-| **Maps** | MapLibre GL JS, Nominatim API |
-| **Frontend** | EJS, EJS-Mate, Bootstrap 5 |
-| **Session** | express-session, connect-flash |
+| **File Upload** | Multer 2, multer-storage-cloudinary 4, Cloudinary |
+| **Geocoding** | Nominatim API (OpenStreetMap) — free, no keys |
+| **Maps** | MapLibre GL JS with OSM raster tiles |
+| **Templating** | EJS 4, EJS-Mate 4 |
+| **Frontend** | Bootstrap 5, Font Awesome 7, Google Fonts |
+| **Dev Tools** | nodemon 3, dotenv 17, method-override 3 |
 
 ---
 
@@ -130,8 +172,8 @@ Heavenly is a production-ready, full-stack web application for property rentals 
 ### Prerequisites
 
 - Node.js 18+
-- MongoDB (local or Atlas)
-- [Cloudinary account](https://cloudinary.com/) (free tier)
+- MongoDB (local or [Atlas](https://www.mongodb.com/atlas))
+- [Cloudinary account](https://cloudinary.com/) (free tier works)
 
 ### Installation
 
@@ -147,7 +189,7 @@ npm install
 cp .env.example .env
 # Edit .env with your credentials (see below)
 
-# Seed database with sample data (optional)
+# Seed database with sample data (optional but recommended)
 npm run seed
 
 # Start development server
@@ -159,7 +201,7 @@ npm run dev
 Create a `.env` file in the root directory:
 
 ```env
-# Required
+# Required — Cloudinary credentials
 CLOUD_NAME=your_cloudinary_cloud_name
 CLOUD_API_KEY=your_cloudinary_api_key
 CLOUD_API_SECRET=your_cloudinary_api_secret
@@ -174,54 +216,94 @@ The app runs at `http://localhost:8080`
 
 ---
 
+## 🌱 Seed Data
+
+Run `npm run seed` to populate the database with:
+
+- **Admin account** — `admin` / `admin123` (`admin@heavenly.com`)
+- **30 luxury listings** spanning 15+ countries including USA, Italy, Switzerland, Tanzania, Netherlands, Fiji, UK, UAE, Indonesia, Canada, Thailand, Mexico, Japan, Greece, Costa Rica, and the Maldives
+- Pre-computed GeoJSON coordinates for every listing
+- Existing listings, reviews, and users are cleared before seeding
+
+---
+
 ## 🏗️ Architecture
 
 ```
 Heavenly/
-├── app.js                 # Entry point, middleware, routes
-├── cloudConfig.js         # Cloudinary + Multer setup
-├── schemas.js             # Joi validation schemas
+├── app.js                 # Entry point — middleware, sessions, Passport, routes, error handling
+├── cloudConfig.js         # Cloudinary storage + Multer upload config
+├── schemas.js             # Joi validation schemas (listing & review)
 │
-├── controllers/           # Business logic
-│   ├── listing.js         # Listing CRUD operations
-│   ├── review.js          # Review operations
-│   └── user.js            # Auth operations
+├── controllers/           # Business logic (MVC controllers)
+│   ├── listing.js         # Listing CRUD + search + geocoding + image lifecycle
+│   ├── review.js          # Review create/delete with author association
+│   └── user.js            # Signup/login/logout + pending review replay + smart redirects
 │
-├── models/                # Mongoose schemas
-│   ├── listing.js         # Listing model (GeoJSON geometry)
-│   ├── review.js          # Review model (rating, comment)
-│   └── user.js            # User model (Passport plugin)
+├── models/                # Mongoose schemas & models
+│   ├── listing.js         # Listing (GeoJSON geometry, image defaults, review cascade delete)
+│   ├── review.js          # Review (rating, comment, createdAt, author ref)
+│   └── user.js            # User (passport-local-mongoose plugin, email)
 │
 ├── routes/                # Express routers
-│   ├── listings.js        # /listings routes
-│   ├── reviews.js         # /listings/:id/reviews routes
-│   ├── users.js           # /signup, /login, /logout
-│   └── pages.js           # Static pages
+│   ├── listings.js        # /listings — CRUD + search + image upload middleware
+│   ├── reviews.js         # /listings/:id/reviews — create/delete
+│   ├── users.js           # /signup, /login, /logout + redirect middleware
+│   └── pages.js           # /privacy, /terms, /contact
 │
-├── utils/                 # Middleware & utilities
-│   ├── ExpressError.js    # Custom error class
-│   ├── wrapAsync.js       # Async error wrapper
-│   ├── isLoggedIn.js      # Auth middleware
-│   ├── isOwner.js         # Listing ownership check
-│   ├── isAuthor.js        # Review authorship check
-│   ├── validateListing.js # Listing validation
-│   ├── validateReview.js  # Review validation
-│   └── geocode.js         # Nominatim geocoding
+├── utils/                 # Middleware & helper utilities
+│   ├── ExpressError.js    # Custom error class (statusCode + message)
+│   ├── wrapAsync.js       # Async route handler error wrapper
+│   ├── isLoggedIn.js      # Auth check + pending review session storage
+│   ├── isOwner.js         # Listing ownership verification
+│   ├── isAuthor.js        # Review authorship verification
+│   ├── validateListing.js # Joi listing validation middleware
+│   ├── validateReview.js  # Joi review validation middleware
+│   └── geocode.js         # Nominatim geocoding (location → GeoJSON Point)
 │
 ├── views/                 # EJS templates
-│   ├── layouts/           # Boilerplate layout
-│   ├── listings/          # CRUD views
-│   ├── users/             # Auth views
-│   ├── pages/             # Static pages
-│   └── includes/          # Partials (navbar, footer, flash)
+│   ├── home.ejs           # Landing page (hero, trust cards, destinations, testimonial)
+│   ├── error.ejs          # Custom error page
+│   ├── layouts/
+│   │   └── boilerplate.ejs  # Master layout (fonts, Bootstrap, FA, MapLibre, CSS)
+│   ├── listings/
+│   │   ├── index.ejs      # All listings (hero stats, search, cluster map, card grid)
+│   │   ├── show.ejs       # Single listing (image, details, map, reviews)
+│   │   ├── new.ejs        # Create form (image upload + custom filename)
+│   │   └── edit.ejs       # Edit form (current image preview + optional replace)
+│   ├── users/
+│   │   ├── login.ejs      # Split-screen login
+│   │   └── signup.ejs     # Split-screen signup (with email)
+│   ├── pages/
+│   │   ├── privacy.ejs    # Privacy policy (8 sections)
+│   │   ├── terms.ejs      # Terms of service (12 sections)
+│   │   └── contact.ejs    # Contact form + info cards
+│   └── includes/
+│       ├── navbar.ejs     # Glassmorphism sticky navbar
+│       ├── footer.ejs     # Social links, copyright, legal nav
+│       └── flash.ejs      # Auto-dismissible toast alerts
 │
-├── public/                # Static assets
-│   ├── css/               # Modular stylesheets
-│   └── js/                # Client-side scripts (maps, validation)
+├── public/                # Static client-side assets
+│   ├── css/               # 11 modular stylesheets (3,300+ lines)
+│   │   ├── base.css       # Root variables, global styles
+│   │   ├── navbar.css     # Glassmorphism navbar
+│   │   ├── footer.css     # Footer styles
+│   │   ├── home.css       # Landing page
+│   │   ├── listing.css    # Listings index & cards
+│   │   ├── show.css       # Single listing page
+│   │   ├── form.css       # Create/edit forms
+│   │   ├── auth.css       # Split-screen auth pages
+│   │   ├── map.css        # Map containers
+│   │   ├── pages.css      # Static pages
+│   │   └── flash.css      # Flash message toasts (if present)
+│   └── js/
+│       ├── clusterMap.js  # Index cluster map (GeoJSON, color-coded markers)
+│       ├── showMap.js     # Individual listing map (marker + popup)
+│       └── formvalidation.js  # Bootstrap client-side form validation
 │
 └── init/                  # Database seeding
-    ├── data.js            # Sample listings
-    └── index.js           # Seeder script
+    ├── data.js            # 30 sample listings (15+ countries, pre-computed coords)
+    └── index.js           # Seeder script (creates admin + listings, clears existing data)
 ```
 
 ---
@@ -232,58 +314,71 @@ Heavenly/
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `GET` | `/listings` | List all properties | Public |
-| `GET` | `/listings/new` | Create form | Required |
-| `POST` | `/listings` | Create listing | Required |
-| `GET` | `/listings/:id` | View listing | Public |
-| `GET` | `/listings/:id/edit` | Edit form | Owner |
-| `PUT` | `/listings/:id` | Update listing | Owner |
-| `DELETE` | `/listings/:id` | Delete listing | Owner |
+| `GET` | `/listings` | List all properties (supports `?search=` query) | Public |
+| `GET` | `/listings/new` | Create form | Login required |
+| `POST` | `/listings` | Create listing (multipart, image upload) | Login required |
+| `GET` | `/listings/:id` | View listing details, map, and reviews | Public |
+| `GET` | `/listings/:id/edit` | Edit form (with current image preview) | Owner only |
+| `PUT` | `/listings/:id` | Update listing (re-geocodes if location changed) | Owner only |
+| `DELETE` | `/listings/:id` | Delete listing + Cloudinary image cleanup | Owner only |
 
 ### Reviews
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| `POST` | `/listings/:id/reviews` | Add review | Required |
-| `DELETE` | `/listings/:id/reviews/:reviewId` | Delete review | Author |
+| `POST` | `/listings/:id/reviews` | Add review (1–5 stars, 5–500 char comment) | Login required |
+| `DELETE` | `/listings/:id/reviews/:reviewId` | Delete review | Author only |
 
 ### Authentication
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/signup` | Registration form |
-| `POST` | `/signup` | Register user |
-| `GET` | `/login` | Login form |
-| `POST` | `/login` | Authenticate |
-| `GET` | `/logout` | End session |
+| `GET` | `/signup` | Registration form (split-screen) |
+| `POST` | `/signup` | Register user (username, email, password) |
+| `GET` | `/login` | Login form (split-screen) |
+| `POST` | `/login` | Authenticate via Passport local strategy |
+| `GET` | `/logout` | End session and redirect |
 
 ### Static Pages
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/privacy` | Privacy policy |
-| `GET` | `/terms` | Terms of service |
-| `GET` | `/contact` | Contact form |
+| `GET` | `/privacy` | Privacy policy (8 sections) |
+| `GET` | `/terms` | Terms of service (12 sections) |
+| `GET` | `/contact` | Contact page with form |
+| `POST` | `/contact` | Contact form submission |
 
 ---
 
 ## 📦 Scripts
 
 ```bash
-npm start      # Production server
-npm run dev    # Development with nodemon
-npm run seed   # Seed database with sample data
+npm start      # Production server (node app.js)
+npm run dev    # Development with auto-reload (nodemon app.js)
+npm run seed   # Seed database with admin account + 30 sample listings
 ```
 
 ---
 
 ## 🔐 Authorization Flow
 
-The application implements three middleware layers:
+The application implements a layered middleware authorization system:
 
-1. **`isLoggedIn`** – Verifies authentication, stores pending reviews for guests
-2. **`isOwner`** – Ensures only listing owners can edit/delete their properties
-3. **`isAuthor`** – Ensures only review authors can delete their reviews
+1. **`isLoggedIn`** — Verifies `req.isAuthenticated()`. For unauthenticated users attempting to submit reviews, saves review data to `req.session.pendingReview` for automatic replay after login/signup.
+2. **`isOwner`** — Fetches the listing and verifies the current user is the owner before allowing edit/delete operations.
+3. **`isAuthor`** — Fetches the review and verifies the current user is the author before allowing deletion.
+4. **`saveRedirectTo`** — Transfers `req.session.redirectTo` and `req.session.pendingReview` to `res.locals` before Passport resets the session on login.
+
+---
+
+## 🔄 Notable Implementation Details
+
+- **Express 5.2** — Uses the latest Express version with modern routing and error handling
+- **Pending Review Replay** — If a guest submits a review, their rating and comment are stored in the session. After login or signup, the review is automatically posted to the original listing — a seamless UX pattern
+- **Smart Redirect** — The `Referer` header is captured when auth pages load, and users are redirected back to their previous page after authentication
+- **Cloudinary Image Lifecycle** — Old images are destroyed from Cloudinary before uploading replacements on update, and images are cleaned up on listing deletion
+- **Cascading Review Deletion** — Mongoose `post('findOneAndDelete')` middleware on the Listing model removes all associated reviews when a listing is deleted
+- **Free Map Stack** — Nominatim geocoding + MapLibre GL JS + OpenStreetMap tiles = zero API keys or paid services
 
 ---
 
