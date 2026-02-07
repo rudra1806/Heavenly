@@ -31,7 +31,7 @@ const pagesRoutes = require('./routes/pages.js');
 const ExpressError = require('./utils/ExpressError.js');
 
 // Database connection
-const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
+const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/heavenly';
 
 // ===== Middleware Setup =====
 app.engine('ejs', ejsMate);
@@ -49,7 +49,7 @@ mongoose.connect(MONGO_URL)
 
 // Session configuration
 const sessionOptions = {
-    secret: 'thisshouldbeabettersecret',
+    secret: process.env.SESSION_SECRET || 'thisshouldbeabettersecret',
     resave: false,
     saveUninitialized: true,
     cookie: {

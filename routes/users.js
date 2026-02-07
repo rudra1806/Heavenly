@@ -10,7 +10,6 @@ const { reviewSchema } = require('../schemas.js');
 
 //controllers
 const userController = require('../controllers/user.js');
-const user = require('../models/user.js');
 
 
 // Register route

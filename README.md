@@ -199,8 +199,7 @@ heavenly/
 │
 └── init/                     # Database Initialization
     ├── data.js               # Seed data
-    ├── index.js              # Database seeder with superuser
-    └── geocodeExisting.js    # Migration script for geocoding existing listings
+    └── index.js              # Database seeder with superuser
 ```
 
 ---
@@ -236,16 +235,11 @@ mongod
 # Seed the database with sample data (optional)
 node init/index.js
 
-# If you have existing listings without coordinates, run this once
-node init/geocodeExisting.js
-
 # Start development server
 npx nodemon app.js
 ```
 
 The application runs on `http://localhost:8080`
-
-**Note:** Initial seeding with `node init/index.js` already includes geocoding. The `geocodeExisting.js` script is only needed if you have old data or manually added listings without coordinates.
 
 ### Default Admin User (after seeding)
 
@@ -478,17 +472,17 @@ The application includes a complete map visualization system using free, open-so
 ## Scripts
 
 ```bash
-# Development server with hot reload (recommended)
-npx nodemon app.js
-
-# Seed database with sample listings and admin user
-node init/index.js
-
-# Production start
-node app.js
-
 # Install dependencies
 npm install
+
+# Seed database with sample listings and admin user
+npm run seed
+
+# Development server with hot reload (recommended)
+npm run dev
+
+# Production start
+npm start
 ```
 
 ---
