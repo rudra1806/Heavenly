@@ -25,6 +25,7 @@ const User = require('./models/user.js');
 const listingsRoutes = require('./routes/listings.js');
 const reviewsRoutes = require('./routes/reviews.js');
 const usersRoutes = require('./routes/users.js');
+const pagesRoutes = require('./routes/pages.js');
 
 // Custom utilities
 const ExpressError = require('./utils/ExpressError.js');
@@ -97,6 +98,10 @@ app.use('/', listingsRoutes);
 // Review Routes
 
 app.use('/', reviewsRoutes);
+
+// Static Pages Routes
+
+app.use('/', pagesRoutes);
 
 // ===== Error Handling =====
 

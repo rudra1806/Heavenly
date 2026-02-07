@@ -81,7 +81,7 @@
 
   <!-- Inject listing data as JSON for the cluster map script -->
   <script>
-    window.listingsData = <%- JSON.stringify(listings) %>;
+    window.listingsData = <%- JSON.stringify(listings) %>; // Make sure to use <%- %> to avoid escaping the JSON string 
   </script>
 
   <% if (listings.length === 0) { %>
