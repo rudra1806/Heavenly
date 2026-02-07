@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const initData = require("./data.js");
 const Listing = require("../models/listing.js");
+const Review = require("../models/review.js");
 const User = require("../models/user.js");
 const MONGO_URL = 'mongodb://127.0.0.1:27017/heavenly';
 
@@ -22,6 +23,7 @@ async function main() {
 const initDB = async () => {
     // Clear existing data
     await Listing.deleteMany({});
+    await Review.deleteMany({});
     await User.deleteMany({});
     
     // Create superuser
@@ -43,4 +45,16 @@ const initDB = async () => {
     console.log(`All listings owned by superuser: ${SUPERUSER.username}`);
 };
 
-initDB();
+initDB()
+    .then(() => {
+        // Close the database connection after initialization is complete to prevent hanging process and allow graceful exit
+        console.log("Closing database connection...");
+        mongoose.connection.close();
+        process.exit(0);
+    })
+    .catch((err) => {
+        // Log the error and close the database connection to prevent hanging process and allow graceful exit
+        console.error("Error during initialization:", err);
+        mongoose.connection.close();
+        process.exit(1);
+    });

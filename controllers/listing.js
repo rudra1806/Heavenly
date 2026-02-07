@@ -2,10 +2,35 @@ const Listing = require('../models/listing.js');
 const { cloudinary } = require('../cloudConfig.js');
 const geocode = require('../utils/geocode.js');
 
-// Index - Show all listings
+// Index - Show all listings with optional search
 module.exports.index = async (req, res) => {
-    const allListings = await Listing.find({});
-    res.render('listings/index.ejs', { listings: allListings });
+    const searchQuery = req.query.search; // Get the search query from the URL (e.g., /listings?search=malibu)
+    let allListings;
+    let searchPerformed = false;
+    
+    if (searchQuery && searchQuery.trim() !== '') { // Only perform search if query is not empty
+        searchPerformed = true;
+        // Escape special regex characters to prevent regex errors
+        const escapedQuery = searchQuery.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Case-insensitive search across title, location, country, and description
+        const searchRegex = new RegExp(escapedQuery, 'i'); // 'i' for case-insensitive
+        allListings = await Listing.find({
+            $or: [
+                { title: searchRegex },
+                { location: searchRegex },
+                { country: searchRegex },
+                { description: searchRegex }
+            ]
+        });
+    } else {
+        allListings = await Listing.find({});
+    }
+    
+    res.render('listings/index.ejs', { 
+        listings: allListings, 
+        searchQuery: searchQuery || '',
+        searchPerformed 
+    });
 };
 
 // new - Show create form
