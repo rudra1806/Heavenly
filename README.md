@@ -210,6 +210,8 @@ CLOUD_NAME=your_cloudinary_cloud_name
 CLOUD_API_KEY=your_cloudinary_api_key
 CLOUD_API_SECRET=your_cloudinary_api_secret
 
+PORT=8080
+
 # Optional (defaults provided)
 MONGO_URL=mongodb://127.0.0.1:27017/heavenly
 SESSION_SECRET=your_secure_secret_key
