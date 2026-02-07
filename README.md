@@ -52,9 +52,9 @@ The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**,
 - Full CRUD with owner-only edit/delete
 - Cloud image upload via Cloudinary (`Heavenly_DEV` folder)
 - Auto-cleanup of old images on update/delete
+- Sanitized filenames with uniqueness suffix to prevent Cloudinary collisions
 - Default fallback images via Mongoose setters
-- Supports JPG, JPEG, PNG, AVIF formats
-- Custom image filenames
+- Supports JPG, JPEG, PNG, AVIF formats (`accept="image/*"` on inputs)
 
 </td>
 <td width="50%">
@@ -63,10 +63,11 @@ The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**,
 - MapLibre GL JS with free OSM raster tiles
 - Auto-geocoding on listing creation & update
 - Re-geocodes when location/country changes
+- **Robust geocoding** — handles HTTP errors, timeouts, and rate-limits with safe fallback coordinates
 - Individual property maps with red markers & popups
 - Index page cluster map with color-coded groups
 - GeoJSON Point coordinate storage
-- Graceful fallback for unmapped locations
+- Graceful fallback for unmapped/missing geometry
 
 </td>
 </tr>
@@ -110,10 +111,13 @@ The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**,
 
 ### 🛡️ Security & Validation
 - Joi schema validation (listing: title 3–100 chars, description 10–1000, positive price; review: rating 1–5, comment 5–500)
+- **XSS-safe map popups** — DOM APIs (`setDOMContent` + `textContent`) instead of `setHTML`
+- **Orphaned upload cleanup** — failed validations auto-delete uploaded images from Cloudinary
 - Authorization middleware at every protected route
 - HTTP-only session cookies with encrypted secrets
-- Environment variable protection via dotenv
-- File type & format restrictions on uploads
+- Environment variable protection via dotenv (`.env.example` provided, `.env` gitignored)
+- Sanitized Cloudinary `public_id` with timestamp suffix to prevent filename collisions
+- File type & format restrictions on uploads (`accept="image/*"`, allowed formats enforced)
 - Cascading review deletion via Mongoose `post('findOneAndDelete')` hook
 
 </td>
@@ -257,9 +261,9 @@ Heavenly/
 │   ├── isLoggedIn.js      # Auth check + pending review session storage
 │   ├── isOwner.js         # Listing ownership verification
 │   ├── isAuthor.js        # Review authorship verification
-│   ├── validateListing.js # Joi listing validation middleware
+│   ├── validateListing.js # Joi listing validation middleware + orphaned upload cleanup
 │   ├── validateReview.js  # Joi review validation middleware
-│   └── geocode.js         # Nominatim geocoding (location → GeoJSON Point)
+│   └── geocode.js         # Nominatim geocoding with error handling (location → GeoJSON Point)
 │
 ├── views/                 # EJS templates
 │   ├── home.ejs           # Landing page (hero, trust cards, destinations, testimonial)
@@ -376,9 +380,14 @@ The application implements a layered middleware authorization system:
 - **Express 5.2** — Uses the latest Express version with modern routing and error handling
 - **Pending Review Replay** — If a guest submits a review, their rating and comment are stored in the session. After login or signup, the review is automatically posted to the original listing — a seamless UX pattern
 - **Smart Redirect** — The `Referer` header is captured when auth pages load, and users are redirected back to their previous page after authentication
-- **Cloudinary Image Lifecycle** — Old images are destroyed from Cloudinary before uploading replacements on update, and images are cleaned up on listing deletion
+- **Cloudinary Image Lifecycle** — Old images are destroyed from Cloudinary before uploading replacements on update, images are cleaned up on listing deletion, and orphaned uploads are removed if validation fails after upload
+- **Sanitized Upload IDs** — Cloudinary `public_id` is sanitized (alphanumeric + hyphens/underscores) with a timestamp suffix to prevent collisions and unexpected overwrites
+- **Resilient Geocoding** — `geocode()` wraps all network calls in try/catch, checks `response.ok`, and returns safe default coordinates `[0,0]` on any failure — listing creation/update never crashes due to Nominatim downtime or rate-limiting
+- **XSS Prevention** — Map popups use DOM APIs (`setDOMContent`, `textContent`) instead of interpolating user-controlled strings into HTML via `setHTML()`
+- **Geometry Guards** — Show page template safely handles missing `geometry.coordinates` for listings created before geocoding was added
 - **Cascading Review Deletion** — Mongoose `post('findOneAndDelete')` middleware on the Listing model removes all associated reviews when a listing is deleted
 - **Free Map Stack** — Nominatim geocoding + MapLibre GL JS + OpenStreetMap tiles = zero API keys or paid services
+- **Node.js 18+ Required** — `engines.node` declared in `package.json` since the app uses the built-in `fetch` API
 
 ---
 

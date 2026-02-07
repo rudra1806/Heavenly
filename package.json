@@ -6,6 +6,9 @@
   "author": "the GOAT RudrA SanandiyA",
   "type": "commonjs",
   "main": "app.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",

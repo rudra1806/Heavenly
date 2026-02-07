@@ -44,6 +44,7 @@ module.exports.create = async (req, res) => {
     
     // Geocode the location using Nominatim (free OpenStreetMap geocoder)
     // Converts "Malibu, United States" → { type: 'Point', coordinates: [-118.78, 34.03] }
+    // geocode() handles errors internally and returns default [0,0] on failure
     newListing.geometry = await geocode(`${req.body.location}, ${req.body.country}`);
     
     // If file was uploaded, update the image URL and filename

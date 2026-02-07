@@ -82,14 +82,22 @@
             map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
             // Step 3: Create a popup with listing details
-            const popup = new maplibregl.Popup({ offset: 30 })
-                .setHTML(
-                    `<div class="map-popup">
-                        <h6>${title}</h6>
-                        <p>₹ ${Number(price).toLocaleString('en-IN')} / night</p>
-                        <p><i class="fa-solid fa-location-dot"></i> ${location}</p>
-                    </div>`
-                );
+            // Build popup using DOM APIs to prevent XSS from user-controlled data
+            const popupContent = document.createElement('div');
+            popupContent.className = 'map-popup';
+            const titleEl = document.createElement('h6');
+            titleEl.textContent = title || '';
+            popupContent.appendChild(titleEl);
+            const priceEl = document.createElement('p');
+            priceEl.textContent = `₹ ${Number(price).toLocaleString('en-IN')} / night`;
+            popupContent.appendChild(priceEl);
+            const locationEl = document.createElement('p');
+            const locationIcon = document.createElement('i');
+            locationIcon.className = 'fa-solid fa-location-dot';
+            locationEl.appendChild(locationIcon);
+            locationEl.appendChild(document.createTextNode(' ' + (location || '')));
+            popupContent.appendChild(locationEl);
+            const popup = new maplibregl.Popup({ offset: 30 }).setDOMContent(popupContent);
 
             // Step 4: Place a marker on the map at the listing's coordinates
             new maplibregl.Marker({ color: '#fe424d' })  // Red marker matching the brand

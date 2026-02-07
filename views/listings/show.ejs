@@ -42,9 +42,16 @@
     <!-- Map Section — MapLibre renders the map using the geocoded coordinates -->
     <div class="listing-map-section">
         <h4>Where you'll be</h4>
+        <% 
+            const hasGeometry = listing.geometry &&
+                Array.isArray(listing.geometry.coordinates) &&
+                listing.geometry.coordinates.length >= 2;
+            const lng = hasGeometry ? listing.geometry.coordinates[0] : 0;
+            const lat = hasGeometry ? listing.geometry.coordinates[1] : 0;
+        %>
         <div id="map"
-            data-lng="<%= listing.geometry.coordinates[0] %>"
-            data-lat="<%= listing.geometry.coordinates[1] %>"
+            data-lng="<%= lng %>"
+            data-lat="<%= lat %>"
             data-title="<%= listing.title %>"
             data-location="<%= listing.location %>, <%= listing.country %>"
             data-price="<%= listing.price %>">

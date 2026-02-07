@@ -11,11 +11,14 @@ const storage = new CloudinaryStorage({
     cloudinary,
     params: (req, file) => {
         // Access the filename from nested form field
-        const customFilename = req.body?.image?.filename?.trim() || file.originalname.split('.')[0];
+        let customFilename = req.body?.image?.filename?.trim() || file.originalname.split('.')[0];
+        // Sanitize: only allow alphanumeric, hyphens, underscores; add timestamp for uniqueness
+        customFilename = customFilename.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 100);
+        const uniqueSuffix = `${customFilename}_${Date.now()}`;
         return {
             folder: 'Heavenly_DEV',
             allowed_formats: ['jpg', 'jpeg', 'png', 'avif'],
-            public_id: customFilename
+            public_id: uniqueSuffix
         };
     }
 });

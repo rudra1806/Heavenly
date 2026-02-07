@@ -11,35 +11,47 @@
  */
 
 async function geocode(location) {
-    const query = encodeURIComponent(location);
-    const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
+    const defaultGeometry = {
+        type: 'Point',
+        coordinates: [0, 0]
+    };
 
-    const response = await fetch(url, {
-        headers: {
-            'User-Agent': 'Heavenly-App/1.0' // Required by Nominatim usage policy
+    try {
+        const query = encodeURIComponent(location);
+        const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
+
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Heavenly-App/1.0' // Required by Nominatim usage policy
+            }
+        });
+
+        if (!response.ok) {
+            console.error(`Geocoding: HTTP ${response.status} for "${location}"`);
+            return defaultGeometry;
         }
-    });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (data.length === 0) {
-        // If no results found, return default coordinates (0, 0)
-        console.log(`Geocoding: No results found for "${location}"`); // for debugging
+        if (data.length === 0) {
+            // If no results found, return default coordinates (0, 0)
+            console.log(`Geocoding: No results found for "${location}"`);
+            return defaultGeometry;
+        }
+
+        // Nominatim returns lat/lon as strings — convert to numbers
+        // GeoJSON standard: coordinates are [longitude, latitude]
+        const { lon, lat } = data[0];
+        console.log(`Geocoding: "${location}" → [${lon}, ${lat}]`);
+
         return {
             type: 'Point',
-            coordinates: [0, 0]
+            coordinates: [parseFloat(lon), parseFloat(lat)]
         };
+    } catch (error) {
+        console.error(`Geocoding error for "${location}":`, error.message);
+        return defaultGeometry;
     }
-
-    // Nominatim returns lat/lon as strings — convert to numbers
-    // GeoJSON standard: coordinates are [longitude, latitude]
-    const { lon, lat } = data[0];
-    console.log(`Geocoding: "${location}" → [${lon}, ${lat}]`); // for debugging
-
-    return {
-        type: 'Point',
-        coordinates: [parseFloat(lon), parseFloat(lat)]
-    };
 }
 
 module.exports = geocode;

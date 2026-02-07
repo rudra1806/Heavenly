@@ -163,15 +163,27 @@
                 map.on('click', 'unclustered-point', (e) => {
                     const { title, price, location, country, id } = e.features[0].properties;
                     const coords = e.features[0].geometry.coordinates.slice();
+                    // Build popup using DOM APIs to prevent XSS from user-controlled data
+                    const popupContainer = document.createElement('div');
+                    popupContainer.className = 'map-popup';
+                    const titleEl = document.createElement('h6');
+                    const linkEl = document.createElement('a');
+                    linkEl.href = `/listings/${id}`;
+                    linkEl.textContent = String(title);
+                    titleEl.appendChild(linkEl);
+                    popupContainer.appendChild(titleEl);
+                    const priceEl = document.createElement('p');
+                    priceEl.textContent = `₹ ${Number(price).toLocaleString('en-IN')} / night`;
+                    popupContainer.appendChild(priceEl);
+                    const locationEl = document.createElement('p');
+                    const iconEl = document.createElement('i');
+                    iconEl.className = 'fa-solid fa-location-dot';
+                    locationEl.appendChild(iconEl);
+                    locationEl.appendChild(document.createTextNode(` ${location}, ${country}`));
+                    popupContainer.appendChild(locationEl);
                     new maplibregl.Popup({ offset: 15 })
                         .setLngLat(coords)
-                        .setHTML(
-                            `<div class="map-popup">
-                                <h6><a href="/listings/${id}">${title}</a></h6>
-                                <p>₹ ${Number(price).toLocaleString('en-IN')} / night</p>
-                                <p><i class="fa-solid fa-location-dot"></i> ${location}, ${country}</p>
-                            </div>`
-                        )
+                        .setDOMContent(popupContainer)
                         .addTo(map);
                 });
 
