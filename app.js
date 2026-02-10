@@ -1,4 +1,4 @@
-if(process.env.NODE_ENV !== 'production'){
+if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
 
@@ -27,6 +27,7 @@ const listingsRoutes = require('./routes/listings.js');
 const reviewsRoutes = require('./routes/reviews.js');
 const usersRoutes = require('./routes/users.js');
 const pagesRoutes = require('./routes/pages.js');
+const adminRoutes = require('./routes/admin.js');
 
 // Custom utilities
 const ExpressError = require('./utils/ExpressError.js');
@@ -108,6 +109,8 @@ app.get('/', (req, res) => {
 
 app.use('/', usersRoutes);
 
+// Admin Routes
+app.use('/', adminRoutes);
 
 //listings Route
 

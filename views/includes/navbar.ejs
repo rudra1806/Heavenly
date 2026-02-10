@@ -43,6 +43,12 @@
             <span>Sign Up</span>
           </a>
         <% } else { %>
+          <% if (currentUser.role === 'admin') { %>
+            <a class="nav-link admin-link" href="/admin">
+              <i class="fa-solid fa-shield-halved"></i>
+              <span>Admin</span>
+            </a>
+          <% } %>
           <div class="nav-user-dropdown">
             <div class="nav-user-avatar">
               <%= currentUser.username.charAt(0).toUpperCase() %>

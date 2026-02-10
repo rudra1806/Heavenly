@@ -1,151 +1,165 @@
 <% layout('/layouts/boilerplate') -%>
 
-<div class="listing-detail">
-    <a href="/listings" class="back-button">
-        <i class="fa-solid fa-arrow-left"></i>
-        Back to Listings
-    </a>
-    
-    <h2><%= listing.title %></h2>
-    
-    <div class="listing-image-section">
-        <img src="<%= listing.image.url %>" alt="<%= listing.title %>"/>
-    </div>
+    <div class="listing-detail">
+        <a href="/listings" class="back-button">
+            <i class="fa-solid fa-arrow-left"></i>
+            Back to Listings
+        </a>
 
-    <div class="listing-details">
-        <h3>Property Details</h3>
-        <div class="detail-item">
-            <span class="detail-label">Price:</span>
-            <span class="detail-value price">₹ <%= listing.price.toLocaleString("en-IN") %> / night</span>
-        </div>
-        <div class="detail-item">
-            <span class="detail-label">Location:</span>
-            <span class="detail-value"><%= listing.location %></span>
-        </div>
-        <div class="detail-item">
-            <span class="detail-label">Country:</span>
-            <span class="detail-value"><%= listing.country %></span>
-        </div>
-        <div class="detail-item">
-            <span class="detail-label">Hosted by:</span>
-            <span class="detail-value owner-badge">
-                <i class="fa-solid fa-user-circle"></i> @<%= listing.owner.username %>
-            </span>
-        </div>
-    </div>
+        <h2>
+            <%= listing.title %>
+        </h2>
 
-    <div class="listing-description">
-        <h4>About this property</h4>
-        <p><%= listing.description %></p>
-    </div>
-
-    <!-- Map Section — MapLibre renders the map using the geocoded coordinates -->
-    <div class="listing-map-section">
-        <h4>Where you'll be</h4>
-        <% 
-            const hasGeometry = listing.geometry &&
-                Array.isArray(listing.geometry.coordinates) &&
-                listing.geometry.coordinates.length >= 2;
-            const lng = hasGeometry ? listing.geometry.coordinates[0] : 0;
-            const lat = hasGeometry ? listing.geometry.coordinates[1] : 0;
-        %>
-        <div id="map"
-            data-lng="<%= lng %>"
-            data-lat="<%= lat %>"
-            data-title="<%= listing.title %>"
-            data-location="<%= listing.location %>, <%= listing.country %>"
-            data-price="<%= listing.price %>">
+        <div class="listing-image-section">
+            <img src="<%= listing.image.url %>" alt="<%= listing.title %>" />
         </div>
-    </div>
 
-    <% if (currentUser && listing.owner._id.equals(currentUser._id)) { %>
-    <div class="listing-actions">
-        <form action="/listings/<%= listing._id %>/edit" method="get">
-            <button type="submit">
-                <i class="fa-solid fa-pen-to-square"></i>
-                Edit Listing
-            </button>
-        </form>
-        <form action="/listings/<%= listing._id %>?_method=DELETE" method="post" onsubmit="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');">
-            <button type="submit">
-                <i class="fa-solid fa-trash"></i>
-                Delete Listing
-            </button>
-        </form>
-    </div>
-    <% } %>
-
-    <div class="review-section">
-        <h4>Leave a Review</h4>
-        <form action="/listings/<%= listing._id %>/reviews" method="post" class="review-form needs-validation" novalidate>
-            <div class="rating-group">
-                <label for="rating">Rating</label>
-                <fieldset class="star-rating">
-                    <input type="radio" id="star5" name="review[rating]" value="5" required>
-                    <label for="star5" title="5 stars"><i class="fa-solid fa-star"></i></label>
-                    
-                    <input type="radio" id="star4" name="review[rating]" value="4">
-                    <label for="star4" title="4 stars"><i class="fa-solid fa-star"></i></label>
-                    
-                    <input type="radio" id="star3" name="review[rating]" value="3">
-                    <label for="star3" title="3 stars"><i class="fa-solid fa-star"></i></label>
-                    
-                    <input type="radio" id="star2" name="review[rating]" value="2">
-                    <label for="star2" title="2 stars"><i class="fa-solid fa-star"></i></label>
-                    
-                    <input type="radio" id="star1" name="review[rating]" value="1">
-                    <label for="star1" title="1 star"><i class="fa-solid fa-star"></i></label>
-                </fieldset>
-                <div class="invalid-feedback">Please select a rating.</div>
+        <div class="listing-details">
+            <h3>Property Details</h3>
+            <div class="detail-item">
+                <span class="detail-label">Price:</span>
+                <span class="detail-value price">₹ <%= listing.price.toLocaleString("en-IN") %> / night</span>
             </div>
-            <div class="comment-group">
-                <label for="comment">Your Review</label>
-                <textarea id="comment" name="review[comment]" rows="4" placeholder="Share your experience about this property..." class="form-control" required></textarea>
-                <div class="invalid-feedback">Please write a review.</div>
+            <div class="detail-item">
+                <span class="detail-label">Location:</span>
+                <span class="detail-value">
+                    <%= listing.location %>
+                </span>
             </div>
-            <button type="submit" class="submit-review-btn">
-                <i class="fa-solid fa-paper-plane"></i>
-                Submit Review
-            </button>
-        </form>
-        
-        <div class="reviews-container">
-            <h4>Reviews</h4>
-            <% if (listing.reviews.length === 0) { %>
-                <p class="no-reviews">No reviews yet. Be the first to review this property!</p>
-            <% } else { %>
-                <ul class="review-list">
-                    <% for(let review of listing.reviews) { %>    
-                        <li class="review-item">
-                            <div class="review-header">
-                                <div class="review-user">
-                                    <i class="fa-solid fa-user-circle"></i>
-                                    <span class="review-author"><%= review.author.username %></span>
-                                </div>
-                                <% if (currentUser && review.author._id.equals(currentUser._id)) { %>
-                                <form action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE" method="post" class="delete-review-form">
-                                    <button type="submit" class="delete-review-btn" title="Delete Review">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </form>
-                                <% } %>
-                            </div>
-                            <div class="review-rating">
-                                <% for (let i = 0; i < review.rating; i++) { %>
-                                    <i class="fa-solid fa-star"></i>
-                                <% } %>
-                                <% for (let i = review.rating; i < 5; i++) { %>
-                                    <i class="fa-regular fa-star"></i>
-                                <% } %>
-                            </div>
-                            <p><%= review.comment %></p>
-                        </li>
-                    <% }; %>
-                </ul>
+            <div class="detail-item">
+                <span class="detail-label">Country:</span>
+                <span class="detail-value">
+                    <%= listing.country %>
+                </span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Hosted by:</span>
+                <span class="detail-value owner-badge">
+                    <i class="fa-solid fa-user-circle"></i> @<%= listing.owner.username %>
+                </span>
+            </div>
+        </div>
+
+        <div class="listing-description">
+            <h4>About this property</h4>
+            <p>
+                <%= listing.description %>
+            </p>
+        </div>
+
+        <!-- Map Section — MapLibre renders the map using the geocoded coordinates -->
+        <div class="listing-map-section">
+            <h4>Where you'll be</h4>
+            <% const hasGeometry=listing.geometry && Array.isArray(listing.geometry.coordinates) &&
+                listing.geometry.coordinates.length>= 2;
+                const lng = hasGeometry ? listing.geometry.coordinates[0] : 0;
+                const lat = hasGeometry ? listing.geometry.coordinates[1] : 0;
+                %>
+                <div id="map" data-lng="<%= lng %>" data-lat="<%= lat %>" data-title="<%= listing.title %>"
+                    data-location="<%= listing.location %>, <%= listing.country %>" data-price="<%= listing.price %>">
+                </div>
+        </div>
+
+        <% if (currentUser && (listing.owner._id.equals(currentUser._id) || currentUser.role==='admin' )) { %>
+            <div class="listing-actions">
+                <form action="/listings/<%= listing._id %>/edit" method="get">
+                    <button type="submit">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        Edit Listing
+                    </button>
+                </form>
+                <form action="/listings/<%= listing._id %>?_method=DELETE" method="post"
+                    onsubmit="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');">
+                    <button type="submit">
+                        <i class="fa-solid fa-trash"></i>
+                        Delete Listing
+                    </button>
+                </form>
+            </div>
             <% } %>
-        </div>
-    </div>
-</div>
 
-<!-- Load the show page map script with defer to ensure MapLibre loads first -->
-<script defer src="/js/showMap.js"></script>
+                <div class="review-section">
+                    <h4>Leave a Review</h4>
+                    <form action="/listings/<%= listing._id %>/reviews" method="post"
+                        class="review-form needs-validation" novalidate>
+                        <div class="rating-group">
+                            <label for="rating">Rating</label>
+                            <fieldset class="star-rating">
+                                <input type="radio" id="star5" name="review[rating]" value="5" required>
+                                <label for="star5" title="5 stars"><i class="fa-solid fa-star"></i></label>
+
+                                <input type="radio" id="star4" name="review[rating]" value="4">
+                                <label for="star4" title="4 stars"><i class="fa-solid fa-star"></i></label>
+
+                                <input type="radio" id="star3" name="review[rating]" value="3">
+                                <label for="star3" title="3 stars"><i class="fa-solid fa-star"></i></label>
+
+                                <input type="radio" id="star2" name="review[rating]" value="2">
+                                <label for="star2" title="2 stars"><i class="fa-solid fa-star"></i></label>
+
+                                <input type="radio" id="star1" name="review[rating]" value="1">
+                                <label for="star1" title="1 star"><i class="fa-solid fa-star"></i></label>
+                            </fieldset>
+                            <div class="invalid-feedback">Please select a rating.</div>
+                        </div>
+                        <div class="comment-group">
+                            <label for="comment">Your Review</label>
+                            <textarea id="comment" name="review[comment]" rows="4"
+                                placeholder="Share your experience about this property..." class="form-control"
+                                required></textarea>
+                            <div class="invalid-feedback">Please write a review.</div>
+                        </div>
+                        <button type="submit" class="submit-review-btn">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            Submit Review
+                        </button>
+                    </form>
+
+                    <div class="reviews-container">
+                        <h4>Reviews</h4>
+                        <% if (listing.reviews.length===0) { %>
+                            <p class="no-reviews">No reviews yet. Be the first to review this property!</p>
+                            <% } else { %>
+                                <ul class="review-list">
+                                    <% for(let review of listing.reviews) { %>
+                                        <li class="review-item">
+                                            <div class="review-header">
+                                                <div class="review-user">
+                                                    <i class="fa-solid fa-user-circle"></i>
+                                                    <span class="review-author">
+                                                        <%= review.author.username %>
+                                                    </span>
+                                                </div>
+                                                <% if (currentUser && (review.author._id.equals(currentUser._id) ||
+                                                    currentUser.role==='admin' )) { %>
+                                                    <form
+                                                        action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE"
+                                                        method="post" class="delete-review-form">
+                                                        <button type="submit" class="delete-review-btn"
+                                                            title="Delete Review">
+                                                            <i class="fa-solid fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                    <% } %>
+                                            </div>
+                                            <div class="review-rating">
+                                                <% for (let i=0; i < review.rating; i++) { %>
+                                                    <i class="fa-solid fa-star"></i>
+                                                    <% } %>
+                                                        <% for (let i=review.rating; i < 5; i++) { %>
+                                                            <i class="fa-regular fa-star"></i>
+                                                            <% } %>
+                                            </div>
+                                            <p>
+                                                <%= review.comment %>
+                                            </p>
+                                        </li>
+                                        <% }; %>
+                                </ul>
+                                <% } %>
+                    </div>
+                </div>
+    </div>
+
+    <!-- Load the show page map script with defer to ensure MapLibre loads first -->
+    <script defer src="/js/showMap.js"></script>

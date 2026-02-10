@@ -1,4 +1,4 @@
-if(process.env.NODE_ENV !== 'production'){
+if (process.env.NODE_ENV !== 'production') {
     require('dotenv').config();
 }
 
@@ -9,19 +9,21 @@ const Review = require("../models/review.js");
 const User = require("../models/user.js");
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/heavenly';
 
-// Superuser credentials
+// Superuser credentials from environment variables
+// Best Practice: Use environment variables for sensitive admin credentials
+// to avoid hardcoding secrets in the codebase.
 const SUPERUSER = {
-    username: 'admin',
-    email: 'admin@heavenly.com',
-    password: 'admin123'
+    username: process.env.ADMIN_USERNAME || 'admin',
+    email: process.env.ADMIN_EMAIL || 'admin@heavenly.com',
+    password: process.env.ADMIN_PASSWORD || 'admin123'
 };
 
 main()
-.then(() => console.log('Successfully Connected to MongoDB'))
-.catch(err => console.log(err));
+    .then(() => console.log('Successfully Connected to MongoDB'))
+    .catch(err => console.log(err));
 
 async function main() {
-  await mongoose.connect(MONGO_URL);
+    await mongoose.connect(MONGO_URL);
 }
 
 const initDB = async () => {
@@ -29,21 +31,22 @@ const initDB = async () => {
     await Listing.deleteMany({});
     await Review.deleteMany({});
     await User.deleteMany({});
-    
-    // Create superuser
+
+    // Create superuser with admin role
     const superuser = new User({
         username: SUPERUSER.username,
-        email: SUPERUSER.email
+        email: SUPERUSER.email,
+        role: 'admin'
     });
     const registeredUser = await User.register(superuser, SUPERUSER.password);
     console.log(`Superuser '${SUPERUSER.username}' created successfully!`);
-    
+
     // Add owner to all listings
     const listingsWithOwner = initData.data.map((listing) => ({
         ...listing,
         owner: registeredUser._id
     }));
-    
+
     await Listing.insertMany(listingsWithOwner);
     console.log("Data was initialized successfully!");
     console.log(`All listings owned by superuser: ${SUPERUSER.username}`);
