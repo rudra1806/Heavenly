@@ -26,11 +26,13 @@
 
 Heavenly is a production-ready, full-stack web application for luxury property rentals built with the **MVC architecture pattern**. Users can browse listings, search across multiple fields, create accounts, post properties with cloud-hosted images, leave star-rated reviews, and explore locations on interactive clustered maps—all with automatic geocoding requiring zero API keys.
 
-The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**, an admin account, production-grade MongoDB-backed sessions, and a polished paradise-inspired UI with 3,300+ lines of custom CSS.
+The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**, a powerful **Admin Dashboard** for platform management, production-grade MongoDB-backed sessions, and a polished paradise-inspired UI.
 
 ### ✨ Key Highlights
 
 - **Complete CRUD Operations** for property listings with owner authorization
+- **Admin Dashboard** for centralized user, listing, and review management
+- **Role-Based Access Control** (RBAC) with specific Admin privileges
 - **Regex-Powered Search** across title, description, location, and country
 - **Interactive Cluster Maps** using MapLibre GL JS with color-coded marker groups
 - **Automatic Geocoding** via Nominatim (OpenStreetMap) — no API keys required
@@ -55,6 +57,18 @@ The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**,
 - Sanitized filenames with uniqueness suffix to prevent Cloudinary collisions
 - Default fallback images via Mongoose setters
 - Supports JPG, JPEG, PNG, AVIF formats (`accept="image/*"` on inputs)
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🛡️ Admin Dashboard
+- **Centralized Control** — Manage Users, Listings, and Reviews from one interface
+- **Global Permissions** — "God Mode" allows admins to edit/delete ANY listing or review
+- **User Management** — View all users, search by email/username, and delete accounts
+- **Cascading Deletes** — Deleting a user auto-removes their listings, images, and reviews
+- **Platform Stats** — Real-time counters for total users, listings, and reviews
 
 </td>
 <td width="50%">
@@ -104,7 +118,8 @@ The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**,
 - MongoDB-backed sessions (connect-mongo) with 7-day cookies
 - Lazy session touch every 24 hours
 - Smart redirects via `Referer` header capture
-- Three middleware layers: `isLoggedIn`, `isOwner`, `isAuthor`
+- **Role-Based Access** — `user` vs `admin` roles stored in DB
+- Four middleware layers: `isLoggedIn`, `isOwner`, `isAuthor`, `isAdmin`
 
 </td>
 <td width="50%">
@@ -166,7 +181,7 @@ The app ships with **30 pre-seeded luxury listings** spanning **15+ countries**,
 | **Geocoding** | Nominatim API (OpenStreetMap) — free, no keys |
 | **Maps** | MapLibre GL JS with OSM raster tiles |
 | **Templating** | EJS 4, EJS-Mate 4 |
-| **Frontend** | Bootstrap 5, Font Awesome 7, Google Fonts |
+| **Frontend** | Bootstrap 5, Font Awesome 7, Google Fonts, Admin Dashboard |
 | **Dev Tools** | nodemon 3, dotenv 17, method-override 3 |
 
 ---
@@ -226,7 +241,7 @@ The app runs at `http://localhost:8080`
 
 Run `npm run seed` to populate the database with:
 
-- **Admin account** — `admin` / `admin123` (`admin@heavenly.com`)
+- **Admin account** — Superuser created securely via `.env` credentials (`ADMIN_EMAIL` / `ADMIN_PASSWORD`)
 - **30 luxury listings** spanning 15+ countries including USA, Italy, Switzerland, Tanzania, Netherlands, Fiji, UK, UAE, Indonesia, Canada, Thailand, Mexico, Japan, Greece, Costa Rica, and the Maldives
 - Pre-computed GeoJSON coordinates for every listing
 - Existing listings, reviews, and users are cleared before seeding
@@ -244,25 +259,28 @@ Heavenly/
 ├── controllers/           # Business logic (MVC controllers)
 │   ├── listing.js         # Listing CRUD + search + geocoding + image lifecycle
 │   ├── review.js          # Review create/delete with author association
-│   └── user.js            # Signup/login/logout + pending review replay + smart redirects
+│   ├── user.js            # Signup/login/logout + pending review replay + smart redirects
+│   └── admin.js           # Dashboard stats + User/Listing/Review management
 │
 ├── models/                # Mongoose schemas & models
 │   ├── listing.js         # Listing (GeoJSON geometry, image defaults, review cascade delete)
 │   ├── review.js          # Review (rating, comment, createdAt, author ref)
-│   └── user.js            # User (passport-local-mongoose plugin, email)
+│   └── user.js            # User (passport-local-mongoose plugin, email, role: 'user'|'admin')
 │
 ├── routes/                # Express routers
 │   ├── listings.js        # /listings — CRUD + search + image upload middleware
 │   ├── reviews.js         # /listings/:id/reviews — create/delete
 │   ├── users.js           # /signup, /login, /logout + redirect middleware
+│   ├── admin.js           # /admin — Dashboard & Management routes
 │   └── pages.js           # /privacy, /terms, /contact
 │
 ├── utils/                 # Middleware & helper utilities
 │   ├── ExpressError.js    # Custom error class (statusCode + message)
 │   ├── wrapAsync.js       # Async route handler error wrapper
 │   ├── isLoggedIn.js      # Auth check + pending review session storage
-│   ├── isOwner.js         # Listing ownership verification
-│   ├── isAuthor.js        # Review authorship verification
+│   ├── isOwner.js         # Listing ownership verification (Admin bypass)
+│   ├── isAuthor.js        # Review authorship verification (Admin bypass)
+│   ├── isAdmin.js         # Admin role verification middleware
 │   ├── validateListing.js # Joi listing validation middleware + orphaned upload cleanup
 │   ├── validateReview.js  # Joi review validation middleware
 │   └── geocode.js         # Nominatim geocoding with error handling (location → GeoJSON Point)
@@ -288,6 +306,11 @@ Heavenly/
 │       ├── navbar.ejs     # Glassmorphism sticky navbar
 │       ├── footer.ejs     # Social links, copyright, legal nav
 │       └── flash.ejs      # Auto-dismissible toast alerts
+│   ├── admin/             # Admin Panel Views
+│       ├── dashboard.ejs  # Stats & Recent Activity
+│       ├── users.ejs      # User Management Table
+│       ├── listings.ejs   # Listing Management Table
+│       └── reviews.ejs    # Review Management Table
 │
 ├── public/                # Static client-side assets
 │   ├── css/               # 11 modular stylesheets (3,300+ lines)
@@ -354,6 +377,16 @@ Heavenly/
 | `GET` | `/contact` | Contact page with form |
 | `POST` | `/contact` | Contact form submission |
 
+### Admin Dashboard (Protected)
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `GET` | `/admin` | Dashboard Stats & Recent Activity | Admin |
+| `GET` | `/admin/users` | Manage Users (List/Search) | Admin |
+| `DELETE` | `/admin/users/:userId` | Delete User + Cascade Data | Admin |
+| `GET` | `/admin/listings` | Manage Listings (List/Search) | Admin |
+| `GET` | `/admin/reviews` | Manage Reviews (List/Search) | Admin |
+
 ---
 
 ## 📦 Scripts
@@ -373,7 +406,8 @@ The application implements a layered middleware authorization system:
 1. **`isLoggedIn`** — Verifies `req.isAuthenticated()`. For unauthenticated users attempting to submit reviews, saves review data to `req.session.pendingReview` for automatic replay after login/signup.
 2. **`isOwner`** — Fetches the listing and verifies the current user is the owner before allowing edit/delete operations.
 3. **`isAuthor`** — Fetches the review and verifies the current user is the author before allowing deletion.
-4. **`saveRedirectTo`** — Transfers `req.session.redirectTo` and `req.session.pendingReview` to `res.locals` before Passport resets the session on login.
+4. **`isAdmin`** — Verifies `req.user.role === 'admin'` to protect dashboard routes.
+5. **`saveRedirectTo`** — Transfers `req.session.redirectTo` and `req.session.pendingReview` to `res.locals` before Passport resets the session on login.
 
 ---
 

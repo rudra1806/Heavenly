@@ -1,138 +1,141 @@
 <% layout('/layouts/boilerplate') -%>
 
-<!-- Hero Section -->
-<section class="listings-hero">
-  <div class="hero-overlay"></div>
-  <div class="hero-content">
-    <h1 class="hero-title">Discover Your Perfect Stay</h1>
-    <p class="hero-subtitle">Explore unique properties from around the world</p>
-    <div class="hero-stats">
-      <div class="stat-item">
-        <span class="stat-number"><%= listings.length %></span>
-        <span class="stat-label">Properties</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-number">50+</span>
-        <span class="stat-label">Countries</span>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat-item">
-        <span class="stat-number">1000+</span>
-        <span class="stat-label">Happy Guests</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Listings Section -->
-<section class="listings-page">
-  <div class="section-header">
-    <h2 class="page-title">All Properties</h2>
-    <p class="page-subtitle">Find the perfect place for your next adventure</p>
-  </div>
-
-  <!-- Search Bar -->
-  <div class="search-container">
-    <form action="/listings" method="GET" class="search-form">
-      <div class="search-input-wrapper">
-        <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input 
-          type="text" 
-          name="search" 
-          class="search-input" 
-          placeholder="Search by title, location, or destination..." 
-          value="<%= searchQuery %>"
-          autocomplete="off"
-        >
-        <% if (searchQuery) { %>
-          <a href="/listings" class="clear-search" title="Clear search">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </a>
-        <% } %>
-      </div>
-      <button type="submit" class="search-button">Search</button>
-    </form>
-    
-    <% if (searchPerformed) { %>
-      <div class="search-results-info">
-        <p class="results-count">
-          <% if (listings.length === 0) { %>
-            No properties found
-          <% } else if (listings.length === 1) { %>
-            Found 1 property
-          <% } else { %>
-            Found <%= listings.length %> properties
-          <% } %>
-          <% if (searchQuery) { %>
-            for "<strong><%= searchQuery %></strong>"
-          <% } %>
-        </p>
-      </div>
-    <% } %>
-  </div>
-
-  <!-- Cluster Map — shows all listings as clustered markers -->
-  <div id="cluster-map"></div>
-
-  <!-- Inject listing data as JSON for the cluster map script -->
-  <script>
-    window.listingsData = <%- JSON.stringify(listings).replace(/</g, '\\u003c') %>; // Use <%- %> but escape `<` to prevent XSS breakout
-  </script>
-
-  <% if (listings.length === 0) { %>
-    <div class="empty-state">
-      <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <% if (searchPerformed) { %>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        <% } else { %>
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        <% } %>
-      </svg>
-      <% if (searchPerformed) { %>
-        <h3>No Results Found</h3>
-        <p>Try adjusting your search terms or <a href="/listings" class="reset-link">browse all properties</a></p>
-      <% } else { %>
-        <h3>No Properties Yet</h3>
-        <p>Be the first to add a property!</p>
-      <% } %>
-    </div>
-  <% } else { %>
-    <div class="row g-4">
-      <% for (let listing of listings) { %>
-        <div class="col-sm-6 col-md-4 col-lg-3">
-          <a href="/listings/<%= listing._id %>" class="listing-card-link">
-            <div class="card listing-card h-100">
-              <div class="card-img-wrapper">
-                <img 
-                  src="<%= listing.image.url %>" 
-                  class="card-img-top" 
-                  alt="<%= listing.image.filename %>"
-                >
-              </div>
-              <div class="card-body">
-                <p class="card-title"><%= listing.title %></p>
-                <p class="price">
-                   ₹ <%= listing.price.toLocaleString('en-IN') %> <span class="price-period">/ night</span>
-                </p>
-                <p class="country">
-                  <svg class="location-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                  </svg>
-                  <%= listing.country %>
-                </p>
-              </div>
-            </div>
-          </a>
+  <!-- Hero Section -->
+  <section class="listings-hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1 class="hero-title">Discover Your Perfect Stay</h1>
+      <p class="hero-subtitle">Explore unique properties from around the world</p>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-number">
+            <%= listings.length %>
+          </span>
+          <span class="stat-label">Properties</span>
         </div>
-      <% } %>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-number">15+</span>
+          <span class="stat-label">Countries</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-number">1000+</span>
+          <span class="stat-label">Happy Guests</span>
+        </div>
+      </div>
     </div>
-  <% } %>
-</section>
+  </section>
 
-<!-- Load the cluster map script with defer to ensure MapLibre loads first -->
-<script defer src="/js/clusterMap.js"></script>
+  <!-- Listings Section -->
+  <section class="listings-page">
+    <div class="section-header">
+      <h2 class="page-title">All Properties</h2>
+      <p class="page-subtitle">Find the perfect place for your next adventure</p>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-container">
+      <form action="/listings" method="GET" class="search-form">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" name="search" class="search-input"
+            placeholder="Search by title, location, or destination..." value="<%= searchQuery %>" autocomplete="off">
+          <% if (searchQuery) { %>
+            <a href="/listings" class="clear-search" title="Clear search">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </a>
+            <% } %>
+        </div>
+        <button type="submit" class="search-button">Search</button>
+      </form>
+
+      <% if (searchPerformed) { %>
+        <div class="search-results-info">
+          <p class="results-count">
+            <% if (listings.length===0) { %>
+              No properties found
+              <% } else if (listings.length===1) { %>
+                Found 1 property
+                <% } else { %>
+                  Found <%= listings.length %> properties
+                    <% } %>
+                      <% if (searchQuery) { %>
+                        for "<strong>
+                          <%= searchQuery %>
+                        </strong>"
+                        <% } %>
+          </p>
+        </div>
+        <% } %>
+    </div>
+
+    <!-- Cluster Map — shows all listings as clustered markers -->
+    <div id="cluster-map"></div>
+
+    <!-- Inject listing data as JSON for the cluster map script -->
+    <script>
+      window.listingsData = <%- JSON.stringify(listings).replace(/</g, '\\u003c') %>; // Use <%- %> but escape `<` to prevent XSS breakout
+    </script>
+
+    <% if (listings.length===0) { %>
+      <div class="empty-state">
+        <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <% if (searchPerformed) { %>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <% } else { %>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              <% } %>
+        </svg>
+        <% if (searchPerformed) { %>
+          <h3>No Results Found</h3>
+          <p>Try adjusting your search terms or <a href="/listings" class="reset-link">browse all properties</a></p>
+          <% } else { %>
+            <h3>No Properties Yet</h3>
+            <p>Be the first to add a property!</p>
+            <% } %>
+      </div>
+      <% } else { %>
+        <div class="row g-4">
+          <% for (let listing of listings) { %>
+            <div class="col-sm-6 col-md-4 col-lg-3">
+              <a href="/listings/<%= listing._id %>" class="listing-card-link">
+                <div class="card listing-card h-100">
+                  <div class="card-img-wrapper">
+                    <img src="<%= listing.image.url %>" class="card-img-top" alt="<%= listing.image.filename %>">
+                  </div>
+                  <div class="card-body">
+                    <p class="card-title">
+                      <%= listing.title %>
+                    </p>
+                    <p class="price">
+                      ₹ <%= listing.price.toLocaleString('en-IN') %> <span class="price-period">/ night</span>
+                    </p>
+                    <p class="country">
+                      <svg class="location-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                        fill="currentColor">
+                        <path
+                          d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+                      </svg>
+                      <%= listing.country %>
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <% } %>
+        </div>
+        <% } %>
+  </section>
+
+  <!-- Load the cluster map script with defer to ensure MapLibre loads first -->
+  <script defer src="/js/clusterMap.js"></script>

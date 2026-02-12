@@ -1,0 +1,175 @@
+<% layout('/layouts/boilerplate') -%>
+
+    <div class="admin-panel">
+        <!-- Admin Header -->
+        <div class="admin-header">
+            <div class="admin-header-content">
+                <div class="admin-title-group">
+                    <div class="admin-icon">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <div>
+                        <h1 class="admin-title">Admin Dashboard</h1>
+                        <p class="admin-subtitle">Welcome back, <strong>
+                                <%= currentUser.username %>
+                            </strong></p>
+                    </div>
+                </div>
+                <div class="admin-quick-actions">
+                    <a href="/admin/users" class="admin-quick-btn">
+                        <i class="fa-solid fa-users"></i> Users
+                    </a>
+                    <a href="/admin/listings" class="admin-quick-btn">
+                        <i class="fa-solid fa-building"></i> Listings
+                    </a>
+                    <a href="/admin/reviews" class="admin-quick-btn">
+                        <i class="fa-solid fa-star"></i> Reviews
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="admin-stats">
+            <div class="stat-card stat-users">
+                <div class="stat-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 class="stat-number">
+                        <%= totalUsers %>
+                    </h3>
+                    <p class="stat-label">Total Users</p>
+                </div>
+                <a href="/admin/users" class="stat-link">
+                    View All <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="stat-card stat-listings">
+                <div class="stat-icon">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 class="stat-number">
+                        <%= totalListings %>
+                    </h3>
+                    <p class="stat-label">Total Listings</p>
+                </div>
+                <a href="/admin/listings" class="stat-link">
+                    View All <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="stat-card stat-reviews">
+                <div class="stat-icon">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 class="stat-number">
+                        <%= totalReviews %>
+                    </h3>
+                    <p class="stat-label">Total Reviews</p>
+                </div>
+                <a href="/admin/reviews" class="stat-link">
+                    View All <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Activity Section -->
+        <div class="admin-recent">
+            <!-- Recent Users -->
+            <div class="recent-card">
+                <div class="recent-header">
+                    <h3><i class="fa-solid fa-user-plus"></i> Recent Users</h3>
+                    <a href="/admin/users" class="view-all-link">View All</a>
+                </div>
+                <div class="recent-list">
+                    <% if (recentUsers.length===0) { %>
+                        <p class="empty-state">No users yet</p>
+                        <% } else { %>
+                            <% recentUsers.forEach(user=> { %>
+                                <div class="recent-item">
+                                    <div class="recent-avatar">
+                                        <%= user.username.charAt(0).toUpperCase() %>
+                                    </div>
+                                    <div class="recent-info">
+                                        <span class="recent-name">
+                                            <%= user.username %>
+                                        </span>
+                                        <span class="recent-detail">
+                                            <%= user.email %>
+                                        </span>
+                                    </div>
+                                    <% if (user.role==='admin' ) { %>
+                                        <span class="role-badge badge-admin">Admin</span>
+                                        <% } else { %>
+                                            <span class="role-badge badge-user">User</span>
+                                            <% } %>
+                                </div>
+                                <% }) %>
+                                    <% } %>
+                </div>
+            </div>
+
+            <!-- Recent Listings -->
+            <div class="recent-card">
+                <div class="recent-header">
+                    <h3><i class="fa-solid fa-building"></i> Recent Listings</h3>
+                    <a href="/admin/listings" class="view-all-link">View All</a>
+                </div>
+                <div class="recent-list">
+                    <% if (recentListings.length===0) { %>
+                        <p class="empty-state">No listings yet</p>
+                        <% } else { %>
+                            <% recentListings.forEach(listing=> { %>
+                                <div class="recent-item">
+                                    <div class="recent-thumb">
+                                        <img src="<%= listing.image.url %>" alt="<%= listing.title %>">
+                                    </div>
+                                    <div class="recent-info">
+                                        <a href="/listings/<%= listing._id %>" class="recent-name">
+                                            <%= listing.title %>
+                                        </a>
+                                        <span class="recent-detail">by <%= listing.owner ? listing.owner.username
+                                                : 'Unknown' %> · ₹<%= listing.price.toLocaleString() %>/night</span>
+                                    </div>
+                                </div>
+                                <% }) %>
+                                    <% } %>
+                </div>
+            </div>
+
+            <!-- Recent Reviews -->
+            <div class="recent-card">
+                <div class="recent-header">
+                    <h3><i class="fa-solid fa-star"></i> Recent Reviews</h3>
+                    <a href="/admin/reviews" class="view-all-link">View All</a>
+                </div>
+                <div class="recent-list">
+                    <% if (recentReviews.length===0) { %>
+                        <p class="empty-state">No reviews yet</p>
+                        <% } else { %>
+                            <% recentReviews.forEach(review=> { %>
+                                <div class="recent-item">
+                                    <div class="recent-rating">
+                                        <% for (let i=0; i < review.rating; i++) { %>
+                                            <i class="fa-solid fa-star"></i>
+                                            <% } %>
+                                    </div>
+                                    <div class="recent-info">
+                                        <span class="recent-name">
+                                            <%= review.comment.substring(0, 50) %>
+                                                <%= review.comment.length> 50 ? '...' : '' %>
+                                        </span>
+                                        <span class="recent-detail">by <%= review.author ? review.author.username
+                                                : 'Deleted User' %></span>
+                                    </div>
+                                </div>
+                                <% }) %>
+                                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
