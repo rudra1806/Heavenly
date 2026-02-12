@@ -383,7 +383,7 @@ Heavenly/
 |--------|----------|-------------|------|
 | `GET` | `/admin` | Dashboard Stats & Recent Activity | Admin |
 | `GET` | `/admin/users` | Manage Users (List/Search) | Admin |
-| `DELETE` | `/admin/users/:id` | Delete User + Cascade Data | Admin |
+| `DELETE` | `/admin/users/:userId` | Delete User + Cascade Data | Admin |
 | `GET` | `/admin/listings` | Manage Listings (List/Search) | Admin |
 | `GET` | `/admin/reviews` | Manage Reviews (List/Search) | Admin |
 
