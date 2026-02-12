@@ -64,16 +64,31 @@ module.exports.deleteUser = async (req, res) => {
     }
 
     // CASCADE DELETE: Listings
-    // 1. Find all listings by this user
-    // 2. Delete their images from Cloudinary to save storage
-    // 3. Delete the listing documents from MongoDB
+    // IMPORTANT: We must delete listings individually (not with deleteMany) to trigger
+    // the listingSchema.post('findOneAndDelete') middleware hook defined in models/listing.js
+    // 
+    // WHY THIS MATTERS:
+    // - The post-hook automatically deletes all reviews associated with each listing
+    // - Using Listing.deleteMany() bypasses middleware hooks (bulk operations don't trigger them)
+    // - Without the hook, reviews on the deleted user's listings would become orphaned in the database
+    // - This includes reviews written by OTHER users, not just the deleted user's own reviews
+    // 
+    // PROCESS:
+    // 1. Find all listings owned by this user
+    // 2. For each listing:
+    //    a. Delete the listing's image from Cloudinary (to free up storage)
+    //    b. Delete the listing using findByIdAndDelete (triggers the middleware hook)
+    //    c. The hook then automatically deletes all associated reviews
     const userListings = await Listing.find({ owner: userId });
     for (const listing of userListings) {
+        // Clean up Cloudinary storage (skip default images)
         if (listing.image.filename && listing.image.filename !== 'default.jpg') {
             await cloudinary.uploader.destroy(listing.image.filename);
         }
+        // Delete listing individually to trigger post('findOneAndDelete') hook
+        // This ensures all reviews on this listing are also deleted automatically
+        await Listing.findByIdAndDelete(listing._id);
     }
-    await Listing.deleteMany({ owner: userId });
 
     // CASCADE DELETE: Reviews
     // 1. Find all reviews by this user
@@ -135,16 +150,56 @@ module.exports.allReviews = async (req, res) => {
         reviews = await Review.find().populate('author');
     }
 
-    // Get listing info for each review
-    const reviewsWithListings = await Promise.all(
-        reviews.map(async (review) => {
-            const listing = await Listing.findOne({ reviews: review._id });
-            return {
-                ...review.toObject(),
-                listing: listing ? { _id: listing._id, title: listing.title } : null
-            };
-        })
-    );
+    // PERFORMANCE OPTIMIZATION: Fetch listing info for each review efficiently
+    // 
+    // PROBLEM (N+1 Query Pattern):
+    // - The original code used Promise.all with reviews.map(async review => Listing.findOne(...))
+    // - This creates one database query PER review (if 100 reviews = 100 queries!)
+    // - As review count grows, this becomes extremely slow and resource-intensive
+    // 
+    // SOLUTION (Single Bulk Query):
+    // - Make ONE query to fetch all listings that contain any of our review IDs
+    // - Build a Map for O(1) constant-time lookups when matching reviews to listings
+    // - This scales efficiently: 10 reviews or 10,000 reviews = still just 1 query
+    // 
+    // PERFORMANCE COMPARISON:
+    // - Old approach: O(n) queries where n = number of reviews
+    // - New approach: O(1) query regardless of review count
+    
+    const reviewIds = reviews.map((review) => review._id);
+    let listingByReviewId = new Map();
+    
+    if (reviewIds.length > 0) {
+        // Single query: Find all listings that contain any of these review IDs
+        // Using $in operator to match multiple review IDs at once
+        const listings = await Listing.find({
+            reviews: { $in: reviewIds }
+        }).select('_id title reviews'); // Only fetch fields we need (optimization)
+        
+        // Build a Map: reviewId -> listing info
+        // Map provides O(1) lookup time vs O(n) for array.find()
+        listings.forEach((listing) => {
+            if (!Array.isArray(listing.reviews)) return;
+            listing.reviews.forEach((revId) => {
+                const key = revId.toString();
+                // Preserve "first match" behavior (same as original findOne logic)
+                // If a review somehow appears in multiple listings, use the first one found
+                if (!listingByReviewId.has(key)) {
+                    listingByReviewId.set(key, { _id: listing._id, title: listing.title });
+                }
+            });
+        });
+    }
+    
+    // Map each review to include its associated listing info
+    // Fast O(1) lookup from our Map instead of querying the database
+    const reviewsWithListings = reviews.map((review) => {
+        const listing = listingByReviewId.get(review._id.toString()) || null;
+        return {
+            ...review.toObject(),
+            listing
+        };
+    });
 
     res.render('admin/reviews.ejs', { reviews: reviewsWithListings, searchQuery: searchQuery || '' });
 };

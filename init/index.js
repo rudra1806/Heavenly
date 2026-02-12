@@ -12,11 +12,22 @@ const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/heavenly';
 // Superuser credentials from environment variables
 // Best Practice: Use environment variables for sensitive admin credentials
 // to avoid hardcoding secrets in the codebase.
+// SECURITY: Require admin credentials in production to prevent weak defaults
+if (process.env.NODE_ENV === 'production' && (!process.env.ADMIN_USERNAME || !process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD)) {
+    console.error('ERROR: ADMIN_USERNAME, ADMIN_EMAIL, and ADMIN_PASSWORD must be set in production!');
+    process.exit(1);
+}
+
 const SUPERUSER = {
     username: process.env.ADMIN_USERNAME || 'admin',
     email: process.env.ADMIN_EMAIL || 'admin@heavenly.com',
     password: process.env.ADMIN_PASSWORD || 'admin123'
 };
+
+// Warn if using default credentials in non-production environments
+if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+    console.warn('WARNING: Using default admin credentials. Set ADMIN_USERNAME, ADMIN_EMAIL, and ADMIN_PASSWORD in .env for security.');
+}
 
 main()
     .then(() => console.log('Successfully Connected to MongoDB'))
