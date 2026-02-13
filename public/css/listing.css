@@ -40,6 +40,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -163,7 +164,7 @@
   border-radius: 12px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  background: var(--surface);
+  background: #FFFFFF;
   color: var(--text-dark);
 }
 
@@ -297,18 +298,19 @@
 
 /* Card polish */
 .listing-card {
-  border: none;
+  border: 1px solid rgba(86, 84, 73, 0.1);
   border-radius: 16px;
   overflow: hidden;
-  background: var(--surface);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: #FFFFFF;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
 }
 
 .listing-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  border-color: rgba(86, 84, 73, 0.18);
 }
 
 /* Image Wrapper */
@@ -335,7 +337,7 @@
 /* Text */
 .listing-card .card-body {
   padding: 1.5rem;
-  background: var(--surface);
+  background: #FFFFFF;
 }
 
 .listing-card .card-body p {
@@ -389,11 +391,11 @@
   .hero-title {
     font-size: 2.5rem;
   }
-  
+
   .hero-subtitle {
     font-size: 1.2rem;
   }
-  
+
   .stat-number {
     font-size: 2rem;
   }
@@ -405,57 +407,57 @@
     margin-top: 0;
     padding-top: 70px;
   }
-  
+
   .hero-title {
     font-size: 2rem;
   }
-  
+
   .hero-subtitle {
     font-size: 1rem;
     margin-bottom: 2rem;
   }
-  
+
   .hero-stats {
     gap: 1.5rem;
   }
-  
+
   .stat-number {
     font-size: 1.75rem;
   }
-  
+
   .stat-label {
     font-size: 0.85rem;
   }
-  
+
   .stat-divider {
     height: 40px;
   }
-  
+
   .page-title {
     font-size: 2rem;
   }
-  
+
   .page-subtitle {
     font-size: 1rem;
   }
-  
+
   .listings-page {
     padding: 2rem 1rem;
   }
-  
+
   .card-img-wrapper {
     height: 200px;
   }
-  
+
   /* Search responsive */
   .search-form {
     flex-direction: column;
   }
-  
+
   .search-input-wrapper {
     min-width: 100%;
   }
-  
+
   .search-button {
     width: 100%;
   }
@@ -465,16 +467,16 @@
   .hero-stats {
     gap: 1rem;
   }
-  
+
   .stat-divider {
     display: none;
   }
-  
+
   .search-input {
     font-size: 0.95rem;
     padding: 0.75rem 2.75rem 0.75rem 2.75rem;
   }
-  
+
   .search-button {
     padding: 0.75rem 1.5rem;
     font-size: 0.95rem;

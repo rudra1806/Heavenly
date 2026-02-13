@@ -7,6 +7,7 @@ const initData = require("./data.js");
 const Listing = require("../models/listing.js");
 const Review = require("../models/review.js");
 const User = require("../models/user.js");
+const Booking = require("../models/booking.js");
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://127.0.0.1:27017/heavenly';
 
 // Superuser credentials from environment variables
@@ -42,6 +43,8 @@ const initDB = async () => {
     await Listing.deleteMany({});
     await Review.deleteMany({});
     await User.deleteMany({});
+    await Booking.deleteMany({});
+    console.log("Cleared all existing data (listings, reviews, users, bookings)");
 
     // Create superuser with admin role
     const superuser = new User({

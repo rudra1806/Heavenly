@@ -26,6 +26,11 @@
         <a class="nav-link" href="/listings">
           <i class="fa-solid fa-compass"></i> Explore
         </a>
+        <% if (currentUser) { %>
+        <a class="nav-link" href="/bookings">
+          <i class="fa-solid fa-calendar-check"></i> My Bookings
+        </a>
+        <% } %>
         <a class="nav-link" href="/listings/new">
           <i class="fa-solid fa-plus"></i> Create
         </a>

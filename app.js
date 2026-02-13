@@ -28,6 +28,7 @@ const reviewsRoutes = require('./routes/reviews.js');
 const usersRoutes = require('./routes/users.js');
 const pagesRoutes = require('./routes/pages.js');
 const adminRoutes = require('./routes/admin.js');
+const bookingsRoutes = require('./routes/bookings.js');
 
 // Custom utilities
 const ExpressError = require('./utils/ExpressError.js');
@@ -40,6 +41,7 @@ app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(methodOverride('_method'));
 
@@ -119,6 +121,10 @@ app.use('/', listingsRoutes);
 // Review Routes
 
 app.use('/', reviewsRoutes);
+
+// Booking Routes
+
+app.use('/', bookingsRoutes);
 
 // Static Pages Routes
 

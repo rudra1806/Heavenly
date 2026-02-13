@@ -24,4 +24,9 @@ router.get('/admin/listings', wrapAsync(adminController.allListings));
 router.get('/admin/reviews', wrapAsync(adminController.allReviews));
 router.delete('/admin/reviews/:reviewId', wrapAsync(adminController.deleteReview));
 
+// Booking Management
+router.get('/admin/bookings', wrapAsync(adminController.allBookings));
+router.post('/admin/bookings/:bookingId/cancel', wrapAsync(adminController.cancelBooking));
+router.delete('/admin/bookings/:bookingId', wrapAsync(adminController.deleteBooking));
+
 module.exports = router;

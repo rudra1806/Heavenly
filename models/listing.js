@@ -3,16 +3,16 @@ const Review = require('./review');
 const Schema = mongoose.Schema;
 
 const listingSchema = new Schema({
-    title: { 
+    title: {
         type: String,
-        required: true 
+        required: true
     },
-    description: { 
+    description: {
         type: String,
-        required: true 
+        required: true
     },
     image: {
-        filename : {
+        filename: {
             type: String,
             default: 'default.jpg',
             set: (v) => v === '' ? 'default.jpg' : v
@@ -23,17 +23,22 @@ const listingSchema = new Schema({
             set: (v) => v === '' ? 'https://images.pexels.com/photos/12883028/pexels-photo-12883028.jpeg' : v
         }
     },
-    price: { 
-        type: Number, 
-        required: true 
+    price: {
+        type: Number,
+        required: true
     },
-    location: { 
-        type: String, 
-        required: true 
+    location: {
+        type: String,
+        required: true
     },
-    country: { 
-        type: String, 
-        required: true 
+    country: {
+        type: String,
+        required: true
+    },
+    maxGuests: {
+        type: Number,
+        default: 4,
+        min: 1
     },
     reviews: [
         {

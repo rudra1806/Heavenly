@@ -1,6 +1,7 @@
 const Listing = require('../models/listing.js');
 const Review = require('../models/review.js');
 const User = require('../models/user.js');
+const Booking = require('../models/booking.js');
 const { cloudinary } = require('../cloudConfig.js');
 
 // Dashboard — show platform stats
@@ -8,19 +9,56 @@ module.exports.dashboard = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const totalListings = await Listing.countDocuments();
     const totalReviews = await Review.countDocuments();
+    const totalBookings = await Booking.countDocuments();
+
+    // Booking status breakdown
+    const confirmedBookings = await Booking.countDocuments({ bookingStatus: 'confirmed' });
+    const cancelledBookings = await Booking.countDocuments({ bookingStatus: 'cancelled' });
+    const completedBookings = await Booking.countDocuments({ bookingStatus: 'completed' });
+
+    // Payment stats
+    const paidBookings = await Booking.countDocuments({ paymentStatus: 'completed' });
+    const pendingPayments = await Booking.countDocuments({ paymentStatus: 'pending' });
+    const refundedPayments = await Booking.countDocuments({ paymentStatus: 'refunded' });
+
+    // Revenue calculation (from completed payments)
+    const revenueResult = await Booking.aggregate([
+        { $match: { paymentStatus: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+    ]);
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
+
+    // Total guests served
+    const guestsResult = await Booking.aggregate([
+        { $match: { bookingStatus: { $ne: 'cancelled' } } },
+        { $group: { _id: null, total: { $sum: '$guests' } } }
+    ]);
+    const totalGuests = guestsResult.length > 0 ? guestsResult[0].total : 0;
 
     // Recent activity
     const recentUsers = await User.find().sort({ _id: -1 }).limit(5);
     const recentListings = await Listing.find().sort({ _id: -1 }).limit(5).populate('owner');
     const recentReviews = await Review.find().sort({ _id: -1 }).limit(5).populate('author');
+    const recentBookings = await Booking.find().sort({ createdAt: -1 }).limit(5)
+        .populate('user').populate('listing');
 
     res.render('admin/dashboard.ejs', {
         totalUsers,
         totalListings,
         totalReviews,
+        totalBookings,
+        confirmedBookings,
+        cancelledBookings,
+        completedBookings,
+        paidBookings,
+        pendingPayments,
+        refundedPayments,
+        totalRevenue,
+        totalGuests,
         recentUsers,
         recentListings,
-        recentReviews
+        recentReviews,
+        recentBookings
     });
 };
 
@@ -104,6 +142,11 @@ module.exports.deleteUser = async (req, res) => {
     );
     await Review.deleteMany({ author: userId });
 
+    // CASCADE DELETE: Bookings
+    // Delete all bookings made by this user
+    // This ensures no orphaned booking records remain in the database
+    await Booking.deleteMany({ user: userId });
+
     // Delete the user
     await User.findByIdAndDelete(userId);
 
@@ -165,17 +208,17 @@ module.exports.allReviews = async (req, res) => {
     // PERFORMANCE COMPARISON:
     // - Old approach: O(n) queries where n = number of reviews
     // - New approach: O(1) query regardless of review count
-    
+
     const reviewIds = reviews.map((review) => review._id);
     let listingByReviewId = new Map();
-    
+
     if (reviewIds.length > 0) {
         // Single query: Find all listings that contain any of these review IDs
         // Using $in operator to match multiple review IDs at once
         const listings = await Listing.find({
             reviews: { $in: reviewIds }
         }).select('_id title reviews'); // Only fetch fields we need (optimization)
-        
+
         // Build a Map: reviewId -> listing info
         // Map provides O(1) lookup time vs O(n) for array.find()
         listings.forEach((listing) => {
@@ -190,7 +233,7 @@ module.exports.allReviews = async (req, res) => {
             });
         });
     }
-    
+
     // Map each review to include its associated listing info
     // Fast O(1) lookup from our Map instead of querying the database
     const reviewsWithListings = reviews.map((review) => {
@@ -224,4 +267,87 @@ module.exports.deleteReview = async (req, res) => {
 
     req.flash('success', 'Review deleted successfully!');
     res.redirect('/admin/reviews');
+};
+
+// All Bookings — list with search and filter
+module.exports.allBookings = async (req, res) => {
+    const searchQuery = req.query.search;
+    const statusFilter = req.query.status;
+    let filter = {};
+
+    // Status filter
+    if (statusFilter && ['confirmed', 'cancelled', 'completed'].includes(statusFilter)) {
+        filter.bookingStatus = statusFilter;
+    }
+
+    let bookings;
+    if (searchQuery && searchQuery.trim() !== '') {
+        // Search by user or listing — we need to search after populate
+        bookings = await Booking.find(filter)
+            .sort({ createdAt: -1 })
+            .populate('user')
+            .populate('listing');
+
+        const escapedQuery = searchQuery.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const searchRegex = new RegExp(escapedQuery, 'i');
+        bookings = bookings.filter(b => {
+            const userName = b.user ? b.user.username : '';
+            const userEmail = b.user ? b.user.email : '';
+            const listingTitle = b.listing ? b.listing.title : '';
+            return searchRegex.test(userName) || searchRegex.test(userEmail) || searchRegex.test(listingTitle);
+        });
+    } else {
+        bookings = await Booking.find(filter)
+            .sort({ createdAt: -1 })
+            .populate('user')
+            .populate('listing');
+    }
+
+    res.render('admin/bookings.ejs', {
+        bookings,
+        searchQuery: searchQuery || '',
+        statusFilter: statusFilter || ''
+    });
+};
+
+// Cancel Booking (admin action)
+module.exports.cancelBooking = async (req, res) => {
+    const { bookingId } = req.params;
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+        req.flash('error', 'Booking not found!');
+        return res.redirect('/admin/bookings');
+    }
+
+    if (booking.bookingStatus === 'cancelled') {
+        req.flash('error', 'This booking is already cancelled!');
+        return res.redirect('/admin/bookings');
+    }
+
+    booking.bookingStatus = 'cancelled';
+    if (booking.paymentStatus === 'completed') {
+        booking.paymentStatus = 'refunded';
+    }
+    await booking.save();
+
+    req.flash('success', 'Booking cancelled successfully!');
+    res.redirect('/admin/bookings');
+};
+
+// Delete Booking (admin action - permanent removal)
+module.exports.deleteBooking = async (req, res) => {
+    const { bookingId } = req.params;
+    const booking = await Booking.findById(bookingId);
+
+    if (!booking) {
+        req.flash('error', 'Booking not found!');
+        return res.redirect('/admin/bookings');
+    }
+
+    // Permanently delete the booking from database
+    await Booking.findByIdAndDelete(bookingId);
+
+    req.flash('success', 'Booking permanently deleted from the database!');
+    res.redirect('/admin/bookings');
 };

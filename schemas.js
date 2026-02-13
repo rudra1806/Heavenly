@@ -53,6 +53,17 @@ const listingSchema = Joi.object({
             'string.min': 'Country must be at least 2 characters'
         }),
     
+    maxGuests: Joi.number()
+        .integer()
+        .min(1)
+        .max(50)
+        .optional()
+        .messages({
+            'number.base': 'Maximum guests must be a number',
+            'number.min': 'Maximum guests must be at least 1',
+            'number.max': 'Maximum guests cannot exceed 50'
+        }),
+    
     image: Joi.object({
         url: Joi.string()
             .trim()
@@ -97,5 +108,37 @@ const reviewSchema = Joi.object({
         })
 });
 
+const bookingSchema = Joi.object({
+    checkIn: Joi.date()
+        .iso()
+        .required()
+        .messages({
+            'date.base': 'Check-in date must be a valid date',
+            'any.required': 'Check-in date is required'
+        }),
+    
+    checkOut: Joi.date()
+        .iso()
+        .greater(Joi.ref('checkIn'))
+        .required()
+        .messages({
+            'date.base': 'Check-out date must be a valid date',
+            'date.greater': 'Check-out date must be after check-in date',
+            'any.required': 'Check-out date is required'
+        }),
+    
+    guests: Joi.number()
+        .integer()
+        .min(1)
+        .max(50)
+        .required()
+        .messages({
+            'number.base': 'Number of guests must be a number',
+            'number.min': 'At least 1 guest is required',
+            'number.max': 'Maximum 20 guests allowed',
+            'any.required': 'Number of guests is required'
+        })
+});
 
-module.exports = { listingSchema, reviewSchema };
+
+module.exports = { listingSchema, reviewSchema, bookingSchema };

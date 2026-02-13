@@ -25,11 +25,14 @@
                     <a href="/admin/reviews" class="admin-quick-btn">
                         <i class="fa-solid fa-star"></i> Reviews
                     </a>
+                    <a href="/admin/bookings" class="admin-quick-btn">
+                        <i class="fa-solid fa-calendar-check"></i> Bookings
+                    </a>
                 </div>
             </div>
         </div>
 
-        <!-- Stats Cards -->
+        <!-- Primary Stats Cards -->
         <div class="admin-stats">
             <div class="stat-card stat-users">
                 <div class="stat-icon">
@@ -75,10 +78,153 @@
                     View All <i class="fa-solid fa-arrow-right"></i>
                 </a>
             </div>
+
+            <div class="stat-card stat-bookings">
+                <div class="stat-icon">
+                    <i class="fa-solid fa-calendar-check"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 class="stat-number">
+                        <%= totalBookings %>
+                    </h3>
+                    <p class="stat-label">Total Bookings</p>
+                </div>
+                <a href="/admin/bookings" class="stat-link">
+                    View All <i class="fa-solid fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Detailed Booking & Revenue Stats -->
+        <div class="admin-detailed-stats">
+            <div class="detail-stat-card revenue-card">
+                <div class="detail-stat-icon revenue-icon">
+                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                </div>
+                <div class="detail-stat-body">
+                    <h4 class="detail-stat-value">₹ <%= totalRevenue.toLocaleString("en-IN") %>
+                    </h4>
+                    <p class="detail-stat-label">Total Revenue</p>
+                    <small class="detail-stat-sub">
+                        <%= paidBookings %> paid bookings
+                    </small>
+                </div>
+            </div>
+
+            <div class="detail-stat-card guests-card">
+                <div class="detail-stat-icon guests-icon">
+                    <i class="fa-solid fa-user-group"></i>
+                </div>
+                <div class="detail-stat-body">
+                    <h4 class="detail-stat-value">
+                        <%= totalGuests %>
+                    </h4>
+                    <p class="detail-stat-label">Guests Served</p>
+                    <small class="detail-stat-sub">across all bookings</small>
+                </div>
+            </div>
+
+            <div class="detail-stat-card status-card">
+                <div class="detail-stat-icon status-icon">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+                <div class="detail-stat-body">
+                    <h4 class="detail-stat-label" style="margin-bottom: 0.5rem;">Booking Status</h4>
+                    <div class="status-breakdown">
+                        <div class="status-item">
+                            <span class="status-dot confirmed-dot"></span>
+                            <span>Confirmed</span>
+                            <strong>
+                                <%= confirmedBookings %>
+                            </strong>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-dot completed-dot"></span>
+                            <span>Completed</span>
+                            <strong>
+                                <%= completedBookings %>
+                            </strong>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-dot cancelled-dot"></span>
+                            <span>Cancelled</span>
+                            <strong>
+                                <%= cancelledBookings %>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-stat-card payment-card">
+                <div class="detail-stat-icon payment-icon">
+                    <i class="fa-solid fa-credit-card"></i>
+                </div>
+                <div class="detail-stat-body">
+                    <h4 class="detail-stat-label" style="margin-bottom: 0.5rem;">Payment Status</h4>
+                    <div class="status-breakdown">
+                        <div class="status-item">
+                            <span class="status-dot confirmed-dot"></span>
+                            <span>Paid</span>
+                            <strong>
+                                <%= paidBookings %>
+                            </strong>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-dot pending-dot"></span>
+                            <span>Pending</span>
+                            <strong>
+                                <%= pendingPayments %>
+                            </strong>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-dot cancelled-dot"></span>
+                            <span>Refunded</span>
+                            <strong>
+                                <%= refundedPayments %>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Recent Activity Section -->
         <div class="admin-recent">
+            <!-- Recent Bookings (NEW) -->
+            <div class="recent-card">
+                <div class="recent-header">
+                    <h3><i class="fa-solid fa-calendar-check"></i> Recent Bookings</h3>
+                    <a href="/admin/bookings" class="view-all-link">View All</a>
+                </div>
+                <div class="recent-list">
+                    <% if (recentBookings.length===0) { %>
+                        <p class="empty-state">No bookings yet</p>
+                        <% } else { %>
+                            <% for (const booking of recentBookings) { %>
+                                <div class="recent-item">
+                                    <div class="recent-avatar">
+                                        <i class="fa-solid fa-ticket"></i>
+                                    </div>
+                                    <div class="recent-info">
+                                        <span class="recent-name">
+                                            <%= booking.listing ? booking.listing.title : 'Deleted Listing' %>
+                                        </span>
+                                        <span class="recent-detail">
+                                            by <%= booking.user ? booking.user.username : 'Deleted User' %> ·
+                                                ₹<%= booking.totalPrice.toLocaleString("en-IN") %> ·
+                                                    <%= booking.guests %> guest<%= booking.guests> 1 ? 's' : '' %>
+                                        </span>
+                                    </div>
+                                    <span class="role-badge badge-<%= booking.bookingStatus %>">
+                                        <%= booking.bookingStatus %>
+                                    </span>
+                                </div>
+                                <% } %>
+                                    <% } %>
+                </div>
+            </div>
+
             <!-- Recent Users -->
             <div class="recent-card">
                 <div class="recent-header">
@@ -89,7 +235,7 @@
                     <% if (recentUsers.length===0) { %>
                         <p class="empty-state">No users yet</p>
                         <% } else { %>
-                            <% recentUsers.forEach(user=> { %>
+                            <% for (const user of recentUsers) { %>
                                 <div class="recent-item">
                                     <div class="recent-avatar">
                                         <%= user.username.charAt(0).toUpperCase() %>
@@ -108,7 +254,7 @@
                                             <span class="role-badge badge-user">User</span>
                                             <% } %>
                                 </div>
-                                <% }) %>
+                                <% } %>
                                     <% } %>
                 </div>
             </div>
@@ -123,7 +269,7 @@
                     <% if (recentListings.length===0) { %>
                         <p class="empty-state">No listings yet</p>
                         <% } else { %>
-                            <% recentListings.forEach(listing=> { %>
+                            <% for (const listing of recentListings) { %>
                                 <div class="recent-item">
                                     <div class="recent-thumb">
                                         <img src="<%= listing.image.url %>" alt="<%= listing.title %>">
@@ -136,7 +282,7 @@
                                                 : 'Unknown' %> · ₹<%= listing.price.toLocaleString() %>/night</span>
                                     </div>
                                 </div>
-                                <% }) %>
+                                <% } %>
                                     <% } %>
                 </div>
             </div>
@@ -151,7 +297,7 @@
                     <% if (recentReviews.length===0) { %>
                         <p class="empty-state">No reviews yet</p>
                         <% } else { %>
-                            <% recentReviews.forEach(review=> { %>
+                            <% for (const review of recentReviews) { %>
                                 <div class="recent-item">
                                     <div class="recent-rating">
                                         <% for (let i=0; i < review.rating; i++) { %>
@@ -167,7 +313,7 @@
                                                 : 'Deleted User' %></span>
                                     </div>
                                 </div>
-                                <% }) %>
+                                <% } %>
                                     <% } %>
                 </div>
             </div>
