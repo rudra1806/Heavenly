@@ -1,0 +1,24 @@
+{
+  "name": "@heavenly/bff",
+  "version": "1.0.0",
+  "description": "Backend-for-Frontend — renders EJS templates, proxies to microservices",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "ejs": "^4.0.1",
+    "ejs-mate": "^4.0.0",
+    "express-session": "^1.18.2",
+    "connect-flash": "^0.1.1",
+    "method-override": "^3.0.0",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}

@@ -1,0 +1,300 @@
+version: '3.8'
+
+services:
+  # =====================
+  # Infrastructure
+  # =====================
+  mongodb:
+    image: mongo:7
+    container_name: heavenly-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - heavenly-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: heavenly-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - heavenly-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: heavenly-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-heavenly}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-heavenly123}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - heavenly-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =====================
+  # API Gateway
+  # =====================
+  gateway:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    container_name: heavenly-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=redis://redis:6379
+      # Service URLs (internal Docker network)
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - LISTING_SERVICE_URL=http://listing-service:3002
+      - REVIEW_SERVICE_URL=http://review-service:3003
+      - BOOKING_SERVICE_URL=http://booking-service:3004
+      - MEDIA_SERVICE_URL=http://media-service:3005
+      - SEARCH_SERVICE_URL=http://search-service:3006
+      - ADMIN_SERVICE_URL=http://admin-service:3007
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - heavenly-network
+    volumes:
+      - ./gateway:/app/gateway
+      - ./shared:/app/shared
+      - /app/gateway/node_modules
+
+  # =====================
+  # Core Services
+  # =====================
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: heavenly-auth
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - MONGO_URL=mongodb://mongodb:27017/heavenly_auth
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-heavenly}:${RABBITMQ_PASS:-heavenly123}@rabbitmq:5672
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - heavenly-network
+    volumes:
+      - ./services/auth-service:/app/services/auth-service
+      - ./shared:/app/shared
+      - /app/services/auth-service/node_modules
+
+  listing-service:
+    build:
+      context: .
+      dockerfile: services/listing-service/Dockerfile
+    container_name: heavenly-listing
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - MONGO_URL=mongodb://mongodb:27017/heavenly_listings
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-heavenly}:${RABBITMQ_PASS:-heavenly123}@rabbitmq:5672
+      - MEDIA_SERVICE_URL=http://media-service:3005
+      - SEARCH_SERVICE_URL=http://search-service:3006
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - heavenly-network
+    volumes:
+      - ./services/listing-service:/app/services/listing-service
+      - ./shared:/app/shared
+      - /app/services/listing-service/node_modules
+
+  review-service:
+    build:
+      context: .
+      dockerfile: services/review-service/Dockerfile
+    container_name: heavenly-review
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - MONGO_URL=mongodb://mongodb:27017/heavenly_reviews
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-heavenly}:${RABBITMQ_PASS:-heavenly123}@rabbitmq:5672
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - heavenly-network
+    volumes:
+      - ./services/review-service:/app/services/review-service
+      - ./shared:/app/shared
+      - /app/services/review-service/node_modules
+
+  booking-service:
+    build:
+      context: .
+      dockerfile: services/booking-service/Dockerfile
+    container_name: heavenly-booking
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - MONGO_URL=mongodb://mongodb:27017/heavenly_bookings
+      - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-heavenly}:${RABBITMQ_PASS:-heavenly123}@rabbitmq:5672
+      - LISTING_SERVICE_URL=http://listing-service:3002
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - heavenly-network
+    volumes:
+      - ./services/booking-service:/app/services/booking-service
+      - ./shared:/app/shared
+      - /app/services/booking-service/node_modules
+
+  media-service:
+    build:
+      context: .
+      dockerfile: services/media-service/Dockerfile
+    container_name: heavenly-media
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - JWT_SECRET=${JWT_SECRET}
+      - CLOUD_NAME=${CLOUD_NAME}
+      - CLOUD_API_KEY=${CLOUD_API_KEY}
+      - CLOUD_API_SECRET=${CLOUD_API_SECRET}
+    depends_on: []
+    networks:
+      - heavenly-network
+    volumes:
+      - ./services/media-service:/app/services/media-service
+      - ./shared:/app/shared
+      - /app/services/media-service/node_modules
+
+  search-service:
+    build:
+      context: .
+      dockerfile: services/search-service/Dockerfile
+    container_name: heavenly-search
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=development
+      - PORT=3006
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-heavenly}:${RABBITMQ_PASS:-heavenly123}@rabbitmq:5672
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - heavenly-network
+    volumes:
+      - ./services/search-service:/app/services/search-service
+      - ./shared:/app/shared
+      - /app/services/search-service/node_modules
+
+  admin-service:
+    build:
+      context: .
+      dockerfile: services/admin-service/Dockerfile
+    container_name: heavenly-admin
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=development
+      - PORT=3007
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - LISTING_SERVICE_URL=http://listing-service:3002
+      - REVIEW_SERVICE_URL=http://review-service:3003
+      - BOOKING_SERVICE_URL=http://booking-service:3004
+    depends_on: []
+    networks:
+      - heavenly-network
+    volumes:
+      - ./services/admin-service:/app/services/admin-service
+      - ./shared:/app/shared
+      - /app/services/admin-service/node_modules
+
+  # =====================
+  # BFF (Frontend)
+  # =====================
+  bff:
+    build:
+      context: .
+      dockerfile: bff/Dockerfile
+    container_name: heavenly-bff
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - GATEWAY_URL=http://gateway:3000
+      - SESSION_SECRET=${SESSION_SECRET}
+    depends_on:
+      - gateway
+    networks:
+      - heavenly-network
+    volumes:
+      - ./bff:/app/bff
+      - ./shared:/app/shared
+      - /app/bff/node_modules
+
+volumes:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  heavenly-network:
+    driver: bridge

@@ -1,0 +1,22 @@
+{
+  "name": "@heavenly/booking-service",
+  "version": "1.0.0",
+  "description": "Booking microservice — reservations, payments, availability",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "mongoose": "^9.1.4",
+    "amqplib": "^0.10.4",
+    "joi": "^18.0.2",
+    "cors": "^2.8.5",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
