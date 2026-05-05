@@ -15,6 +15,7 @@ module.exports.index = async (req, res) => {
         // Case-insensitive search across title, location, country, and description
         const searchRegex = new RegExp(escapedQuery, 'i'); // 'i' for case-insensitive
         allListings = await Listing.find({
+            isAvailable: { $ne: false },
             $or: [
                 { title: searchRegex },
                 { location: searchRegex },
@@ -23,7 +24,7 @@ module.exports.index = async (req, res) => {
             ]
         });
     } else {
-        allListings = await Listing.find({});
+        allListings = await Listing.find({ isAvailable: { $ne: false } });
     }
 
     res.render('listings/index.ejs', {
@@ -34,7 +35,7 @@ module.exports.index = async (req, res) => {
 };
 
 // new - Show create form
-module.exports.newForm = (req, res) => {
+module.exports.newForm = (_req, res) => {
     res.render('listings/new.ejs');
 };
 
@@ -59,7 +60,7 @@ module.exports.create = async (req, res) => {
     await newListing.save();
     req.flash('success', 'Successfully created a new listing!');
     res.redirect('/listings');
-}
+};
 
 // show - Display single listing
 module.exports.show = async (req, res) => {
@@ -146,6 +147,6 @@ module.exports.delete = async (req, res) => {
     if (req.user.role === 'admin') {
         res.redirect('/admin/listings');
     } else {
-        res.redirect('/listings');
+        res.redirect('/dashboard/listings');
     }
 };

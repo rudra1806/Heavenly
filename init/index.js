@@ -55,10 +55,11 @@ const initDB = async () => {
     const registeredUser = await User.register(superuser, SUPERUSER.password);
     console.log(`Superuser '${SUPERUSER.username}' created successfully!`);
 
-    // Add owner to all listings
+    // Add owner and availability to all listings
     const listingsWithOwner = initData.data.map((listing) => ({
         ...listing,
-        owner: registeredUser._id
+        owner: registeredUser._id,
+        isAvailable: true
     }));
 
     await Listing.insertMany(listingsWithOwner);

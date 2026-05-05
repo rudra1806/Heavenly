@@ -8,6 +8,11 @@ module.exports.bookingForm = async (req, res) => {
         req.flash('error', 'Listing not found!');
         return res.redirect('/listings');
     }
+    // Check if listing is available for booking
+    if (!listing.isAvailable) {
+        req.flash('error', 'This listing is currently unavailable for booking.');
+        return res.redirect(`/listings/${listing._id}`);
+    }
     res.render('bookings/new.ejs', { listing });
 };
 
@@ -21,6 +26,12 @@ module.exports.createBooking = async (req, res) => {
         return res.redirect('/listings');
     }
 
+    // Check if listing is available for booking
+    if (!listing.isAvailable) {
+        req.flash('error', 'This listing is currently unavailable for booking.');
+        return res.redirect(`/listings/${listing._id}`);
+    }
+
     // Validate dates are in the future
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
@@ -32,6 +43,12 @@ module.exports.createBooking = async (req, res) => {
         return res.redirect(`/listings/${listing._id}/book`);
     }
 
+    // Prevent owner from booking their own listing
+    if (listing.owner.equals(req.user._id)) {
+        req.flash('error', 'You cannot book your own listing!');
+        return res.redirect(`/listings/${listing._id}`);
+    }
+
     // Validate guest count against listing's max
     const maxGuests = listing.maxGuests || 4;
     if (parseInt(guests) > maxGuests) {
@@ -39,9 +56,11 @@ module.exports.createBooking = async (req, res) => {
         return res.redirect(`/listings/${listing._id}/book`);
     }
 
-    // Calculate total price
+    // Calculate total price (including 10% service fee)
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    const totalPrice = nights * listing.price;
+    const subtotal = nights * listing.price;
+    const serviceFee = Math.round(subtotal * 0.10);
+    const totalPrice = subtotal + serviceFee;
 
     // Check for overlapping bookings
     const overlappingBooking = await Booking.findOne({
@@ -146,12 +165,14 @@ module.exports.showBooking = async (req, res) => {
 
 // Show all user bookings
 module.exports.userBookings = async (req, res) => {
-    const bookings = await Booking.find({
+    const bookingsRaw = await Booking.find({
         user: req.user._id,
         isVisibleToUser: true
     })
         .populate('listing')
         .sort({ createdAt: -1 });
+    // Filter out bookings whose listing was deleted (populate returns null)
+    const bookings = bookingsRaw.filter(b => b.listing != null);
 
     res.render('bookings/index.ejs', { bookings });
 };

@@ -70,14 +70,14 @@
                     Number of Guests
                 </label>
                 <input type="number" id="guests" name="guests" class="form-control" min="1"
-                    max="<%= listing.maxGuests || 10 %>" value="1" required>
+                    max="<%= listing.maxGuests || 4 %>" value="1" required>
                 <small style="color: var(--bk-text-muted); font-size: 0.8rem; margin-top: 0.35rem; display: block;">
                     <i class="fa-solid fa-circle-info" style="color: var(--bk-gold); margin-right: 0.25rem;"></i>
                     Maximum <strong>
-                        <%= listing.maxGuests || 10 %>
+                        <%= listing.maxGuests || 4 %>
                     </strong> guests allowed
                 </small>
-                <div class="invalid-feedback">Please enter between 1 and <%= listing.maxGuests || 10 %> guests.</div>
+                <div class="invalid-feedback">Please enter between 1 and <%= listing.maxGuests || 4 %> guests.</div>
             </div>
 
             <div class="price-breakdown" id="priceBreakdown" style="display: none;">

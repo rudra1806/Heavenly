@@ -87,7 +87,7 @@
                             <div class="highlight-text">
                                 <span class="highlight-label">Max Guests</span>
                                 <div class="highlight-value">
-                                    <%= listing.maxGuests || 10 %> Guests
+                                    <%= listing.maxGuests || 4 %> Guests
                                 </div>
                             </div>
                         </div>
@@ -132,10 +132,17 @@
                             <span class="price-amount">₹ <%= listing.price.toLocaleString("en-IN") %></span>
                             <span class="price-unit">/ night</span>
                         </div>
+                        <% if (!listing.isAvailable) { %>
+                            <div style="text-align: center; padding: 0.75rem; background: rgba(180, 64, 64, 0.1); border-radius: 10px; margin-bottom: 0.75rem;">
+                                <i class="fa-solid fa-circle-xmark" style="color: #b44040;"></i>
+                                <span style="color: #b44040; font-weight: 600; font-size: 0.9rem;"> Currently Unavailable</span>
+                            </div>
+                        <% } else { %>
                         <a href="/listings/<%= listing._id %>/book" class="btn-book-now">
                             <i class="fa-solid fa-calendar-check"></i>
                             Book This Property
                         </a>
+                        <% } %>
                         <div class="booking-features">
                             <div class="booking-feature">
                                 <i class="fa-solid fa-check"></i>
@@ -157,10 +164,17 @@
                                 <span class="price-amount">₹ <%= listing.price.toLocaleString("en-IN") %></span>
                                 <span class="price-unit">/ night</span>
                             </div>
+                            <% if (!listing.isAvailable) { %>
+                                <div style="text-align: center; padding: 0.75rem; background: rgba(180, 64, 64, 0.1); border-radius: 10px; margin-bottom: 0.75rem;">
+                                    <i class="fa-solid fa-circle-xmark" style="color: #b44040;"></i>
+                                    <span style="color: #b44040; font-weight: 600; font-size: 0.9rem;"> Currently Unavailable</span>
+                                </div>
+                            <% } else { %>
                             <a href="/login" class="btn-book-now">
                                 <i class="fa-solid fa-right-to-bracket"></i>
                                 Login to Book
                             </a>
+                            <% } %>
                             <div class="booking-features">
                                 <div class="booking-feature">
                                     <i class="fa-solid fa-check"></i>

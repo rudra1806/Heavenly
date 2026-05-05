@@ -29,6 +29,7 @@ const usersRoutes = require('./routes/users.js');
 const pagesRoutes = require('./routes/pages.js');
 const adminRoutes = require('./routes/admin.js');
 const bookingsRoutes = require('./routes/bookings.js');
+const dashboardRoutes = require('./routes/dashboard.js');
 
 // Custom utilities
 const ExpressError = require('./utils/ExpressError.js');
@@ -46,7 +47,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(methodOverride('_method'));
 
 // ===== Database Connection =====
-mongoose.connect(MONGO_URL)
+const mongooseOptions = {
+    serverSelectionTimeoutMS: 5000,
+};
+// Enable TLS only for remote/Atlas connections (not local MongoDB)
+if (MONGO_URL.includes('mongodb.net') || MONGO_URL.includes('mongodb+srv')) {
+    mongooseOptions.tls = true;
+    mongooseOptions.tlsAllowInvalidCertificates = false;
+}
+mongoose.connect(MONGO_URL, mongooseOptions)
     .then(() => console.log('Successfully Connected to MongoDB'))
     .catch(err => console.log('MongoDB Connection Error:', err));
 
@@ -63,8 +72,8 @@ const store = MongoStore.create({
 });
 
 // Log any session store errors to the console for debugging
-store.on('error', function (e) {
-    console.log('SESSION STORE ERROR:', e);
+store.on('error', function (err) {
+    console.log('SESSION STORE ERROR:', err);
 });
 
 // Session configuration with secure defaults and environment variable for secret
@@ -113,6 +122,9 @@ app.use('/', usersRoutes);
 
 // Admin Routes
 app.use('/', adminRoutes);
+
+// Dashboard Routes
+app.use('/', dashboardRoutes);
 
 //listings Route
 

@@ -135,7 +135,7 @@ const bookingSchema = Joi.object({
         .messages({
             'number.base': 'Number of guests must be a number',
             'number.min': 'At least 1 guest is required',
-            'number.max': 'Maximum 20 guests allowed',
+            'number.max': 'Maximum 50 guests allowed',
             'any.required': 'Number of guests is required'
         })
 });

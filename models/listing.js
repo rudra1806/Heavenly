@@ -40,6 +40,10 @@ const listingSchema = new Schema({
         default: 4,
         min: 1
     },
+    isAvailable: {
+        type: Boolean,
+        default: true
+    },
     reviews: [
         {
             type: Schema.Types.ObjectId,
