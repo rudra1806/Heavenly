@@ -1,0 +1,150 @@
+# =====================================================
+# Heavenly Microservices — Production Docker Compose
+# =====================================================
+#
+# Usage:
+#   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This override file applies production-specific settings on top of
+# the base docker-compose.yml. It:
+#   - Sets NODE_ENV=production
+#   - Removes volume mounts (uses COPY from Dockerfile instead)
+#   - Adds restart policies
+#   - Adds resource limits
+#   - Removes debug ports (RabbitMQ management UI, etc.)
+
+services:
+  # =====================
+  # Infrastructure
+  # =====================
+  mongodb:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  redis:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
+  rabbitmq:
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      # Management UI port (15672) is NOT exposed in production
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  # =====================
+  # API Gateway
+  # =====================
+  gateway:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []  # No bind mounts — use COPY from Dockerfile
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  # =====================
+  # Core Services
+  # =====================
+  auth-service:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  listing-service:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  review-service:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  booking-service:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  media-service:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.15"
+
+  search-service:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  admin-service:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.15"
+
+  bff:
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    volumes: []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"

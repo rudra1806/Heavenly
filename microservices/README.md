@@ -292,7 +292,10 @@ microservices/
 │       ├── views/               # 28 EJS templates (copied from monolith)
 │       └── public/              # 17 static files (CSS, JS, favicon)
 │
-└── scripts/                         # 🔧 Migration & seed utilities
+└── scripts/                         # 🔧 Migration & testing utilities
+    ├── package.json             # mongoose dependency
+    ├── migrate.js               # Monolith DB → per-service DBs
+    └── smoke-test.js            # E2E health + routing + auth tests
 ```
 
 ---
@@ -692,7 +695,7 @@ npm run dev
 
 ## Migration Progress
 
-> **122 files created** across 6 completed phases. All 8 services + Gateway + BFF fully implemented.
+> **127 files created** across 7 completed phases. **Migration complete.** All 8 services + Gateway + BFF + scripts fully implemented.
 
 ### ✅ Phase 1 — Foundation (Complete)
 
@@ -776,11 +779,14 @@ npm run dev
 | BFF: Templates | ✅ Done | 28 EJS templates copied from monolith (layouts, includes, all pages) |
 | BFF: Static Assets | ✅ Done | 17 files (13 CSS, 3 JS, 1 favicon) |
 
-### ⏳ Phase 7 — Integration & Testing
+### ✅ Phase 7 — Integration & Testing (Complete)
 
-- [ ] Data migration script (monolith DB → per-service databases)
-- [ ] End-to-end testing across all services
-- [ ] Docker Compose production configuration
+| Component | Status | Files |
+|-----------|--------|-------|
+| Migration Script | ✅ Done | `scripts/migrate.js` — monolith DB → per-service DBs, transforms ObjectId refs → strings, denormalizes usernames, restructures payment fields. `--dry-run` supported, idempotent. |
+| Smoke Test | ✅ Done | `scripts/smoke-test.js` — health checks (9 services), Gateway routing, BFF page rendering (7 pages), auth flow (register) |
+| Prod Config | ✅ Done | `docker-compose.prod.yml` — `restart: unless-stopped`, memory/CPU limits, no bind mounts, no debug ports |
+| Scripts Package | ✅ Done | `scripts/package.json` — mongoose dependency for migration |
 
 ---
 
@@ -878,6 +884,14 @@ npm run dev
 
 19. **Replacing Passport.js is simpler than expected** — Passport provides `req.user` via session deserialization from MongoDB. The BFF replaces this with `req.session.user` populated at login time from the Auth Service response. `isAuthenticated()` becomes `!!req.session.accessToken`. The templates work unchanged because we set `res.locals.currentUser = req.session.user` — same variable name, same template logic.
 
+### From Phase 7
+
+20. **Data migration is a schema translation problem** — The monolith stores `owner: ObjectId` → the microservice needs `ownerId: String` + `ownerUsername: String`. Reviews are embedded as `listing.reviews[]` → need a reverse lookup map to find which listing each review belongs to. These aren't just copies — they're transformations that require understanding both the source and target schemas.
+
+21. **Idempotent migrations prevent data corruption** — The migration script checks `await targetCollection.findOne({ _id })` before inserting. Re-running the script skips already-migrated documents instead of duplicating them. This is critical for production — migration scripts WILL be run multiple times during testing.
+
+22. **Production Docker Compose should be a thin override** — `docker-compose.prod.yml` only adds `restart: unless-stopped`, resource limits, and removes bind mounts. It doesn't redefine the entire stack. Using `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up` merges both files cleanly.
+
 ---
 
 ## Contributing
@@ -891,5 +905,6 @@ ISC
 ---
 
 <p align="center">
-  <strong>Heavenly Microservices</strong> — Built from scratch for learning, designed for scale.
+  <strong>Heavenly Microservices</strong> — Built from scratch for learning, designed for scale.<br>
+  <em>127 files • 7 phases • 8 services + Gateway + BFF • 22 lessons learned</em>
 </p>

@@ -1,0 +1,13 @@
+{
+  "name": "@heavenly/scripts",
+  "version": "1.0.0",
+  "description": "Migration and testing scripts for Heavenly microservices",
+  "scripts": {
+    "migrate": "node migrate.js",
+    "migrate:dry": "node migrate.js --dry-run",
+    "smoke-test": "node smoke-test.js"
+  },
+  "dependencies": {
+    "mongoose": "^8.15.1"
+  }
+}
