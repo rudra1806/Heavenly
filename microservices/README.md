@@ -234,15 +234,27 @@ microservices/
 │   │       ├── validators/validateListing.js # Joi validation middleware
 │   │       └── events/consumers.js  # user.deleted → cascade delete
 │   │
-│   ├── review-service/              # ⭐ Port 3003 — Ratings & reviews
+│   ├── review-service/              # ⭐ Port 3003 — Ratings & reviews ✅
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   └── src/index.js             # (stub — Phase 4)
+│   │   └── src/
+│   │       ├── index.js             # Entry point — MongoDB, RabbitMQ
+│   │       ├── models/review.js     # Denormalized authorUsername
+│   │       ├── controllers/review.js # CRUD + listing stats
+│   │       ├── routes/review.js     # Public reads + protected writes
+│   │       ├── validators/validateReview.js # Joi validation
+│   │       └── events/consumers.js  # listing/user.deleted → cascade
 │   │
-│   ├── booking-service/             # 📅 Port 3004 — Reservations & payments
+│   ├── booking-service/             # 📅 Port 3004 — Reservations & payments ✅
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   └── src/index.js             # (stub — Phase 4)
+│   │   └── src/
+│   │       ├── index.js             # Entry point — MongoDB, RabbitMQ
+│   │       ├── models/booking.js    # Denormalized data, payment fields
+│   │       ├── controllers/booking.js # Overlap detection, simulated payment
+│   │       ├── routes/booking.js    # CRUD + payment + cancel
+│   │       ├── validators/validateBooking.js # Joi (checkOut > checkIn)
+│   │       └── events/consumers.js  # listing/user.deleted → cancel+refund
 │   │
 │   ├── media-service/               # 📸 Port 3005 — Cloudinary uploads ✅
 │   │   ├── Dockerfile
@@ -368,30 +380,69 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 ---
 
-### 4. Review Service (Port 3003)
+### 4. Review Service (Port 3003) ✅
 
 **Owns**: Reviews with `listingId` and `authorId` as string references
 
-**Status**: Stub (Phase 4)
+**Status**: Fully implemented
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/reviews` | GET | Public | List reviews (filter by `listingId` or `authorId`) |
+| `/reviews/stats/:listingId` | GET | Public | Rating count + average for a listing |
+| `/reviews/:id` | GET | Public | Single review by ID |
+| `/reviews` | POST | Required | Create review (author from JWT via headers) |
+| `/reviews/:id` | DELETE | Author/Admin | Delete review |
+
+**Implementation Details:**
+
+| Component | Details |
+|-----------|---------|
+| **Model** | `listingId` and `authorId` as plain strings. Denormalized `authorUsername` avoids HTTP call on every read. Compound index on `(listingId, createdAt)` for efficient queries. |
+| **Stats Endpoint** | Calculates average rating and review count per listing — used by BFF to display star ratings without fetching all reviews |
+| **Authorization** | Only the review author or an admin can delete a review |
+| **Events Published** | `review.created`, `review.deleted` |
+| **Events Consumed** | `listing.deleted` → delete all reviews for that listing. `user.deleted` → delete all reviews by that user. |
 
 **Migration from Monolith:**
-- Reviews are no longer embedded in the Listing document
-- Queried via `GET /reviews?listingId=X` instead of Mongoose populate
-- Consumes `listing.deleted` and `user.deleted` for cascade cleanup
+- Reviews were embedded in the Listing model as `reviews[]` ObjectId array → now a standalone collection in a separate database
+- `listing.populate('reviews')` → `GET /reviews?listingId=X` (separate HTTP call)
+- Cascade delete via Mongoose middleware → RabbitMQ event consumers
+- Author info was populated via `review.populate('author')` → now denormalized as `authorUsername` at creation time
 
 ---
 
-### 5. Booking Service (Port 3004)
+### 5. Booking Service (Port 3004) ✅
 
 **Owns**: Reservations, payment simulation, date overlap detection
 
-**Status**: Stub (Phase 4)
+**Status**: Fully implemented
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/bookings` | GET | Public | List bookings (filter by `userId`, `listingId`) |
+| `/bookings/:id` | GET | Public | Single booking |
+| `/bookings` | POST | Required | Create booking (validates listing, checks overlap) |
+| `/bookings/:id/payment` | POST | Required | Process simulated payment |
+| `/bookings/:id/cancel` | POST | Owner/Admin | Cancel booking + simulate refund |
+| `/bookings/:id` | DELETE | Admin | Hard delete booking |
+
+**Implementation Details:**
+
+| Component | Details |
+|-----------|---------|
+| **Model** | Denormalized `listingTitle`, `listingImage`, `listingLocation`, `guestUsername` to avoid inter-service calls on read. Payment sub-document with `status`, `method`, `transactionId`, `paidAt`. Indexes on `(listingId, checkIn, checkOut)` for overlap queries. |
+| **Overlap Detection** | Queries existing `pending`/`confirmed` bookings where `checkIn < newCheckOut AND checkOut > newCheckIn` — standard interval overlap formula |
+| **Listing Validation** | HTTP call to Listing Service: verifies listing exists, is available, checks guest count limit, and prevents self-booking |
+| **Payment Simulation** | Generates `SIM_<timestamp>_<random>` transaction IDs. Status lifecycle: `pending` → `completed` (on payment) → `refunded` (on cancel). Ready for Razorpay/Stripe integration. |
+| **Events Published** | `booking.created`, `booking.payment.completed`, `booking.cancelled` |
+| **Events Consumed** | `listing.deleted` → **cancel** (not delete) active bookings + mark refunded. `user.deleted` → cancel + refund. |
 
 **Migration from Monolith:**
-- Calls Listing Service via HTTP to validate listing exists, check availability, and get price
-- Overlap detection queries only the Booking Service's own database
-- Simulated payment stays here (real Razorpay/Stripe integration planned post-migration)
-- Consumes `listing.deleted` and `user.deleted` for cascade cleanup
+- `Listing.findById()` for price/availability → HTTP call to Listing Service
+- Overlap detection was inline in `controllers/booking.js` → same logic, but queries only Booking Service's own database
+- Payment was tightly coupled with booking creation → now a separate `POST /bookings/:id/payment` endpoint
+- Cascade was hard-delete via Mongoose → now soft-cancel via event consumers (preserves booking history for accounting)
 
 ---
 
@@ -565,7 +616,7 @@ npm run dev
 
 ## Migration Progress
 
-> **56 files created** across 3 completed phases. 4 of 8 services fully implemented.
+> **66 files created** across 4 completed phases. 6 of 8 services fully implemented.
 
 ### ✅ Phase 1 — Foundation (Complete)
 
@@ -607,12 +658,24 @@ npm run dev
 | Search: Events | ✅ Done | `events/consumers.js` — `listing.created/updated/deleted` → index sync |
 | Search: Entry Point | ✅ Done | `index.js` — Redis + RabbitMQ, no database |
 
-### ⏳ Phase 4 — Review + Booking Services (Next)
+### ✅ Phase 4 — Review + Booking Services (Complete)
 
-- [ ] Review Service: Create, delete, query by listing/author, event consumers
-- [ ] Booking Service: Reservation flow, overlap detection, simulated payment
+| Component | Status | Files |
+|-----------|--------|-------|
+| Review: Model | ✅ Done | `models/review.js` — denormalized `authorUsername`, `listingId`/`authorId` as strings |
+| Review: Validator | ✅ Done | `validators/validateReview.js` — comment (5-500 chars), rating (1-5) |
+| Review: Controller | ✅ Done | `controllers/review.js` — CRUD + `getListingStats` (avg rating + count) |
+| Review: Routes | ✅ Done | `routes/review.js` — public reads + protected writes (5 endpoints) |
+| Review: Events | ✅ Done | `events/consumers.js` — `listing.deleted` + `user.deleted` → cascade delete reviews |
+| Review: Entry Point | ✅ Done | `index.js` — MongoDB + RabbitMQ, event publisher injection |
+| Booking: Model | ✅ Done | `models/booking.js` — denormalized listing/user data, payment simulation, overlap indexes |
+| Booking: Validator | ✅ Done | `validators/validateBooking.js` — checkOut > checkIn, guests ≥ 1 |
+| Booking: Controller | ✅ Done | `controllers/booking.js` — overlap detection, Listing Service validation, simulated payment, cancel+refund |
+| Booking: Routes | ✅ Done | `routes/booking.js` — CRUD + payment + cancel (6 endpoints) |
+| Booking: Events | ✅ Done | `events/consumers.js` — `listing.deleted` + `user.deleted` → cancel bookings + refund |
+| Booking: Entry Point | ✅ Done | `index.js` — MongoDB + RabbitMQ + Listing Service dependency injection |
 
-### 📋 Phase 5 — Admin/Dashboard Aggregator
+### ⏳ Phase 5 — Admin/Dashboard Aggregator (Next)
 
 - [ ] Cross-service aggregation endpoints
 - [ ] Admin CRUD with cascade operations via events
@@ -703,6 +766,14 @@ npm run dev
 10. **Ownership authorization works differently across service boundaries** — In the monolith, `isOwner()` middleware called `Listing.findById()` and compared `listing.owner` to `req.user._id`. In microservices, the Gateway decodes the JWT and forwards `X-User-Id` as a header. The Listing Service compares `listing.ownerId === req.headers['x-user-id']`. Same logic, different mechanism — and no cross-database query needed.
 
 11. **In-memory search indexes are a valid learning pattern** — The Search Service uses a simple `Map` instead of Elasticsearch. It demonstrates the core concept: an independent, event-driven read model that stays synchronized with the source of truth (Listing Service) via RabbitMQ. Swapping to Elasticsearch later means changing only the Search Service — no other service is affected.
+
+### From Phase 4
+
+12. **Denormalization is the microservices answer to populate()** — In the monolith, `review.populate('author')` fetches the author's username from the User collection. In microservices, that would require an HTTP call per review on every read — a performance nightmare. Instead, we store `authorUsername` directly in the Review document at creation time. Trade-off: if a user changes their username, old reviews show the old name. Acceptable for most use cases.
+
+13. **Soft-cancel vs hard-delete is a design choice per service** — When a listing is deleted, the Review Service **hard-deletes** reviews (they're meaningless without the listing). The Booking Service **soft-cancels** bookings and marks payments as refunded (preserves history for accounting and disputes). Different services, different cascade strategies.
+
+14. **Date overlap detection must use the standard interval formula** — Two intervals `[A, B)` and `[C, D)` overlap if and only if `A < D AND C < B`. This is the canonical algorithm used in every booking system. The key insight: query only `pending`/`confirmed` bookings — cancelled bookings should not block new reservations.
 
 ---
 
