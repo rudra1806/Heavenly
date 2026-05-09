@@ -33,8 +33,10 @@ app.use(cors({
     credentials: true
 }));
 
-// Parse JSON bodies (needed for some gateway-level operations)
-app.use(express.json({ limit: '10mb' }));
+// NOTE: express.json() is intentionally NOT used here.
+// The Gateway is a pass-through proxy — body parsing would consume
+// the request stream before http-proxy-middleware can forward it,
+// causing all POST/PUT/DELETE requests to hang indefinitely.
 
 // Rate limiting — global baseline
 app.use(rateLimiter);

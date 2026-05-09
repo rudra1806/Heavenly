@@ -84,9 +84,9 @@ async function main() {
         if (!data.success) throw new Error('Response not successful');
     });
 
-    await test('GET /api/bookings (via Gateway)', async () => {
-        const data = await fetchJSON(`${GATEWAY_URL}/api/bookings`);
-        if (!data.success) throw new Error('Response not successful');
+    await test('GET /api/bookings requires auth (401)', async () => {
+        const status = await fetchStatus(`${GATEWAY_URL}/api/bookings`);
+        if (status !== 401) throw new Error(`Expected 401, got ${status}`);
     });
 
     await test('GET /api/search?q=test (via Gateway)', async () => {

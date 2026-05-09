@@ -32,47 +32,47 @@ const ROUTES = [
     {
         path: '/api/auth',
         target: SERVICES.auth,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/auth'
     },
     {
         path: '/api/listings',
         target: SERVICES.listing,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/listings'
     },
     {
         path: '/api/reviews',
         target: SERVICES.review,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/reviews'
     },
     {
         path: '/api/bookings',
         target: SERVICES.booking,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/bookings'
     },
     {
         path: '/api/media',
         target: SERVICES.media,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/media'
     },
     {
         path: '/api/search',
         target: SERVICES.search,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/search'
     },
     {
         path: '/api/geocode',
         target: SERVICES.search,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/geocode'
     },
     {
         path: '/api/admin',
         target: SERVICES.admin,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/admin'
     },
     {
         path: '/api/dashboard',
         target: SERVICES.admin,
-        pathRewrite: { '^/api': '' }
+        servicePrefix: '/dashboard'
     }
 ];
 
@@ -86,7 +86,14 @@ function setupProxies(app) {
         const proxyOptions = {
             target: route.target,
             changeOrigin: true,
-            pathRewrite: route.pathRewrite,
+            // Express strips the mount path (e.g., '/api/listings') from req.url,
+            // leaving only the remaining path (e.g., '/' or '/:id').
+            // We prepend the service prefix to reconstruct the correct path.
+            // Example: mount='/api/listings', req.url='/' → rewritten to '/listings'
+            //          mount='/api/listings', req.url='/abc123' → rewritten to '/listings/abc123'
+            pathRewrite: (path) => {
+                return route.servicePrefix + path;
+            },
 
             // Log proxy activity
             on: {

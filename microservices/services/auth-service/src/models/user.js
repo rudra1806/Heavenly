@@ -56,16 +56,11 @@ const userSchema = new Schema({
  * Only hashes if the password field has been modified (new user or password change).
  * This prevents re-hashing an already-hashed password on unrelated updates.
  */
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) return next();
+userSchema.pre('save', async function () {
+    if (!this.isModified('password')) return;
 
-    try {
-        const salt = await bcrypt.genSalt(SALT_ROUNDS);
-        this.password = await bcrypt.hash(this.password, salt);
-        next();
-    } catch (err) {
-        next(err);
-    }
+    const salt = await bcrypt.genSalt(SALT_ROUNDS);
+    this.password = await bcrypt.hash(this.password, salt);
 });
 
 /**

@@ -10,9 +10,13 @@ const { isLoggedIn } = require('../middleware.js');
 // GET /listings — index page
 router.get('/listings', async (req, res) => {
     try {
-        const data = await apiCall('/api/listings');
+        const search = req.query.search || '';
+        const url = search ? `/api/search?q=${encodeURIComponent(search)}` : '/api/listings';
+        const data = await apiCall(url);
         res.render('listings/index.ejs', {
-            listings: data.data?.listings || []
+            listings: data.data?.listings || data.data?.results || [],
+            searchQuery: search,
+            searchPerformed: !!search
         });
     } catch (err) {
         req.flash('error', 'Failed to load listings.');

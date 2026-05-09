@@ -892,6 +892,12 @@ npm run dev
 
 22. **Production Docker Compose should be a thin override** — `docker-compose.prod.yml` only adds `restart: unless-stopped`, resource limits, and removes bind mounts. It doesn't redefine the entire stack. Using `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up` merges both files cleanly.
 
+23. **`.dockerignore` is mandatory for native modules** — `bcrypt` compiles a C++ binding to a platform-specific binary. Without `.dockerignore`, Docker copies the macOS-compiled `node_modules/bcrypt` into the Alpine Linux container, causing `ERR_DLOPEN_FAILED: Exec format error`. Always exclude `**/node_modules` from Docker builds.
+
+24. **API Gateways must NOT parse request bodies** — Adding `express.json()` to the Gateway consumes the request stream before `http-proxy-middleware` can forward it, causing all POST/PUT/DELETE requests to hang indefinitely. The Gateway is a pass-through proxy — body parsing belongs in the downstream services.
+
+25. **Mongoose 9 async pre-hooks don't receive `next`** — In Mongoose 8 and below, `schema.pre('save', async function(next))` received a `next` callback. In Mongoose 9, async hooks no longer receive `next` — calling it throws `next is not a function`. Use `return` instead of `next()` for flow control.
+
 ---
 
 ## Contributing
@@ -906,5 +912,5 @@ ISC
 
 <p align="center">
   <strong>Heavenly Microservices</strong> — Built from scratch for learning, designed for scale.<br>
-  <em>127 files • 7 phases • 8 services + Gateway + BFF • 22 lessons learned</em>
+  <em>127 files • 7 phases • 8 services + Gateway + BFF • 25 lessons learned</em>
 </p>
