@@ -223,10 +223,16 @@ microservices/
 │   │       ├── routes/auth.js       # Public + protected + admin routes
 │   │       └── utils/jwt.js         # Access + refresh token generation
 │   │
-│   ├── listing-service/             # 🏠 Port 3002 — Property CRUD
+│   ├── listing-service/             # 🏠 Port 3002 — Property CRUD ✅
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   └── src/index.js             # (stub — Phase 3)
+│   │   └── src/
+│   │       ├── index.js             # Entry point — MongoDB, RabbitMQ
+│   │       ├── models/listing.js    # No reviews[], ownerId as string, GeoJSON
+│   │       ├── controllers/listing.js # CRUD + ownership + toggle availability
+│   │       ├── routes/listing.js    # Public read + protected write
+│   │       ├── validators/validateListing.js # Joi validation middleware
+│   │       └── events/consumers.js  # user.deleted → cascade delete
 │   │
 │   ├── review-service/              # ⭐ Port 3003 — Ratings & reviews
 │   │   ├── Dockerfile
@@ -246,10 +252,14 @@ microservices/
 │   │       ├── controllers/media.js # Upload + delete via Cloudinary SDK
 │   │       └── routes/media.js      # POST upload, DELETE filename
 │   │
-│   ├── search-service/              # 🔍 Port 3006 — Search & geocoding
+│   ├── search-service/              # 🔍 Port 3006 — Search & geocoding ✅
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   └── src/index.js             # (stub — Phase 3)
+│   │   └── src/
+│   │       ├── index.js             # Entry point — Redis, RabbitMQ
+│   │       ├── controllers/search.js # Nominatim geocoding + search index
+│   │       ├── routes/search.js     # GET /geocode, GET /search
+│   │       └── events/consumers.js  # listing.* → index sync
 │   │
 │   └── admin-service/               # 👑 Port 3007 — Admin aggregator
 │       ├── Dockerfile
@@ -323,25 +333,46 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 ---
 
-### 3. Listing Service (Port 3002)
+### 3. Listing Service (Port 3002) ✅
 
 **Owns**: Property CRUD, availability status, ownership verification
 
-**Status**: Stub (Phase 3)
+**Status**: Fully implemented
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/listings` | GET | Public | All listings (filter by `ownerId`, `isAvailable`) |
+| `/listings/:id` | GET | Public | Single listing by ID |
+| `/listings` | POST | Required | Create listing (auto-geocodes location) |
+| `/listings/:id` | PUT | Owner/Admin | Update listing (re-geocodes if location changed) |
+| `/listings/:id` | DELETE | Owner/Admin | Delete listing + Cloudinary image + publish event |
+| `/listings/:id/toggle-availability` | POST | Owner/Admin | Toggle `isAvailable` flag |
+
+**Implementation Details:**
+
+| Component | Details |
+|-----------|---------|
+| **Model** | No `reviews[]` array (decoupled), `ownerId` as plain string (no cross-DB populate), GeoJSON Point geometry, MongoDB text index on title/description/location/country |
+| **Ownership** | Checks `ownerId === X-User-Id` header (set by Gateway). Admin role bypasses ownership check. |
+| **Inter-service Calls** | `POST /media/upload` → Media Service (image upload), `GET /geocode` → Search Service (address to coordinates) |
+| **Events Published** | `listing.created`, `listing.updated`, `listing.deleted` — consumed by Search (index) and Review/Booking (cascade) |
+| **Events Consumed** | `user.deleted` → deletes all user's listings AND re-publishes `listing.deleted` for each (triggering downstream cascades) |
+| **Validation** | Joi schema validates title, description, price, location, country, maxGuests before creation |
 
 **Migration from Monolith:**
-- `reviews[]` array **removed** from the Listing model — reviews are owned by the Review Service
-- `owner` field stores `ownerId` as a plain string (no cross-DB Mongoose populate)
-- Image uploads delegated to Media Service via HTTP call
-- Geocoding delegated to Search Service via HTTP call
-- Publishes `listing.created`, `listing.updated`, `listing.deleted` events
-- Consumes `user.deleted` → cascade deletes user's listings
+- `reviews[]` array **removed** — reviews are owned by the Review Service, queried separately
+- `owner` (ObjectId ref) → `ownerId` (plain string) — no Mongoose populate across databases
+- `cloudinary.uploader.destroy()` → HTTP call to Media Service `DELETE /media/:filename`
+- `nominatim` geocoding → HTTP call to Search Service `GET /geocode?location=X`
+- Mongoose cascade `post('findOneAndDelete')` middleware → RabbitMQ event-driven cascade
 
 ---
 
 ### 4. Review Service (Port 3003)
 
 **Owns**: Reviews with `listingId` and `authorId` as string references
+
+**Status**: Stub (Phase 4)
 
 **Migration from Monolith:**
 - Reviews are no longer embedded in the Listing document
@@ -391,13 +422,32 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 ---
 
-### 7. Search & Geocoding Service (Port 3006)
+### 7. Search & Geocoding Service (Port 3006) ✅
 
 **Owns**: Full-text listing search, address geocoding
 
-- **Geocoding**: Calls Nominatim API, caches results in Redis (respects 1 req/sec rate limit)
-- **Search**: Maintains a local index of listings, updated via RabbitMQ events
-- Consumes `listing.created`, `listing.updated`, `listing.deleted` to keep the index fresh
+**Status**: Fully implemented
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/geocode?location=X` | GET | Convert address → `[longitude, latitude]` coordinates |
+| `/search?q=X&minPrice=N&maxPrice=N` | GET | Search listings by text and price range |
+
+**Implementation Details:**
+
+| Component | Details |
+|-----------|---------|
+| **Geocoding** | Calls Nominatim (OpenStreetMap) API, caches results in Redis with 7-day TTL. Respects Nominatim's 1 req/sec rate limit via caching. Returns `[lon, lat]` coordinates. |
+| **Search Index** | In-memory `Map` keyed by listing ID. Stores title, description, location, country, price, coordinates. In production, you'd use Elasticsearch — this demonstrates the pattern. |
+| **Text Search** | Case-insensitive substring matching across title + description + location + country |
+| **Price Filtering** | `minPrice` and `maxPrice` query params for range filtering |
+| **Events Consumed** | `listing.created` → add to index, `listing.updated` → update in index, `listing.deleted` → remove from index |
+| **No Database** | Pure in-memory index + Redis cache. Index rebuilds from events on restart (or can be seeded from Listing Service). |
+
+**Migration from Monolith:**
+- Geocoding was inline in `controllers/listing.js` → now a dedicated endpoint with Redis caching
+- Search was via MongoDB `$regex` on the listings collection → now an independent searchable index
+- Decoupling search from the listing database enables future migration to Elasticsearch without touching the Listing Service
 
 ---
 
@@ -515,7 +565,7 @@ npm run dev
 
 ## Migration Progress
 
-> **48 files created** across 2 completed phases. 2 of 8 services fully implemented.
+> **56 files created** across 3 completed phases. 4 of 8 services fully implemented.
 
 ### ✅ Phase 1 — Foundation (Complete)
 
@@ -542,13 +592,22 @@ npm run dev
 | Media: Routes | ✅ Done | `routes/media.js` — POST upload, DELETE filename |
 | Media: Entry Point | ✅ Done | `index.js` — lightweight, no DB or broker |
 
-### ⏳ Phase 3 — Listing + Search Services (Next)
+### ✅ Phase 3 — Listing + Search Services (Complete)
 
-- [ ] Listing Service: Full CRUD, ownership auth, availability toggle
-- [ ] Search & Geo Service: Geocoding with Redis cache, search index
-- [ ] RabbitMQ event publishing for listing lifecycle
+| Component | Status | Files |
+|-----------|--------|-------|
+| Listing: Model | ✅ Done | `models/listing.js` — no reviews[], ownerId as string, GeoJSON, text index |
+| Listing: Validator | ✅ Done | `validators/validateListing.js` — Joi schema migrated from monolith |
+| Listing: Controller | ✅ Done | `controllers/listing.js` — CRUD, ownership auth, inter-service calls (Media + Search), event publishing |
+| Listing: Routes | ✅ Done | `routes/listing.js` — public read + protected write (6 endpoints) |
+| Listing: Events | ✅ Done | `events/consumers.js` — `user.deleted` → cascade delete + re-publish `listing.deleted` |
+| Listing: Entry Point | ✅ Done | `index.js` — MongoDB + RabbitMQ + dependency injection |
+| Search: Controller | ✅ Done | `controllers/search.js` — Nominatim geocoding (Redis cached 7d), in-memory search index |
+| Search: Routes | ✅ Done | `routes/search.js` — `GET /geocode`, `GET /search` with text + price filtering |
+| Search: Events | ✅ Done | `events/consumers.js` — `listing.created/updated/deleted` → index sync |
+| Search: Entry Point | ✅ Done | `index.js` — Redis + RabbitMQ, no database |
 
-### 📋 Phase 4 — Review + Booking Services
+### ⏳ Phase 4 — Review + Booking Services (Next)
 
 - [ ] Review Service: Create, delete, query by listing/author, event consumers
 - [ ] Booking Service: Reservation flow, overlap detection, simulated payment
@@ -636,6 +695,14 @@ npm run dev
 7. **Peer dependency conflicts are real in microservices** — `multer-storage-cloudinary@4` requires `cloudinary@^1`, not `cloudinary@^2`. In a monolith, you hit this once. With 8 services, dependency conflicts multiply. Pinning exact versions in `package.json` prevents surprises.
 
 8. **Not every service needs a database** — The Media Service is a stateless proxy to Cloudinary. No MongoDB, no Redis, no RabbitMQ. This is the ideal microservice: tiny, focused, independently deployable. It proves that "microservice" doesn't mean "mini monolith."
+
+### From Phase 3
+
+9. **Cascade events can trigger further cascades** — When `user.deleted` fires, the Listing Service deletes all user's listings AND re-publishes `listing.deleted` for each one. This triggers the Review and Booking services to clean up their data. This "event chain" pattern is powerful but requires careful design to avoid infinite loops. Always ensure events flow in one direction: `user.deleted` → `listing.deleted` → review/booking cleanup (never back up).
+
+10. **Ownership authorization works differently across service boundaries** — In the monolith, `isOwner()` middleware called `Listing.findById()` and compared `listing.owner` to `req.user._id`. In microservices, the Gateway decodes the JWT and forwards `X-User-Id` as a header. The Listing Service compares `listing.ownerId === req.headers['x-user-id']`. Same logic, different mechanism — and no cross-database query needed.
+
+11. **In-memory search indexes are a valid learning pattern** — The Search Service uses a simple `Map` instead of Elasticsearch. It demonstrates the core concept: an independent, event-driven read model that stays synchronized with the source of truth (Listing Service) via RabbitMQ. Swapping to Elasticsearch later means changing only the Search Service — no other service is affected.
 
 ---
 
