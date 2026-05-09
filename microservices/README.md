@@ -273,10 +273,13 @@ microservices/
 │   │       ├── routes/search.js     # GET /geocode, GET /search
 │   │       └── events/consumers.js  # listing.* → index sync
 │   │
-│   └── admin-service/               # 👑 Port 3007 — Admin aggregator
+│   └── admin-service/               # 👑 Port 3007 — Admin aggregator ✅
 │       ├── Dockerfile
 │       ├── package.json
-│       └── src/index.js             # (stub — Phase 5)
+│       └── src/
+│           ├── index.js             # Entry point — pure aggregator, no DB/MQ
+│           ├── controllers/admin.js # Dashboard stats, admin CRUD delegation
+│           └── routes/admin.js      # All routes require admin auth
 │
 ├── bff/                             # 🖥️ Backend-for-Frontend (:8080)
 │   ├── Dockerfile
@@ -502,14 +505,40 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 ---
 
-### 8. Admin/Dashboard Aggregator (Port 3007)
+### 8. Admin/Dashboard Aggregator (Port 3007) ✅
 
 **Owns**: Nothing — pure aggregation layer
 
-- Calls Auth, Listing, Review, and Booking services to compile statistics
-- Admin dashboard: total users, listings, revenue, recent activity
-- User dashboard: host stats (my listings, bookings on my listings, revenue) + guest stats (my bookings)
-- Admin CRUD operations trigger events for cascade deletes
+**Status**: Fully implemented
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/admin/dashboard` | GET | Admin | Platform-wide stats (users, listings, reviews, bookings, revenue) |
+| `/admin/user-dashboard/:userId` | GET | Admin | User-specific host + guest dashboard |
+| `/admin/users` | GET | Admin | All users (with search) |
+| `/admin/users/:id` | DELETE | Admin | Delete user → delegates to Auth Service → triggers cascades |
+| `/admin/listings` | GET | Admin | All listings (with search) |
+| `/admin/listings/:id` | DELETE | Admin | Delete listing → delegates to Listing Service → triggers cascades |
+| `/admin/reviews` | GET | Admin | All reviews (with search) |
+| `/admin/reviews/:id` | DELETE | Admin | Delete review → delegates to Review Service |
+| `/admin/bookings` | GET | Admin | All bookings |
+| `/admin/bookings/:id` | DELETE | Admin | Hard delete booking → delegates to Booking Service |
+
+**Implementation Details:**
+
+| Component | Details |
+|-----------|---------|
+| **Architecture** | Pure aggregation — no database, no message broker. Only HTTP calls to owning services. |
+| **Dashboard** | Parallel `Promise.all` calls to Auth + Listing + Review + Booking services. Computes booking status breakdown, payment stats, revenue, and guest counts client-side. |
+| **User Dashboard** | Aggregates host stats (listings, bookings received, revenue) and guest stats (bookings made, total spent, reviews written) for a specific user. |
+| **Admin CRUD** | Every delete operation delegates to the owning service. The owning service publishes the event (e.g., `user.deleted`), triggering cascades. Admin Service never publishes events directly. |
+| **Search** | User search delegates to Auth Service. Listing search uses Search Service. Review search is client-side filter (Review Service doesn't have built-in search). |
+
+**Migration from Monolith:**
+- Monolith's `controllers/admin.js` queried 4 collections directly → now makes 4 parallel HTTP calls
+- `User.countDocuments()`, `Listing.find()` etc → `serviceClient.get()` to each service
+- Cascade delete via inline `for` loops → delegates to owning service (which publishes events)
+- `Booking.aggregate()` for revenue → client-side reduce on fetched bookings
 
 ---
 
@@ -616,7 +645,7 @@ npm run dev
 
 ## Migration Progress
 
-> **66 files created** across 4 completed phases. 6 of 8 services fully implemented.
+> **68 files created** across 5 completed phases. 7 of 8 services fully implemented.
 
 ### ✅ Phase 1 — Foundation (Complete)
 
@@ -675,13 +704,15 @@ npm run dev
 | Booking: Events | ✅ Done | `events/consumers.js` — `listing.deleted` + `user.deleted` → cancel bookings + refund |
 | Booking: Entry Point | ✅ Done | `index.js` — MongoDB + RabbitMQ + Listing Service dependency injection |
 
-### ⏳ Phase 5 — Admin/Dashboard Aggregator (Next)
+### ✅ Phase 5 — Admin/Dashboard Aggregator (Complete)
 
-- [ ] Cross-service aggregation endpoints
-- [ ] Admin CRUD with cascade operations via events
-- [ ] Dashboard statistics (host + guest views)
+| Component | Status | Files |
+|-----------|--------|-------|
+| Admin: Controller | ✅ Done | `controllers/admin.js` — 11 exports: dashboard, user dashboard, CRUD for users/listings/reviews/bookings |
+| Admin: Routes | ✅ Done | `routes/admin.js` — all routes guarded by `authMiddleware` + `requireAdmin` |
+| Admin: Entry Point | ✅ Done | `index.js` — pure aggregator, no database, no message broker |
 
-### 📋 Phase 6 — BFF Service
+### ⏳ Phase 6 — BFF Service (Next)
 
 - [ ] Copy all 30+ EJS templates and static assets
 - [ ] Route handlers calling Gateway APIs and rendering templates
@@ -774,6 +805,12 @@ npm run dev
 13. **Soft-cancel vs hard-delete is a design choice per service** — When a listing is deleted, the Review Service **hard-deletes** reviews (they're meaningless without the listing). The Booking Service **soft-cancels** bookings and marks payments as refunded (preserves history for accounting and disputes). Different services, different cascade strategies.
 
 14. **Date overlap detection must use the standard interval formula** — Two intervals `[A, B)` and `[C, D)` overlap if and only if `A < D AND C < B`. This is the canonical algorithm used in every booking system. The key insight: query only `pending`/`confirmed` bookings — cancelled bookings should not block new reservations.
+
+### From Phase 5
+
+15. **Aggregator services are the microservices equivalent of database JOINs** — In the monolith, the admin dashboard runs `User.countDocuments()`, `Listing.find()`, `Booking.aggregate()` in one controller. In microservices, these become 4 parallel HTTP calls via `Promise.all`. It's more code, but each service retains full ownership of its data — the Admin Service computes derived stats (revenue, guest count) client-side from the fetched results.
+
+16. **Not every service needs events — pure aggregators are valid** — The Admin Service has no database, no RabbitMQ connection, and publishes zero events. It delegates every delete operation to the owning service (e.g., `DELETE /auth/users/:id`), which then publishes the cascade event. This keeps event ownership clear: only data owners publish events about their data.
 
 ---
 
