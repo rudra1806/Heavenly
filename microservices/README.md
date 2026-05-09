@@ -213,15 +213,15 @@ microservices/
 │           └── errorHandler.js      # Consistent JSON error responses
 │
 ├── services/
-│   ├── auth-service/                # 🔐 Port 3001 — User identity & JWT
+│   ├── auth-service/                # 🔐 Port 3001 — User identity & JWT ✅
 │   │   ├── Dockerfile
 │   │   ├── package.json
 │   │   └── src/
-│   │       ├── index.js             # (stub — Phase 2)
-│   │       ├── models/
-│   │       ├── controllers/
-│   │       ├── routes/
-│   │       └── ...
+│   │       ├── index.js             # Entry point — MongoDB, Redis, RabbitMQ
+│   │       ├── models/user.js       # Mongoose + bcrypt (pre-save hash)
+│   │       ├── controllers/auth.js  # 8 endpoints (register→deleteUser)
+│   │       ├── routes/auth.js       # Public + protected + admin routes
+│   │       └── utils/jwt.js         # Access + refresh token generation
 │   │
 │   ├── listing-service/             # 🏠 Port 3002 — Property CRUD
 │   │   ├── Dockerfile
@@ -238,10 +238,13 @@ microservices/
 │   │   ├── package.json
 │   │   └── src/index.js             # (stub — Phase 4)
 │   │
-│   ├── media-service/               # 📸 Port 3005 — Cloudinary uploads
+│   ├── media-service/               # 📸 Port 3005 — Cloudinary uploads ✅
 │   │   ├── Dockerfile
 │   │   ├── package.json
-│   │   └── src/index.js             # (stub — Phase 2)
+│   │   └── src/
+│   │       ├── index.js             # Entry point — lightweight, no DB
+│   │       ├── controllers/media.js # Upload + delete via Cloudinary SDK
+│   │       └── routes/media.js      # POST upload, DELETE filename
 │   │
 │   ├── search-service/              # 🔍 Port 3006 — Search & geocoding
 │   │   ├── Dockerfile
@@ -284,30 +287,47 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 ---
 
-### 2. Auth Service (Port 3001)
+### 2. Auth Service (Port 3001) ✅
 
 **Owns**: User identity, registration, authentication, JWT token lifecycle
 
+**Status**: Fully implemented
+
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/auth/register` | POST | Public | Create new user account |
-| `/auth/login` | POST | Public | Authenticate and receive JWT tokens |
-| `/auth/logout` | POST | Required | Invalidate refresh token |
-| `/auth/refresh` | POST | Public | Exchange refresh token for new access token |
-| `/auth/me` | GET | Required | Get current user profile |
-| `/auth/users/:id` | GET | Internal | Fetch user info (used by other services) |
+| `/auth/register` | POST | Public | Create new user account, returns access + refresh tokens |
+| `/auth/login` | POST | Public | Authenticate with username/email + password, returns tokens |
+| `/auth/logout` | POST | Required | Blacklists current access token in Redis (TTL: 15min) |
+| `/auth/refresh` | POST | Public | Exchange valid refresh token for a new access token |
+| `/auth/me` | GET | Required | Get current authenticated user's profile |
+| `/auth/users/:id` | GET | Internal | Fetch user info (called by other services) |
+| `/auth/users` | GET | Admin | List all users with optional search |
+| `/auth/users/:id` | DELETE | Admin | Delete user + publish `user.deleted` event |
+
+**Implementation Details:**
+
+| Component | Details |
+|-----------|---------|
+| **User Model** | Mongoose schema with bcrypt pre-save middleware (12 salt rounds), `comparePassword()` instance method, `toJSON()` auto-strips password from responses |
+| **JWT Tokens** | Access token (15min expiry, contains id/username/email/role) + Refresh token (7d expiry, contains only id). Separate secrets prevent cross-use. |
+| **Logout** | Adds current access token to Redis blacklist with TTL matching remaining token lifetime — token rejected on subsequent requests |
+| **Cascade Delete** | On `DELETE /auth/users/:id`, publishes `user.deleted` event via RabbitMQ so Listing, Review, and Booking services can clean up related data |
+| **Startup** | Connects to MongoDB, Redis, and RabbitMQ with retry logic. Graceful shutdown on SIGTERM/SIGINT closes all connections. |
 
 **Migration from Monolith:**
-- Replaces `passport-local-mongoose` with **bcrypt** for password hashing
-- Replaces session-based auth with **JWT** (access token: 15min, refresh token: 7 days)
-- Redis stores a JWT blacklist for logout functionality
-- Publishes `user.registered` and `user.deleted` events via RabbitMQ
+- Replaces `passport-local-mongoose` plugin with **manual bcrypt hashing** (gives full control over password handling)
+- Replaces session-based auth (`express-session` + `MongoStore`) with **stateless JWT** tokens
+- Replaces Passport's `serializeUser/deserializeUser` with JWT payload containing user identity
+- The "pending review on signup" flow (monolith's session-based feature) moves to the BFF/frontend layer
+- Login accepts both username AND email (monolith only accepted username)
 
 ---
 
 ### 3. Listing Service (Port 3002)
 
 **Owns**: Property CRUD, availability status, ownership verification
+
+**Status**: Stub (Phase 3)
 
 **Migration from Monolith:**
 - `reviews[]` array **removed** from the Listing model — reviews are owned by the Review Service
@@ -334,6 +354,8 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 **Owns**: Reservations, payment simulation, date overlap detection
 
+**Status**: Stub (Phase 4)
+
 **Migration from Monolith:**
 - Calls Listing Service via HTTP to validate listing exists, check availability, and get price
 - Overlap detection queries only the Booking Service's own database
@@ -342,14 +364,30 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 ---
 
-### 6. Media Service (Port 3005)
+### 6. Media Service (Port 3005) ✅
 
 **Owns**: All Cloudinary interactions
 
-**Why separated?**
-- Centralizes cloud storage credentials
+**Status**: Fully implemented
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/media/upload` | POST | Upload image (multipart form) → Cloudinary → returns URL + filename |
+| `/media/:filename` | DELETE | Delete image from Cloudinary by public_id |
+
+**Implementation Details:**
+- Uses `multer` + `multer-storage-cloudinary` for seamless file handling
+- Images stored in `Heavenly_DEV` folder on Cloudinary
+- Filenames sanitized (alphanumeric + hyphens/underscores only) with timestamp suffix for uniqueness
+- Allowed formats: JPG, JPEG, PNG, AVIF
+- Prevents deletion of the default placeholder image (`default.jpg`)
+- No database needed — this is a pure proxy to Cloudinary's API
+
+**Migration from Monolith:**
+- Extracted from `cloudConfig.js` and the upload logic scattered across `controllers/listing.js`
+- Centralizes all Cloudinary credentials in one service
+- Other services (Listing) now call `POST /media/upload` instead of directly importing cloudinary SDK
 - Enables swapping storage providers (S3, Azure Blob) without touching business services
-- Other services just receive and store URLs
 
 ---
 
@@ -477,23 +515,34 @@ npm run dev
 
 ## Migration Progress
 
+> **48 files created** across 2 completed phases. 2 of 8 services fully implemented.
+
 ### ✅ Phase 1 — Foundation (Complete)
 
 | Component | Status | Files |
 |-----------|--------|-------|
 | Docker Compose | ✅ Done | `docker-compose.yml` — 12 containers with health checks |
-| Shared Package | ✅ Done | JWT middleware, RabbitMQ broker, AppError, serviceClient |
-| API Gateway | ✅ Done | Proxy routing, JWT validation, rate limiting, error handling |
+| Shared Package | ✅ Done | JWT middleware, RabbitMQ broker, AppError, serviceClient (7 files) |
+| API Gateway | ✅ Done | Proxy routing, JWT validation, rate limiting, error handling (6 files) |
 | Dockerfiles | ✅ Done | All 9 service/gateway/bff Dockerfiles |
 | Service Scaffolds | ✅ Done | `package.json` + stub `index.js` for all services |
 
-### ⏳ Phase 2 — Auth + Media Services (Next)
+### ✅ Phase 2 — Auth + Media Services (Complete)
 
-- [ ] Auth Service: User model with bcrypt, JWT issuance, register/login/logout/refresh
-- [ ] Media Service: Cloudinary upload/delete endpoints
-- [ ] Redis JWT blacklist integration
+| Component | Status | Files |
+|-----------|--------|-------|
+| Auth: User Model | ✅ Done | `models/user.js` — bcrypt, pre-save hash, comparePassword, toJSON strips password |
+| Auth: JWT Utils | ✅ Done | `utils/jwt.js` — access (15min) + refresh (7d) token generation/verification |
+| Auth: Controller | ✅ Done | `controllers/auth.js` — 8 endpoints (register, login, logout, refresh, me, getUserById, getAllUsers, deleteUser) |
+| Auth: Routes | ✅ Done | `routes/auth.js` — public, protected, and admin route definitions |
+| Auth: Entry Point | ✅ Done | `index.js` — MongoDB + Redis + RabbitMQ connections, graceful shutdown |
+| Auth: Redis Blacklist | ✅ Done | Logout adds token to Redis with TTL, blocking reuse |
+| Auth: Event Publishing | ✅ Done | Publishes `user.deleted` via RabbitMQ for cascade cleanup |
+| Media: Controller | ✅ Done | `controllers/media.js` — Cloudinary upload + delete |
+| Media: Routes | ✅ Done | `routes/media.js` — POST upload, DELETE filename |
+| Media: Entry Point | ✅ Done | `index.js` — lightweight, no DB or broker |
 
-### 📋 Phase 3 — Listing + Search Services
+### ⏳ Phase 3 — Listing + Search Services (Next)
 
 - [ ] Listing Service: Full CRUD, ownership auth, availability toggle
 - [ ] Search & Geo Service: Geocoding with Redis cache, search index
@@ -568,8 +617,6 @@ npm run dev
 
 ## Lessons Learned
 
-> 🔧 *This section will be populated as the migration progresses.*
-
 ### From Phase 1
 
 1. **Monorepo shared packages require careful dependency management** — The `@heavenly/shared` package must be available to all services both locally (via `../shared`) and in Docker (via `COPY`). The Dockerfile pattern of copying shared first, then service code, enables efficient layer caching.
@@ -577,6 +624,18 @@ npm run dev
 2. **Docker Compose health checks are essential** — Without them, services would start before MongoDB/Redis/RabbitMQ are ready, causing connection failures. The `depends_on: condition: service_healthy` pattern ensures correct startup ordering.
 
 3. **The Gateway should be thin** — It's tempting to add business logic to the Gateway (validation, data transformation). Resist this. The Gateway should only handle routing, auth, and rate limiting. Business logic belongs in services.
+
+### From Phase 2
+
+4. **bcrypt gives more control than passport-local-mongoose** — The monolith's `passport-local-mongoose` plugin magically added `username`, `password`, and authentication methods. With bcrypt, we explicitly define the schema, hash in pre-save middleware, and write our own `comparePassword()`. More code, but complete transparency into what's happening. Essential for debugging auth issues in a distributed system.
+
+5. **JWT dual-token strategy solves the logout problem** — Short-lived access tokens (15min) limit damage if stolen. Refresh tokens (7 days) prevent frequent re-login. Redis blacklist handles the "instant logout" edge case that pure JWT can't solve. This is a common production pattern worth understanding deeply.
+
+6. **Dependency injection keeps controllers testable** — The auth controller receives its Redis client and RabbitMQ publisher via setter functions (`setRedisClient`, `_publishEvent`), not imports. This means controllers can be unit-tested without spinning up Redis or RabbitMQ — just inject mocks.
+
+7. **Peer dependency conflicts are real in microservices** — `multer-storage-cloudinary@4` requires `cloudinary@^1`, not `cloudinary@^2`. In a monolith, you hit this once. With 8 services, dependency conflicts multiply. Pinning exact versions in `package.json` prevents surprises.
+
+8. **Not every service needs a database** — The Media Service is a stateless proxy to Cloudinary. No MongoDB, no Redis, no RabbitMQ. This is the ideal microservice: tiny, focused, independently deployable. It proves that "microservice" doesn't mean "mini monolith."
 
 ---
 
