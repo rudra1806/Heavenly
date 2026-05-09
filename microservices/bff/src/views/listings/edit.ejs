@@ -1,0 +1,93 @@
+<% layout('/layouts/boilerplate') -%>
+
+  <div class="form-page-wrapper">
+    <div class="form-container">
+      <h2>Edit your Listing</h2>
+      <form action="/listings/<%= listing._id %>?_method=PUT" method="post" novalidate class="needs-validation"
+        enctype="multipart/form-data">
+        <div class="form-group">
+          <label for="title">Title:</label>
+          <input type="text" id="title" name="title" class="form-control" value="<%= listing.title %>" required />
+          <div class="invalid-feedback">
+            Please provide a listing title.
+          </div>
+        </div>
+
+        <div class="image-group">
+          <div class="current-image">
+            <p>Current Image:</p>
+            <img src="<%= listing.image.url %>" alt="Current listing image"
+              style="max-width: 200px; border-radius: 8px;" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="image[filename]">New Image Filename (optional):</label>
+              <input type="text" id="image[filename]" name="image[filename]" class="form-control"
+                placeholder="custom-image-name" />
+              <div class="invalid-feedback">
+                Please provide an image filename.
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="image[url]">Upload New Image (optional):</label>
+              <input type="file" id="image[url]" name="image[url]" class="form-control" />
+              <div class="invalid-feedback">
+                Please provide a valid image.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description:</label>
+          <textarea id="description" name="description" class="form-control"
+            required><%= listing.description %></textarea>
+          <div class="invalid-feedback">
+            Please provide a description.
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="price">Price (₹):</label>
+            <input type="number" id="price" name="price" class="form-control" value="<%= listing.price %>" required />
+            <div class="invalid-feedback">
+              Please provide a valid price.
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="maxGuests">Max Guests:</label>
+            <input type="number" id="maxGuests" name="maxGuests" class="form-control" min="1" max="50"
+              value="<%= listing.maxGuests || 10 %>" required />
+            <div class="invalid-feedback">
+              Please provide the maximum number of guests.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="location">Location:</label>
+            <input type="text" id="location" name="location" class="form-control" value="<%= listing.location %>"
+              required />
+            <div class="invalid-feedback">
+              Please provide a location.
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="country">Country:</label>
+          <input type="text" id="country" name="country" class="form-control" value="<%= listing.country %>" required />
+          <div class="invalid-feedback">
+            Please provide a country.
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit">Update Listing</button>
+          <button type="reset">Clear</button>
+        </div>
+      </form>
+    </div>
+  </div>

@@ -281,10 +281,16 @@ microservices/
 │           ├── controllers/admin.js # Dashboard stats, admin CRUD delegation
 │           └── routes/admin.js      # All routes require admin auth
 │
-├── bff/                             # 🖥️ Backend-for-Frontend (:8080)
+├── bff/                             # 🖥️ Backend-for-Frontend (:8080) ✅
 │   ├── Dockerfile
 │   ├── package.json
-│   └── src/index.js                 # (stub — Phase 6)
+│   └── src/
+│       ├── index.js             # Entry point — EJS, sessions, flash, routes
+│       ├── middleware.js         # isLoggedIn + isAdmin (replaces Passport)
+│       ├── utils/apiClient.js   # Session → JWT translation layer
+│       ├── routes/              # 7 route modules (auth, listings, reviews, bookings, dashboard, admin, pages)
+│       ├── views/               # 28 EJS templates (copied from monolith)
+│       └── public/              # 17 static files (CSS, JS, favicon)
 │
 └── scripts/                         # 🔧 Migration & seed utilities
 ```
@@ -542,15 +548,56 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 
 ---
 
-### 9. BFF (Backend-for-Frontend) (Port 8080)
+### 9. BFF (Backend-for-Frontend) (Port 8080) ✅
 
 **The user-facing server** — replaces `app.js` from the monolith.
 
-- Receives browser requests at the same URLs as the monolith (`/listings`, `/login`, etc.)
-- Calls the API Gateway to fetch data
-- Renders the **existing EJS templates** with the response data
-- Manages session cookies (translates session → JWT for backend calls)
-- Serves static files (CSS, JS, images)
+**Status**: Fully implemented
+
+**Route Mapping (Monolith → BFF):**
+
+| Browser URL | BFF Route Module | API Gateway Call |
+|-------------|-----------------|------------------|
+| `GET /` | `index.js` (inline) | None — renders `home.ejs` directly |
+| `GET /signup`, `POST /signup` | `routes/auth.js` | `POST /api/auth/register` |
+| `GET /login`, `POST /login` | `routes/auth.js` | `POST /api/auth/login` |
+| `GET /logout` | `routes/auth.js` | `POST /api/auth/logout` |
+| `GET /listings` | `routes/listings.js` | `GET /api/listings` |
+| `GET /listings/:id` | `routes/listings.js` | `GET /api/listings/:id` + `GET /api/reviews?listingId=` |
+| `POST /listings` | `routes/listings.js` | `POST /api/listings` |
+| `PUT /listings/:id` | `routes/listings.js` | `PUT /api/listings/:id` |
+| `DELETE /listings/:id` | `routes/listings.js` | `DELETE /api/listings/:id` |
+| `POST /listings/:id/reviews` | `routes/reviews.js` | `POST /api/reviews` |
+| `DELETE /listings/:id/reviews/:rid` | `routes/reviews.js` | `DELETE /api/reviews/:rid` |
+| `GET /listings/:id/book` | `routes/bookings.js` | `GET /api/listings/:id` |
+| `POST /bookings` | `routes/bookings.js` | `POST /api/bookings` |
+| `GET /bookings/:id` | `routes/bookings.js` | `GET /api/bookings/:id` |
+| `POST /bookings/:id/payment` | `routes/bookings.js` | `POST /api/bookings/:id/payment` |
+| `POST /bookings/:id/cancel` | `routes/bookings.js` | `POST /api/bookings/:id/cancel` |
+| `GET /dashboard` | `routes/dashboard.js` | `GET /api/admin/user-dashboard/:userId` |
+| `GET /dashboard/listings` | `routes/dashboard.js` | `GET /api/listings?ownerId=` |
+| `GET /dashboard/bookings` | `routes/dashboard.js` | `GET /api/bookings?userId=` |
+| `GET /admin/dashboard` | `routes/admin.js` | `GET /api/admin/dashboard` |
+| `GET /admin/users` | `routes/admin.js` | `GET /api/admin/users` |
+| `DELETE /admin/users/:id` | `routes/admin.js` | `DELETE /api/admin/users/:id` |
+| `GET /contact`, `/privacy`, `/terms` | `routes/pages.js` | None — static templates |
+
+**Implementation Details:**
+
+| Component | Details |
+|-----------|---------|
+| **Session → JWT** | On login, BFF calls Auth Service API and stores the returned JWT tokens in the Express session. All subsequent API calls forward the token via `Authorization: Bearer`. |
+| **Auth Middleware** | `isLoggedIn` checks `req.session.user` + `req.session.accessToken` (replaces Passport's `isAuthenticated()`). `isAdmin` checks `req.session.user.role === 'admin'`. |
+| **API Client** | `apiClient.js` wraps `fetch()` with JWT injection, JSON parsing, and error handling. Provides `login()`, `register()`, `logout()`, `refreshToken()` convenience methods. |
+| **Template Locals** | `res.locals.currentUser` populated from `req.session.user` (replaces Passport's `req.user`). Flash messages work identically to the monolith. |
+| **No Database** | BFF has no MongoDB connection. Sessions use in-memory store (Redis-backed in production). |
+
+**Migration from Monolith:**
+- `app.js` (161 lines, Passport+Mongoose) → `index.js` (120 lines, session+fetch)
+- `passport.authenticate('local')` → `apiClient.login()` + session token storage
+- `req.user` (from Passport deserialize) → `req.session.user` (from login response)
+- `Listing.find()` inline in routes → `apiCall('/api/listings')` via Gateway
+- Same EJS templates, same URLs, same user experience — zero frontend changes
 
 **Why BFF?** Allows migrating the backend to microservices **without rewriting the frontend**.
 
@@ -645,7 +692,7 @@ npm run dev
 
 ## Migration Progress
 
-> **68 files created** across 5 completed phases. 7 of 8 services fully implemented.
+> **122 files created** across 6 completed phases. All 8 services + Gateway + BFF fully implemented.
 
 ### ✅ Phase 1 — Foundation (Complete)
 
@@ -712,13 +759,24 @@ npm run dev
 | Admin: Routes | ✅ Done | `routes/admin.js` — all routes guarded by `authMiddleware` + `requireAdmin` |
 | Admin: Entry Point | ✅ Done | `index.js` — pure aggregator, no database, no message broker |
 
-### ⏳ Phase 6 — BFF Service (Next)
+### ✅ Phase 6 — BFF Service (Complete)
 
-- [ ] Copy all 30+ EJS templates and static assets
-- [ ] Route handlers calling Gateway APIs and rendering templates
-- [ ] Session management (session → JWT translation layer)
+| Component | Status | Files |
+|-----------|--------|-------|
+| BFF: API Client | ✅ Done | `utils/apiClient.js` — session → JWT translation, login/register/logout/refresh helpers |
+| BFF: Middleware | ✅ Done | `middleware.js` — `isLoggedIn` + `isAdmin` replacing Passport.js |
+| BFF: Auth Routes | ✅ Done | `routes/auth.js` — signup, login, logout (form → API → session) |
+| BFF: Listing Routes | ✅ Done | `routes/listings.js` — full CRUD (index, show, new, edit, create, update, delete) |
+| BFF: Review Routes | ✅ Done | `routes/reviews.js` — create + delete reviews on listings |
+| BFF: Booking Routes | ✅ Done | `routes/bookings.js` — booking form, create, show, payment, cancel |
+| BFF: Dashboard Routes | ✅ Done | `routes/dashboard.js` — user dashboard, my listings, toggle, my bookings, host bookings |
+| BFF: Admin Routes | ✅ Done | `routes/admin.js` — admin dashboard + CRUD for users/listings/reviews/bookings |
+| BFF: Page Routes | ✅ Done | `routes/pages.js` — contact, privacy, terms |
+| BFF: Entry Point | ✅ Done | `index.js` — EJS + ejsMate, sessions, flash, method-override, static files |
+| BFF: Templates | ✅ Done | 28 EJS templates copied from monolith (layouts, includes, all pages) |
+| BFF: Static Assets | ✅ Done | 17 files (13 CSS, 3 JS, 1 favicon) |
 
-### 📋 Phase 7 — Integration & Testing
+### ⏳ Phase 7 — Integration & Testing
 
 - [ ] Data migration script (monolith DB → per-service databases)
 - [ ] End-to-end testing across all services
@@ -811,6 +869,14 @@ npm run dev
 15. **Aggregator services are the microservices equivalent of database JOINs** — In the monolith, the admin dashboard runs `User.countDocuments()`, `Listing.find()`, `Booking.aggregate()` in one controller. In microservices, these become 4 parallel HTTP calls via `Promise.all`. It's more code, but each service retains full ownership of its data — the Admin Service computes derived stats (revenue, guest count) client-side from the fetched results.
 
 16. **Not every service needs events — pure aggregators are valid** — The Admin Service has no database, no RabbitMQ connection, and publishes zero events. It delegates every delete operation to the owning service (e.g., `DELETE /auth/users/:id`), which then publishes the cascade event. This keeps event ownership clear: only data owners publish events about their data.
+
+### From Phase 6
+
+17. **The BFF is the thinnest possible translation layer** — Every BFF route handler follows the same pattern: receive form submission → call `apiCall()` with JWT from session → handle response (flash + redirect or render template). No business logic lives here — that's critical. If business logic creeps into the BFF, you've recreated the monolith.
+
+18. **Session → JWT translation is the key BFF concept** — Browsers work with cookies and sessions. Microservices work with stateless JWT tokens. The BFF bridges these worlds: on login, it stores the JWT in the Express session. On every subsequent API call, it extracts the JWT from the session and sends it as an `Authorization: Bearer` header. The browser never sees the JWT.
+
+19. **Replacing Passport.js is simpler than expected** — Passport provides `req.user` via session deserialization from MongoDB. The BFF replaces this with `req.session.user` populated at login time from the Auth Service response. `isAuthenticated()` becomes `!!req.session.accessToken`. The templates work unchanged because we set `res.locals.currentUser = req.session.user` — same variable name, same template logic.
 
 ---
 

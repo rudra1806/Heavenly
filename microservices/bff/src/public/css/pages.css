@@ -1,0 +1,328 @@
+/* ===== Static Pages Styling (Privacy, Terms, Contact) ===== */
+
+.page-wrapper {
+  padding: 2rem 1.5rem;
+  padding-top: 120px;
+  min-height: calc(100vh - 200px);
+  background: var(--bg-main);
+}
+
+.page-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+  text-align: center;
+  margin-bottom: 4rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.page-header h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.page-header .last-updated {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Content Sections */
+.page-content {
+  background: white;
+  padding: 3rem;
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 2rem;
+}
+
+.page-content section {
+  margin-bottom: 3rem;
+}
+
+.page-content section:last-child {
+  margin-bottom: 0;
+}
+
+.page-content h2 {
+  font-family: 'Poppins', serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--surface);
+}
+
+.page-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.page-content p {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text-main);
+  margin-bottom: 1rem;
+}
+
+.page-content ul {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.page-content li {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.page-content strong {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.page-content a {
+  color: var(--secondary);
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.page-content a:hover {
+  color: var(--primary-dark);
+}
+
+/* ===== CONTACT PAGE SPECIFIC ===== */
+
+.contact-intro {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.contact-intro .lead {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.contact-form-card {
+  background: white;
+  padding: 3rem;
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 3rem;
+}
+
+.contact-form-card .form-group {
+  margin-bottom: 1.5rem;
+}
+
+.contact-form-card label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.contact-form-card input,
+.contact-form-card textarea,
+.contact-form-card select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--border-light);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  background: var(--bg-main);
+  transition: all 0.3s ease;
+}
+
+.contact-form-card input:focus,
+.contact-form-card textarea:focus,
+.contact-form-card select:focus {
+  outline: none;
+  border-color: var(--secondary);
+  box-shadow: 0 0 0 4px rgba(86, 84, 73, 0.1);
+  background: white;
+}
+
+.contact-form-card textarea {
+  resize: vertical;
+  min-height: 150px;
+}
+
+.contact-form-card .btn-submit {
+  width: 100%;
+  padding: 1rem 2rem;
+  background: var(--secondary);
+  color: var(--bg-main);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-card);
+  margin-top: 1rem;
+}
+
+.contact-form-card .btn-submit:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.contact-form-card .btn-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.contact-form-card .was-validated input:invalid,
+.contact-form-card .was-validated textarea:invalid,
+.contact-form-card .was-validated select:invalid {
+  border-color: #dc3545;
+}
+
+.contact-form-card .was-validated input:valid,
+.contact-form-card .was-validated textarea:valid,
+.contact-form-card .was-validated select:valid {
+  border-color: #28a745;
+}
+
+/* Contact Info Cards */
+.contact-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-top: 3rem;
+}
+
+.contact-info-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.contact-info-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  border-color: var(--surface);
+}
+
+.contact-info-card .icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 1.25rem;
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--primary-dark) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--bg-main);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.contact-info-card h5 {
+  font-family: 'Poppins', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.contact-info-card p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Form Validation */
+.contact-form-card .invalid-feedback {
+  display: none;
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.contact-form-card form.was-validated input:invalid,
+.contact-form-card form.was-validated textarea:invalid,
+.contact-form-card form.was-validated select:invalid {
+  border-color: #dc3545;
+}
+
+.contact-form-card form.was-validated input:invalid ~ .invalid-feedback,
+.contact-form-card form.was-validated textarea:invalid ~ .invalid-feedback,
+.contact-form-card form.was-validated select:invalid ~ .invalid-feedback {
+  display: block;
+}
+
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 768px) {
+  .page-wrapper {
+    padding: 1.5rem 1rem;
+    padding-top: 100px;
+  }
+
+  .page-header h1 {
+    font-size: 2.25rem;
+  }
+
+  .page-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .page-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .contact-form-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .contact-info-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h1 {
+    font-size: 1.875rem;
+  }
+
+  .page-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .page-content h2 {
+    font-size: 1.35rem;
+  }
+
+  .contact-form-card {
+    padding: 1.5rem 1rem;
+  }
+}
