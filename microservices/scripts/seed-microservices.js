@@ -14,6 +14,7 @@ require('dotenv').config({ path: '../.env' });
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const initData = require('./data.js');
+const { connectRabbitMQ, publishEvent, closeRabbitMQ } = require('../shared');
 
 // MongoDB connection URLs
 const AUTH_DB = process.env.AUTH_MONGO_URL || 'mongodb://localhost:27017/heavenly_auth';
@@ -147,12 +148,33 @@ async function seedListingService(ownerId) {
 
 async function main() {
     try {
+        const rabbitUser = process.env.RABBITMQ_USER || 'heavenly';
+        const rabbitPass = process.env.RABBITMQ_PASS || 'heavenly123';
+        const defaultRabbitUrl = `amqp://${rabbitUser}:${rabbitPass}@localhost:5672`;
+        await connectRabbitMQ(process.env.RABBITMQ_URL || defaultRabbitUrl);
+
         // Seed auth service first to get user IDs
         const { admin, users } = await seedAuthService();
         
         // Seed listing service with admin as owner
         const listings = await seedListingService(admin._id.toString());
         
+        console.log('\n📡 Publishing listing events to search index...');
+        for (const listing of listings) {
+            await publishEvent('listing.created', {
+                listingId: listing._id.toString(),
+                title: listing.title,
+                description: listing.description,
+                location: listing.location,
+                country: listing.country,
+                price: listing.price,
+                coordinates: listing.geometry?.coordinates,
+                image: listing.image
+            });
+        }
+        
+        await closeRabbitMQ();
+
         console.log('\n✅ Seed completed successfully!\n');
         console.log('═══════════════════════════════════════════');
         console.log('📋 ADMIN CREDENTIALS:');

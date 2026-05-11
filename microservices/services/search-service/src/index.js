@@ -21,11 +21,11 @@ const searchController = require('./controllers/search.js');
 const { setupConsumers } = require('./events/consumers.js');
 
 // Shared utilities
-let connectRabbitMQ, consumeEvent;
+let connectRabbitMQ, consumeEvent, serviceClient;
 try {
-    ({ connectRabbitMQ, consumeEvent } = require('../../../shared'));
+    ({ connectRabbitMQ, consumeEvent, serviceClient } = require('../../../shared'));
 } catch {
-    ({ connectRabbitMQ, consumeEvent } = require('/app/shared'));
+    ({ connectRabbitMQ, consumeEvent, serviceClient } = require('/app/shared'));
 }
 
 const app = express();
@@ -94,7 +94,34 @@ async function startService() {
             }
         }
 
-        // 3. Start HTTP server
+        // 3. Sync initial listings from Listing Service
+        const LISTING_SERVICE_URL = process.env.LISTING_SERVICE_URL || 'http://localhost:3002';
+        try {
+            console.log(`[Search Service] Syncing listings from ${LISTING_SERVICE_URL}...`);
+            // Add a small delay to ensure listing-service is ready in docker-compose environments
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await serviceClient.get(`${LISTING_SERVICE_URL}/listings`);
+            if (response.success && response.data?.listings) {
+                response.data.listings.forEach(listing => {
+                    searchController.indexListing({
+                        listingId: listing._id,
+                        title: listing.title,
+                        description: listing.description,
+                        location: listing.location,
+                        country: listing.country,
+                        price: listing.price,
+                        coordinates: listing.geometry?.coordinates,
+                        isAvailable: listing.isAvailable,
+                        image: listing.image
+                    });
+                });
+                console.log(`[Search Service] Synced ${response.data.listings.length} listings to index.`);
+            }
+        } catch (syncErr) {
+            console.warn('[Search Service] Failed to sync initial listings (it may not be ready yet):', syncErr.message);
+        }
+
+        // 4. Start HTTP server
         app.listen(PORT, () => {
             console.log(`[Search Service] Running on port ${PORT}`);
         });

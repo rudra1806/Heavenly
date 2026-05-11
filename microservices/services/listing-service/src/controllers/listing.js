@@ -120,7 +120,8 @@ async function createListing(req, res) {
                 location: listing.location,
                 country: listing.country,
                 price: listing.price,
-                coordinates: listing.geometry?.coordinates
+                coordinates: listing.geometry?.coordinates,
+                image: listing.image
             });
         }
 
@@ -213,7 +214,8 @@ async function updateListing(req, res) {
                 location: listing.location,
                 country: listing.country,
                 price: listing.price,
-                coordinates: listing.geometry?.coordinates
+                coordinates: listing.geometry?.coordinates,
+                image: listing.image
             });
         }
 

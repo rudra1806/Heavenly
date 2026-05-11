@@ -229,6 +229,7 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-heavenly}:${RABBITMQ_PASS:-heavenly123}@rabbitmq:5672
+      - LISTING_SERVICE_URL=http://listing-service:3002
     depends_on:
       redis:
         condition: service_healthy

@@ -152,17 +152,26 @@ async function search(req, res) {
  * Called from event consumers when listing.created or listing.updated is received.
  */
 function indexListing(data) {
+    const existing = searchIndex.get(data.listingId) || {};
+    const coords = data.coordinates !== undefined ? data.coordinates : existing.coordinates || [0, 0];
+    
     searchIndex.set(data.listingId, {
+        _id: data.listingId,
         listingId: data.listingId,
-        title: data.title || '',
-        description: data.description || '',
-        location: data.location || '',
-        country: data.country || '',
-        price: data.price || 0,
-        coordinates: data.coordinates || [0, 0],
-        isAvailable: data.isAvailable !== undefined ? data.isAvailable : true
+        title: data.title !== undefined ? data.title : existing.title || '',
+        description: data.description !== undefined ? data.description : existing.description || '',
+        location: data.location !== undefined ? data.location : existing.location || '',
+        country: data.country !== undefined ? data.country : existing.country || '',
+        price: data.price !== undefined ? data.price : existing.price || 0,
+        coordinates: coords,
+        geometry: {
+            type: 'Point',
+            coordinates: coords
+        },
+        isAvailable: data.isAvailable !== undefined ? data.isAvailable : (existing.isAvailable !== undefined ? existing.isAvailable : true),
+        image: data.image !== undefined ? data.image : existing.image || { url: '', filename: '' }
     });
-    console.log(`[Search] Indexed listing: ${data.listingId} — ${data.title}`);
+    console.log(`[Search] Indexed listing: ${data.listingId} — ${data.title || existing.title}`);
 }
 
 /**
