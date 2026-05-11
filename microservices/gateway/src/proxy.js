@@ -86,6 +86,10 @@ function setupProxies(app) {
         const proxyOptions = {
             target: route.target,
             changeOrigin: true,
+            // Timeout: don't let requests hang forever if a service is down
+            proxyTimeout: 15000,  // 15s timeout for the proxy connection
+            timeout: 15000,       // 15s timeout for the incoming request
+
             // Express strips the mount path (e.g., '/api/listings') from req.url,
             // leaving only the remaining path (e.g., '/' or '/:id').
             // We prepend the service prefix to reconstruct the correct path.
@@ -112,11 +116,16 @@ function setupProxies(app) {
                 error: (err, req, res) => {
                     console.error(`[Proxy] Error proxying ${req.method} ${req.originalUrl}:`, err.message);
                     if (!res.headersSent) {
-                        res.status(503).json({
-                            success: false,
-                            error: 'Service temporarily unavailable',
-                            service: route.path.replace('/api/', '')
-                        });
+                        const isTimeout = err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.message?.includes('timeout');
+                        res.status(503)
+                            .set('Retry-After', '2')  // Tell BFF to retry in 2 seconds
+                            .json({
+                                success: false,
+                                error: isTimeout
+                                    ? 'Service request timed out. Please try again.'
+                                    : 'Service temporarily unavailable',
+                                service: route.path.replace('/api/', '')
+                            });
                     }
                 }
             }

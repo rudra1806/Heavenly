@@ -6,7 +6,9 @@
  * it uses this client instead of directly querying another service's database.
  * 
  * Features:
- *   - Timeout handling (5s default)
+ *   - Timeout handling (8s default)
+ *   - Retry with exponential backoff (2 retries for 5xx/network errors)
+ *   - Safe JSON parsing (handles non-JSON responses gracefully)
  *   - Automatic JSON parsing
  *   - Error wrapping with service name for debugging
  *   - Forwards JWT token for authenticated internal calls
@@ -18,10 +20,42 @@
 
 const AppError = require('../errors/AppError');
 
-const DEFAULT_TIMEOUT = 5000; // 5 seconds
+const DEFAULT_TIMEOUT = 8000; // 8 seconds (increased from 5s for aggregation calls)
+const MAX_RETRIES = 2;
+const BASE_DELAY_MS = 300;    // 300ms → 600ms
 
 /**
- * Makes an HTTP request to another microservice.
+ * Determines if an error or status code is retryable.
+ */
+function isRetryable(statusCode, error) {
+    if (error) {
+        return error.name === 'AbortError' ||
+               error.code === 'ECONNREFUSED' ||
+               error.code === 'ECONNRESET' ||
+               error.code === 'EPIPE' ||
+               error.message?.includes('fetch failed');
+    }
+    return statusCode >= 500 || statusCode === 429;
+}
+
+/**
+ * Safely parses JSON from a response.
+ * Returns parsed data or a fallback error object.
+ */
+async function safeParseJSON(response) {
+    try {
+        const text = await response.text();
+        if (!text || text.trim().length === 0) {
+            return { success: false, error: `Empty response (${response.status})` };
+        }
+        return JSON.parse(text);
+    } catch {
+        return { success: false, error: `Non-JSON response (${response.status})` };
+    }
+}
+
+/**
+ * Makes an HTTP request to another microservice with retry and timeout.
  * 
  * @param {string} url - Full URL of the target service endpoint
  * @param {object} options - Fetch options (method, body, headers, etc.)
@@ -39,39 +73,69 @@ async function request(url, options = {}, req = null) {
         headers['Authorization'] = req.headers.authorization;
     }
 
-    try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), options.timeout || DEFAULT_TIMEOUT);
+    let lastError = null;
 
-        const response = await fetch(url, {
-            ...options,
-            headers,
-            signal: controller.signal,
-            body: options.body ? JSON.stringify(options.body) : undefined
-        });
+    for (let attempt = 1; attempt <= MAX_RETRIES + 1; attempt++) {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), options.timeout || DEFAULT_TIMEOUT);
 
-        clearTimeout(timeout);
+            const response = await fetch(url, {
+                ...options,
+                headers,
+                signal: controller.signal,
+                body: options.body ? JSON.stringify(options.body) : undefined
+            });
 
-        const data = await response.json();
+            clearTimeout(timeout);
 
-        if (!response.ok) {
-            throw new AppError(
-                response.status,
-                data.error || `Service request failed: ${url}`
-            );
+            const data = await safeParseJSON(response);
+
+            if (!response.ok) {
+                // If retryable and attempts remain, retry
+                if (isRetryable(response.status) && attempt <= MAX_RETRIES) {
+                    const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+                    console.warn(`[ServiceClient] ${options.method || 'GET'} ${url} returned ${response.status}, retrying in ${delay}ms (${attempt}/${MAX_RETRIES + 1})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue;
+                }
+
+                throw new AppError(
+                    response.status,
+                    data.error || `Service request failed: ${url}`
+                );
+            }
+
+            return data;
+        } catch (err) {
+            lastError = err;
+
+            // If it's our custom AppError with a non-retryable status, throw immediately
+            if (err instanceof AppError && !isRetryable(err.statusCode)) {
+                throw err;
+            }
+
+            // Network/timeout errors — retry if attempts remain
+            if (attempt <= MAX_RETRIES && isRetryable(null, err)) {
+                const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+                console.warn(`[ServiceClient] ${options.method || 'GET'} ${url} failed (${err.message}), retrying in ${delay}ms (${attempt}/${MAX_RETRIES + 1})`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+
+            if (err instanceof AppError) throw err;
+
+            if (err.name === 'AbortError') {
+                throw new AppError(504, `Service timeout: ${url}`);
+            }
+
+            // Network error — service is down or unreachable
+            throw new AppError(503, `Service unavailable: ${url} — ${err.message}`);
         }
-
-        return data;
-    } catch (err) {
-        if (err instanceof AppError) throw err;
-
-        if (err.name === 'AbortError') {
-            throw new AppError(504, `Service timeout: ${url}`);
-        }
-
-        // Network error — service is down or unreachable
-        throw new AppError(503, `Service unavailable: ${url} — ${err.message}`);
     }
+
+    // Should not reach here, but just in case
+    throw lastError || new AppError(503, `Service call failed after retries: ${url}`);
 }
 
 /**

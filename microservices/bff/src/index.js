@@ -67,7 +67,11 @@ app.use((req, res, next) => {
     // Make user info available to all templates
     res.locals.currentUser = req.session.user || null;
     res.locals.success = req.flash('success');
-    res.locals.error = req.flash('error');
+    // Support both flash messages and query param errors
+    // Query param errors are used when session is destroyed (e.g., user deleted)
+    const flashErrors = req.flash('error');
+    const queryError = req.query.error;
+    res.locals.error = queryError ? [...flashErrors, queryError] : flashErrors;
     next();
 });
 

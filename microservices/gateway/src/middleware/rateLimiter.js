@@ -8,8 +8,14 @@
  * so rate limits are shared across multiple gateway instances.
  * 
  * Configuration:
- *   - Global: 100 requests per 15-minute window per IP
- *   - Auth endpoints could have stricter limits (prevent brute force)
+ *   - Global: 500 requests per 15-minute window per user
+ *   - Auth endpoints: 20 requests per 15-minute window (prevent brute force)
+ * 
+ * Key strategy:
+ *   In Docker, the BFF is a single container making requests on behalf of all
+ *   users. Using raw IP would apply a single rate limit to ALL users combined.
+ *   Instead, we use X-User-Id (from JWT validation) when available, falling back
+ *   to IP for anonymous requests. This distributes rate limits per actual user.
  */
 
 const rateLimit = require('express-rate-limit');
@@ -17,12 +23,19 @@ const rateLimit = require('express-rate-limit');
 // Global rate limiter — baseline protection for all routes
 const rateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,                  // 100 requests per window per IP
+    max: 500,                  // 500 requests per window per key
     standardHeaders: true,     // Return rate limit info in `RateLimit-*` headers
     legacyHeaders: false,      // Disable `X-RateLimit-*` headers
 
+    // Use authenticated user ID when available, fall back to IP
+    // This prevents the BFF single-IP problem where all users share one limit
+    keyGenerator: (req) => {
+        return req.user?.id || req.ip || req.connection?.remoteAddress || 'anonymous';
+    },
+
     // Custom response when rate limit is exceeded
     handler: (req, res) => {
+        console.warn(`[Rate Limit] Exceeded for key: ${req.user?.id || req.ip} on ${req.method} ${req.originalUrl}`);
         res.status(429).json({
             success: false,
             error: 'Too many requests. Please try again later.',
