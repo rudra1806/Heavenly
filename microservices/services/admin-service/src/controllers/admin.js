@@ -52,6 +52,29 @@ async function getDashboard(req, res) {
         const reviews = reviewsRes?.data?.reviews || [];
         const bookings = bookingsRes?.data?.bookings || [];
 
+        // Create lookup maps for enrichment
+        const userMap = new Map(users.map(u => [u._id?.toString() || u.id?.toString(), u]));
+        const listingMap = new Map(listings.map(l => [l._id?.toString() || l.id?.toString(), l]));
+
+        // Enrich listings with owner data
+        const enrichedListings = listings.map(listing => ({
+            ...listing,
+            owner: userMap.get(listing.ownerId?.toString()) || null
+        }));
+
+        // Enrich bookings with user and listing data
+        const enrichedBookings = bookings.map(booking => ({
+            ...booking,
+            user: userMap.get(booking.userId?.toString()) || null,
+            listing: listingMap.get(booking.listingId?.toString()) || null
+        }));
+
+        // Enrich reviews with author data
+        const enrichedReviews = reviews.map(review => ({
+            ...review,
+            author: userMap.get(review.authorId?.toString()) || null
+        }));
+
         // Booking status breakdown
         const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length;
         const cancelledBookings = bookings.filter(b => b.status === 'cancelled').length;
@@ -73,11 +96,11 @@ async function getDashboard(req, res) {
             .filter(b => b.status !== 'cancelled')
             .reduce((sum, b) => sum + (b.guests || 0), 0);
 
-        // Recent activity (last 5 of each)
+        // Recent activity (last 5 of each) - use enriched data
         const recentUsers = users.slice(0, 5);
-        const recentListings = listings.slice(0, 5);
-        const recentReviews = reviews.slice(0, 5);
-        const recentBookings = bookings.slice(0, 5);
+        const recentListings = enrichedListings.slice(0, 5);
+        const recentReviews = enrichedReviews.slice(0, 5);
+        const recentBookings = enrichedBookings.slice(0, 5);
 
         res.json({
             success: true,
@@ -178,9 +201,20 @@ async function getAllListings(req, res) {
             listings = response.data?.listings || [];
         }
 
+        // Fetch users to enrich listings with owner data
+        const usersRes = await safeGet(`${AUTH_URL}/auth/users`, { authorization: req.headers.authorization });
+        const users = usersRes?.data?.users || [];
+        const userMap = new Map(users.map(u => [u._id?.toString() || u.id?.toString(), u]));
+
+        // Enrich listings with owner data
+        const enrichedListings = listings.map(listing => ({
+            ...listing,
+            owner: userMap.get(listing.ownerId?.toString()) || null
+        }));
+
         res.json({
             success: true,
-            data: { listings, count: listings.length }
+            data: { listings: enrichedListings, count: enrichedListings.length }
         });
     } catch (err) {
         console.error('[Admin] getAllListings error:', err.message);
@@ -220,13 +254,32 @@ async function getAllReviews(req, res) {
 
         let reviews = response.data?.reviews || [];
 
+        // Fetch users and listings to enrich reviews
+        const [usersRes, listingsRes] = await Promise.all([
+            safeGet(`${AUTH_URL}/auth/users`, { authorization: req.headers.authorization }),
+            safeGet(`${LISTING_URL}/listings`)
+        ]);
+
+        const users = usersRes?.data?.users || [];
+        const listings = listingsRes?.data?.listings || [];
+        
+        const userMap = new Map(users.map(u => [u._id?.toString() || u.id?.toString(), u]));
+        const listingMap = new Map(listings.map(l => [l._id?.toString() || l.id?.toString(), l]));
+
+        // Enrich reviews with author and listing data
+        reviews = reviews.map(review => ({
+            ...review,
+            author: userMap.get(review.authorId?.toString()) || null,
+            listing: listingMap.get(review.listingId?.toString()) || null
+        }));
+
         // Client-side search filter (Review Service doesn't have search)
         const search = req.query.search;
         if (search && search.trim()) {
             const query = search.toLowerCase().trim();
             reviews = reviews.filter(r =>
                 r.comment?.toLowerCase().includes(query) ||
-                r.authorUsername?.toLowerCase().includes(query)
+                r.author?.username?.toLowerCase().includes(query)
             );
         }
 
@@ -269,9 +322,30 @@ async function deleteReview(req, res) {
 async function getAllBookings(req, res) {
     try {
         const response = await serviceClient.get(`${BOOKING_URL}/bookings`);
+        let bookings = response.data?.bookings || [];
+
+        // Fetch users and listings to enrich bookings
+        const [usersRes, listingsRes] = await Promise.all([
+            safeGet(`${AUTH_URL}/auth/users`, { authorization: req.headers.authorization }),
+            safeGet(`${LISTING_URL}/listings`)
+        ]);
+
+        const users = usersRes?.data?.users || [];
+        const listings = listingsRes?.data?.listings || [];
+        
+        const userMap = new Map(users.map(u => [u._id?.toString() || u.id?.toString(), u]));
+        const listingMap = new Map(listings.map(l => [l._id?.toString() || l.id?.toString(), l]));
+
+        // Enrich bookings with user and listing data
+        bookings = bookings.map(booking => ({
+            ...booking,
+            user: userMap.get(booking.userId?.toString()) || null,
+            listing: listingMap.get(booking.listingId?.toString()) || null
+        }));
+
         res.json({
             success: true,
-            data: response.data
+            data: { bookings, count: bookings.length }
         });
     } catch (err) {
         console.error('[Admin] getAllBookings error:', err.message);

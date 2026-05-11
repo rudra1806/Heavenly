@@ -10,10 +10,13 @@ const { isLoggedIn } = require('../middleware.js');
 // POST /listings/:id/reviews — create a review
 router.post('/listings/:id/reviews', isLoggedIn, async (req, res) => {
     try {
+        // Form sends review[rating] and review[comment] (nested via Express urlencoded)
+        const reviewData = req.body.review || {};
         await apiCall('/api/reviews', {
             method: 'POST',
             body: {
-                ...req.body,
+                comment: reviewData.comment,
+                rating: reviewData.rating,
                 listingId: req.params.id
             },
             session: req.session

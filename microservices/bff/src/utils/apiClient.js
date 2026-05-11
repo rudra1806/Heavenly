@@ -61,7 +61,10 @@ async function login(credentials, session) {
     if (data.data?.accessToken) {
         session.accessToken = data.data.accessToken;
         session.refreshToken = data.data.refreshToken;
-        session.user = data.data.user;
+        // Normalize user: Auth Service returns _id, but BFF routes use .id
+        const user = data.data.user;
+        user.id = user._id;
+        session.user = user;
     }
 
     return data;
@@ -79,7 +82,10 @@ async function register(userData, session) {
     if (data.data?.accessToken) {
         session.accessToken = data.data.accessToken;
         session.refreshToken = data.data.refreshToken;
-        session.user = data.data.user;
+        // Normalize user: Auth Service returns _id, but BFF routes use .id
+        const user = data.data.user;
+        user.id = user._id;
+        session.user = user;
     }
 
     return data;

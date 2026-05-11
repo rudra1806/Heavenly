@@ -31,7 +31,7 @@
                     </div>
                     <div class="host-info">
                         <span class="host-label">Hosted by</span>
-                        <div class="host-name">@<%= listing.owner.username %>
+                        <div class="host-name">@<%= owner ? owner.username : (listing.ownerUsername || 'unknown') %>
                         </div>
                     </div>
                 </div>
@@ -98,8 +98,8 @@
                             <div class="highlight-text">
                                 <span class="highlight-label">Reviews</span>
                                 <div class="highlight-value">
-                                    <%= listing.reviews.length %>
-                                        <%= listing.reviews.length===1 ? 'Review' : 'Reviews' %>
+                                    <%= reviews.length %>
+                                        <%= reviews.length===1 ? 'Review' : 'Reviews' %>
                                 </div>
                             </div>
                         </div>
@@ -126,7 +126,7 @@
             <!-- Sidebar -->
             <div class="listing-sidebar">
                 <!-- Booking Widget -->
-                <% if (currentUser && !listing.owner._id.equals(currentUser._id)) { %>
+                <% if (currentUser && String(listing.ownerId || (owner && owner._id)) !== String(currentUser._id)) { %>
                     <div class="booking-widget">
                         <div class="booking-price">
                             <span class="price-amount">₹ <%= listing.price.toLocaleString("en-IN") %></span>
@@ -193,7 +193,7 @@
                         <% } %>
 
                             <!-- Owner Actions -->
-                            <% if (currentUser && (listing.owner._id.equals(currentUser._id) ||
+                            <% if (currentUser && (String(listing.ownerId || (owner && owner._id)) === String(currentUser._id) ||
                                 currentUser.role==='admin' )) { %>
                                 <div class="owner-actions-card">
                                     <h4><i class="fa-solid fa-gear"></i> Manage Listing</h4>
@@ -257,20 +257,20 @@
 
             <div class="reviews-container">
                 <h4>Reviews</h4>
-                <% if (listing.reviews.length===0) { %>
+                <% if (reviews.length===0) { %>
                     <p class="no-reviews">No reviews yet. Be the first to review this property!</p>
                     <% } else { %>
                         <ul class="review-list">
-                            <% for (let review of listing.reviews) { %>
+                            <% for (let review of reviews) { %>
                                 <li class="review-item">
                                     <div class="review-header">
                                         <div class="review-user">
                                             <i class="fa-solid fa-user-circle"></i>
                                             <span class="review-author">
-                                                <%= review.author.username %>
+                                                <%= review.authorUsername || (review.author && review.author.username) || 'Unknown' %>
                                             </span>
                                         </div>
-                                        <% if (currentUser && (review.author._id.equals(currentUser._id) ||
+                                        <% if (currentUser && (String(review.authorId || (review.author && review.author._id)) === String(currentUser._id) ||
                                             currentUser.role==='admin' )) { %>
                                             <form
                                                 action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE"

@@ -7,6 +7,28 @@ const router = express.Router();
 const { apiCall } = require('../utils/apiClient.js');
 const { isLoggedIn } = require('../middleware.js');
 
+/**
+ * Transform booking data from microservice format to template format.
+ * Microservice uses: status, payment.status
+ * Templates expect: bookingStatus, paymentStatus
+ */
+function transformBooking(booking) {
+    if (!booking) return booking;
+    return {
+        ...booking,
+        bookingStatus: booking.status,
+        paymentStatus: booking.payment?.status || 'pending',
+        paymentId: booking.payment?.transactionId || null,
+        listing: booking.listing || {
+            _id: booking.listingId,
+            title: booking.listingTitle || '',
+            image: { url: booking.listingImage || '' },
+            location: booking.listingLocation || '',
+            country: ''
+        }
+    };
+}
+
 // GET /listings/:id/book — booking form
 router.get('/listings/:id/book', isLoggedIn, async (req, res) => {
     try {
@@ -23,7 +45,29 @@ router.get('/listings/:id/book', isLoggedIn, async (req, res) => {
     }
 });
 
-// POST /bookings — create booking
+// POST /listings/:id/book — create booking (form posts here)
+router.post('/listings/:id/book', isLoggedIn, async (req, res) => {
+    try {
+        const data = await apiCall('/api/bookings', {
+            method: 'POST',
+            body: {
+                listingId: req.params.id,
+                checkIn: req.body.checkIn,
+                checkOut: req.body.checkOut,
+                guests: req.body.guests
+            },
+            session: req.session
+        });
+        const booking = data.data?.booking;
+        // Redirect to payment page instead of confirmation page
+        res.redirect(`/bookings/${booking?._id || ''}/payment`);
+    } catch (err) {
+        req.flash('error', err.message || 'Failed to create booking.');
+        res.redirect(`/listings/${req.params.id}`);
+    }
+});
+
+// POST /bookings — create booking (API-style fallback)
 router.post('/bookings', isLoggedIn, async (req, res) => {
     try {
         const data = await apiCall('/api/bookings', {
@@ -32,8 +76,8 @@ router.post('/bookings', isLoggedIn, async (req, res) => {
             session: req.session
         });
         const booking = data.data?.booking;
-        req.flash('success', 'Booking created! Proceed to payment.');
-        res.redirect(`/bookings/${booking?._id || ''}`);
+        // Redirect to payment page instead of confirmation page
+        res.redirect(`/bookings/${booking?._id || ''}/payment`);
     } catch (err) {
         req.flash('error', err.message || 'Failed to create booking.');
         res.redirect(`/listings/${req.body.listingId}`);
@@ -44,11 +88,30 @@ router.post('/bookings', isLoggedIn, async (req, res) => {
 router.get('/bookings/:id', isLoggedIn, async (req, res) => {
     try {
         const data = await apiCall(`/api/bookings/${req.params.id}`, { session: req.session });
-        const booking = data.data?.booking;
+        let booking = data.data?.booking;
         if (!booking) {
             req.flash('error', 'Booking not found.');
             return res.redirect('/dashboard/bookings');
         }
+        
+        // Fetch full listing data to ensure we have all required fields
+        try {
+            const listingData = await apiCall(`/api/listings/${booking.listingId}`, { session: req.session });
+            const listing = listingData.data?.listing;
+            if (listing) {
+                booking.listing = listing;
+            }
+        } catch (listingErr) {
+            console.warn('Failed to fetch listing for booking:', listingErr.message);
+            // Continue with denormalized data if listing fetch fails
+        }
+        
+        // Transform booking data for template compatibility
+        booking = transformBooking(booking);
+        // Convert date strings to Date objects for template methods
+        booking.checkIn = new Date(booking.checkIn);
+        booking.checkOut = new Date(booking.checkOut);
+        booking.createdAt = new Date(booking.createdAt);
         res.render('bookings/show.ejs', { booking });
     } catch (err) {
         req.flash('error', 'Failed to load booking.');
@@ -60,11 +123,23 @@ router.get('/bookings/:id', isLoggedIn, async (req, res) => {
 router.get('/bookings/:id/payment', isLoggedIn, async (req, res) => {
     try {
         const data = await apiCall(`/api/bookings/${req.params.id}`, { session: req.session });
-        const booking = data.data?.booking;
+        let booking = data.data?.booking;
         if (!booking) {
             req.flash('error', 'Booking not found.');
             return res.redirect('/dashboard/bookings');
         }
+        
+        // If payment is already completed, redirect to confirmation page
+        if (booking.payment?.status === 'completed') {
+            req.flash('error', 'Payment already completed.');
+            return res.redirect(`/bookings/${req.params.id}`);
+        }
+        
+        // Transform booking data for template compatibility
+        booking = transformBooking(booking);
+        // Convert date strings to Date objects for template methods
+        booking.checkIn = new Date(booking.checkIn);
+        booking.checkOut = new Date(booking.checkOut);
         res.render('bookings/payment.ejs', { booking });
     } catch (err) {
         req.flash('error', 'Failed to load payment page.');
@@ -75,13 +150,31 @@ router.get('/bookings/:id/payment', isLoggedIn, async (req, res) => {
 // POST /bookings/:id/payment — process payment
 router.post('/bookings/:id/payment', isLoggedIn, async (req, res) => {
     try {
-        await apiCall(`/api/bookings/${req.params.id}/payment`, {
+        const result = await apiCall(`/api/bookings/${req.params.id}/payment`, {
             method: 'POST',
             session: req.session
         });
+        
+        // Return JSON for AJAX requests
+        if (req.headers['content-type'] === 'application/json' || req.xhr || req.headers.accept?.includes('application/json')) {
+            return res.json({
+                success: true,
+                paymentId: result.data?.booking?.payment?.transactionId,
+                bookingId: req.params.id
+            });
+        }
+        
         req.flash('success', 'Payment successful!');
         res.redirect(`/bookings/${req.params.id}`);
     } catch (err) {
+        // Return JSON error for AJAX requests
+        if (req.headers['content-type'] === 'application/json' || req.xhr || req.headers.accept?.includes('application/json')) {
+            return res.status(400).json({
+                success: false,
+                error: err.message || 'Payment failed.'
+            });
+        }
+        
         req.flash('error', err.message || 'Payment failed.');
         res.redirect(`/bookings/${req.params.id}/payment`);
     }
@@ -99,6 +192,21 @@ router.post('/bookings/:id/cancel', isLoggedIn, async (req, res) => {
     } catch (err) {
         req.flash('error', err.message || 'Failed to cancel booking.');
         res.redirect(`/bookings/${req.params.id}`);
+    }
+});
+
+// DELETE /bookings/:id — remove cancelled booking from history
+router.delete('/bookings/:id', isLoggedIn, async (req, res) => {
+    try {
+        await apiCall(`/api/bookings/${req.params.id}`, {
+            method: 'DELETE',
+            session: req.session
+        });
+        req.flash('success', 'Booking removed from history.');
+        res.redirect('/dashboard/bookings');
+    } catch (err) {
+        req.flash('error', err.message || 'Failed to remove booking.');
+        res.redirect('/dashboard/bookings');
     }
 });
 

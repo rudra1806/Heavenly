@@ -109,6 +109,12 @@ module.exports.paymentPage = async (req, res) => {
         return res.redirect('/listings');
     }
 
+    // If payment is already completed, redirect to confirmation page
+    if (booking.paymentStatus === 'completed') {
+        req.flash('error', 'Payment already completed.');
+        return res.redirect(`/bookings/${booking._id}`);
+    }
+
     res.render('bookings/payment.ejs', { booking });
 };
 

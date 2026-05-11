@@ -30,7 +30,7 @@ router.post('/bookings', authMiddleware, validateBooking, bookingController.crea
 router.post('/bookings/:id/payment', authMiddleware, bookingController.processPayment);
 router.post('/bookings/:id/cancel', authMiddleware, bookingController.cancelBooking);
 
-// Admin only
-router.delete('/bookings/:id', authMiddleware, authMiddleware.requireAdmin, bookingController.deleteBooking);
+// Delete booking - users can soft-delete their own cancelled bookings, admins can hard-delete any
+router.delete('/bookings/:id', authMiddleware, bookingController.deleteBooking);
 
 module.exports = router;

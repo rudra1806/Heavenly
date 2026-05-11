@@ -8,6 +8,7 @@
     "smoke-test": "node smoke-test.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "mongoose": "^8.15.1"
   }
 }

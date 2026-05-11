@@ -1,11 +1,52 @@
 /**
  * BFF Listing Routes — renders EJS templates with data from Listing Service.
+ * 
+ * Handles multipart form data (image uploads) via multer,
+ * forwards files to Media Service, then creates/updates listings via API Gateway.
  */
 
 const express = require('express');
 const router = express.Router();
-const { apiCall } = require('../utils/apiClient.js');
+const multer = require('multer');
+const { apiCall, GATEWAY_URL } = require('../utils/apiClient.js');
 const { isLoggedIn } = require('../middleware.js');
+
+// Multer with memory storage — files stay in RAM, forwarded to Media Service
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+/**
+ * Uploads a file buffer to the Media Service and returns { url, filename }.
+ * If no file is provided, returns null.
+ */
+async function uploadImage(file, session) {
+    if (!file) return null;
+
+    try {
+        const formData = new FormData();
+        const blob = new Blob([file.buffer], { type: file.mimetype });
+        formData.append('image', blob, file.originalname);
+
+        const url = `${GATEWAY_URL}/api/media/upload`;
+        const headers = {};
+        if (session?.accessToken) {
+            headers['Authorization'] = `Bearer ${session.accessToken}`;
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers,
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.success && data.data?.url) {
+            return { url: data.data.url, filename: data.data.filename || file.originalname };
+        }
+    } catch (err) {
+        console.warn('[BFF] Image upload failed:', err.message);
+    }
+    return null;
+}
 
 // GET /listings — index page
 router.get('/listings', async (req, res) => {
@@ -64,12 +105,30 @@ router.get('/listings/:id', async (req, res) => {
     }
 });
 
-// POST /listings — create listing
-router.post('/listings', isLoggedIn, async (req, res) => {
+// POST /listings — create listing (multipart form with optional image)
+router.post('/listings', isLoggedIn, upload.single('image[url]'), async (req, res) => {
     try {
+        // Build listing body from parsed form fields
+        const body = {
+            title: req.body.title,
+            description: req.body.description,
+            price: req.body.price,
+            location: req.body.location,
+            country: req.body.country,
+            maxGuests: req.body.maxGuests
+        };
+
+        // Handle image: upload file to Media Service, or use provided filename
+        const uploaded = await uploadImage(req.file, req.session);
+        if (uploaded) {
+            body.image = uploaded;
+        } else if (req.body.image?.filename) {
+            body.image = { filename: req.body.image.filename, url: '' };
+        }
+
         await apiCall('/api/listings', {
             method: 'POST',
-            body: req.body,
+            body,
             session: req.session
         });
         req.flash('success', 'Listing created successfully!');
@@ -96,12 +155,27 @@ router.get('/listings/:id/edit', isLoggedIn, async (req, res) => {
     }
 });
 
-// PUT /listings/:id — update listing
-router.put('/listings/:id', isLoggedIn, async (req, res) => {
+// PUT /listings/:id — update listing (multipart form with optional image)
+router.put('/listings/:id', isLoggedIn, upload.single('image[url]'), async (req, res) => {
     try {
+        const body = {
+            title: req.body.title,
+            description: req.body.description,
+            price: req.body.price,
+            location: req.body.location,
+            country: req.body.country,
+            maxGuests: req.body.maxGuests
+        };
+
+        // Handle image update
+        const uploaded = await uploadImage(req.file, req.session);
+        if (uploaded) {
+            body.image = uploaded;
+        }
+
         await apiCall(`/api/listings/${req.params.id}`, {
             method: 'PUT',
-            body: req.body,
+            body,
             session: req.session
         });
         req.flash('success', 'Listing updated successfully!');

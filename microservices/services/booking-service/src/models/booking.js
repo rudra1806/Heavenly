@@ -67,6 +67,12 @@ const bookingSchema = new Schema({
         default: 'pending'
     },
 
+    // Soft delete flag - hidden from user's view but kept in database
+    isHidden: {
+        type: Boolean,
+        default: false
+    },
+
     // Simulated payment fields (ready for Razorpay/Stripe integration)
     payment: {
         status: {

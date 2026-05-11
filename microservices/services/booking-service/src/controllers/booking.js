@@ -22,18 +22,42 @@ function setDependencies(deps) {
 /**
  * GET /bookings
  * Returns bookings filtered by userId, listingId, or ownerId.
+ * Hidden bookings are excluded for regular users.
  */
 async function getBookings(req, res) {
     try {
+        const userId = req.headers['x-user-id'] || req.query.userId;
+        const userRole = req.headers['x-user-role'];
+        
+        console.log('[Booking] getBookings - userId from header:', req.headers['x-user-id']);
+        console.log('[Booking] getBookings - userId from query:', req.query.userId);
+        console.log('[Booking] getBookings - final userId:', userId);
+        
         const filter = {};
         if (req.query.userId) filter.userId = req.query.userId;
         if (req.query.listingId) filter.listingId = req.query.listingId;
+
+        console.log('[Booking] getBookings - filter:', JSON.stringify(filter));
+
+        // Hide soft-deleted bookings from regular users
+        // Admins can see all bookings
+        if (userRole !== 'admin' && userId) {
+            filter.$or = [
+                { isHidden: { $ne: true } },
+                { isHidden: { $exists: false } }
+            ];
+        }
 
         // For host view: get bookings for all listings owned by a user
         // This requires the ownerId query which checks denormalized data
         // The admin/dashboard service handles this by first fetching listings
 
         const bookings = await Booking.find(filter).sort({ createdAt: -1 });
+        console.log('[Booking] getBookings - found bookings:', bookings.length);
+        if (bookings.length > 0) {
+            console.log('[Booking] getBookings - first booking userId:', bookings[0].userId);
+        }
+        
         res.json({
             success: true,
             data: { bookings, count: bookings.length }
@@ -304,22 +328,57 @@ async function cancelBooking(req, res) {
 
 /**
  * DELETE /bookings/:id
- * Hard deletes a booking (admin only).
+ * Users can soft-delete (hide) their own cancelled bookings.
+ * Admins can hard-delete any booking.
  */
 async function deleteBooking(req, res) {
     try {
+        const userId = req.headers['x-user-id'] || req.user?.id;
+        const userRole = req.headers['x-user-role'] || req.user?.role;
+        
         const booking = await Booking.findById(req.params.id);
         if (!booking) {
             return res.status(404).json({ success: false, error: 'Booking not found.' });
         }
 
-        await Booking.findByIdAndDelete(req.params.id);
+        // Check permissions
+        const isOwner = booking.userId === userId;
+        const isAdmin = userRole === 'admin';
 
-        console.log(`[Booking] Deleted: ${req.params.id}`);
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'You do not have permission to remove this booking.' 
+            });
+        }
+
+        // Users can only delete their own cancelled bookings
+        if (!isAdmin && booking.status !== 'cancelled') {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Only cancelled bookings can be removed.' 
+            });
+        }
+
+        // Admin performs hard delete (removes from DB)
+        if (isAdmin) {
+            await Booking.findByIdAndDelete(req.params.id);
+            console.log(`[Booking] Hard deleted by admin: ${req.params.id}`);
+            return res.json({
+                success: true,
+                message: 'Booking permanently deleted.'
+            });
+        }
+
+        // User performs soft delete by adding isHidden flag
+        booking.isHidden = true;
+        await booking.save();
+        
+        console.log(`[Booking] Soft deleted by user: ${req.params.id}`);
 
         res.json({
             success: true,
-            message: 'Booking deleted successfully.'
+            message: 'Booking removed from your history.'
         });
     } catch (err) {
         console.error('[Booking] deleteBooking error:', err.message);
