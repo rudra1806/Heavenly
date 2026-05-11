@@ -1,92 +1,70 @@
-# 🏨 Heavenly — Microservices Architecture
+<div align="center">
 
-> A full-stack property rental platform migrated from a monolithic Express.js application to a distributed microservices architecture for scalability, maintainability, and independent deployability.
+# 🏨 Heavenly Microservices Architecture
 
----
+**Property Rental Platform**
 
-## 📑 Table of Contents
+*A microservices implementation with distributed systems, event-driven architecture, and modern design patterns*
 
-- [Project Overview](#project-overview)
-- [Why Microservices?](#why-microservices)
-- [Architecture](#architecture)
-  - [High-Level Diagram](#high-level-diagram)
-  - [Service Registry](#service-registry)
-  - [Communication Patterns](#communication-patterns)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Service Deep Dives](#service-deep-dives)
-  - [API Gateway](#1-api-gateway-port-3000)
-  - [Auth Service](#2-auth-service-port-3001)
-  - [Listing Service](#3-listing-service-port-3002)
-  - [Review Service](#4-review-service-port-3003)
-  - [Booking Service](#5-booking-service-port-3004)
-  - [Media Service](#6-media-service-port-3005)
-  - [Search & Geocoding Service](#7-search--geocoding-service-port-3006)
-  - [Admin/Dashboard Aggregator](#8-admindashboard-aggregator-port-3007)
-  - [BFF (Backend-for-Frontend)](#9-bff-backend-for-frontend-port-8080)
-- [Shared Package](#shared-package)
-- [Infrastructure](#infrastructure)
-- [Getting Started](#getting-started)
-- [Migration Progress](#migration-progress)
-- [Key Design Decisions](#key-design-decisions)
-- [Lessons Learned](#lessons-learned)
+[![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-5.2-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
+[![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+
+[Architecture](#-architecture) • [Services](#-service-catalog) • [Quick Start](#-quick-start) • [Tech Stack](#-tech-stack) • [API Reference](#-api-reference)
+
+</div>
 
 ---
 
-## Project Overview
+## 📋 Overview
 
-**Heavenly** is an Airbnb-inspired property rental platform that enables users to list properties, make bookings, leave reviews, and manage their hosting activities through a comprehensive dashboard.
+Heavenly is a property rental platform built with microservices, evolved from a monolithic Express.js application. It demonstrates distributed systems patterns like service decomposition, event-driven communication, API gateway pattern, and database-per-service architecture.
 
-### The Original Monolith
+### 🎯 What We're Building
 
-The application was initially built as a single Express.js server with:
-- **1 entry point** (`app.js`) handling all concerns
-- **4 Mongoose models** (User, Listing, Review, Booking) sharing a single MongoDB database
-- **6 controllers** with tightly coupled business logic
-- **7 route modules** with cross-domain dependencies
-- **30+ EJS templates** rendered server-side
-- **Session-based authentication** via Passport.js
+- **Scalability**: Each service can scale independently based on its load
+- **Resilience**: If one service fails, it doesn't bring down the whole system
+- **Maintainability**: Clear boundaries make it easier to understand and modify
+- **Deployability**: Deploy services independently without affecting others
+- **Technology Freedom**: Each service can use different tech if needed
 
-### The Migration Goal
+### ✨ Key Features
 
-Decompose this monolith into **8 independently deployable microservices** + an API Gateway + a BFF layer — all orchestrated via Docker Compose, communicating through REST APIs and RabbitMQ event-driven messaging.
-
----
-
-## Why Microservices?
-
-| Monolith Pain Point | Microservices Solution |
-|---------------------|----------------------|
-| Single deployment unit — one bug can bring down everything | Each service is independently deployable and restartable |
-| Tightly coupled models — Listing embeds Review IDs, Booking references Listing | Each service owns its own database with clean boundaries |
-| Scaling requires scaling the entire app | Scale only the services under load (e.g., Search during peak traffic) |
-| Single shared session store | Stateless JWT authentication — no shared state between services |
-| One team must understand the entire codebase | Teams can own individual services independently |
-| Technology lock-in to Express + EJS | Each service can evolve its tech stack independently |
+- **8 Independent Microservices** with their own databases
+- **Event-Driven Architecture** using RabbitMQ for async communication
+- **API Gateway** with JWT validation and rate limiting
+- **Backend-for-Frontend (BFF)** pattern for better client experience
+- **Distributed Caching** with Redis for better performance
+- **Health Checks & Monitoring** for all services
+- **Docker Compose** for easy local development
+- **Graceful shutdown** and proper error handling
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
-### High-Level Diagram
+### High-Level System Design
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Client (Browser)                             │
 └────────────────────────────┬────────────────────────────────────────┘
-                             │
+                             │ HTTP/HTML
                              ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                    BFF Service (:8080)                               │
-│            Express + EJS Templates + Session Mgmt                    │
+│         Express + EJS Templates + Session Management                 │
 │         Renders HTML, translates session → JWT for API calls         │
 └────────────────────────────┬────────────────────────────────────────┘
-                             │ HTTP (JSON)
+                             │ HTTP/JSON + JWT
                              ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                     API Gateway (:3000)                              │
-│              JWT Validation · Rate Limiting · Routing                │
-│            Proxies requests to downstream services                   │
+│         JWT Validation · Rate Limiting · Request Routing             │
+│              Centralized entry point for all services                │
 └───┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬───────────────┘
     │      │      │      │      │      │      │      │
     ▼      ▼      ▼      ▼      ▼      ▼      ▼      ▼
@@ -103,48 +81,34 @@ Decompose this monolith into **8 independently deployable microservices** + an A
 
               ┌────────────────────────┐
               │   RabbitMQ (:5672)     │
-              │   Event-Driven Comms   │
+              │   Event Bus (Async)    │
               │   Topic Exchange       │
               └────────────────────────┘
 ```
 
-### Service Registry
+### 🔄 Communication Patterns
 
-| Service | Port | Database | Responsibility |
-|---------|------|----------|----------------|
-| **API Gateway** | 3000 | — | Route proxying, JWT validation, rate limiting |
-| **Auth Service** | 3001 | `heavenly_auth` | User registration, login, JWT tokens |
-| **Listing Service** | 3002 | `heavenly_listings` | Property CRUD, availability, ownership |
-| **Review Service** | 3003 | `heavenly_reviews` | Ratings & reviews for listings |
-| **Booking Service** | 3004 | `heavenly_bookings` | Reservations, payments, date management |
-| **Media Service** | 3005 | — | Image uploads via Cloudinary |
-| **Search Service** | 3006 | — | Full-text search, geocoding (Redis cached) |
-| **Admin Aggregator** | 3007 | — | Cross-service stats, admin operations |
-| **BFF** | 8080 | — | EJS rendering, session management |
+#### Synchronous Communication (HTTP/REST)
 
-### Communication Patterns
-
-#### Synchronous (HTTP/REST)
-
-Used when a service needs an **immediate response** to proceed:
+When we need an immediate response:
 
 ```
 Booking Service ──HTTP GET──▶ Listing Service
-                              "Get listing price & availability"
-                              ◀── { price: 2500, isAvailable: true }
+                              "Verify listing availability"
+                              ◀── { available: true, price: 2500 }
 
 Listing Service ──HTTP POST──▶ Media Service
-                               "Upload this image to Cloudinary"
-                               ◀── { url: "https://res.cloudinary.com/..." }
+                               "Upload property image"
+                               ◀── { url: "https://...", filename: "..." }
 
 Listing Service ──HTTP GET──▶ Search Service
-                              "Geocode 'Malibu, USA'"
+                              "Geocode address"
                               ◀── { coordinates: [-118.78, 34.03] }
 ```
 
-#### Asynchronous (RabbitMQ Events)
+#### Asynchronous Communication (RabbitMQ Events)
 
-Used for **cascade operations** where services react to events without blocking the original request:
+For cascade operations and eventual consistency:
 
 ```
 Auth Service ──publishes──▶ "user.deleted" { userId: "abc123" }
@@ -152,283 +116,366 @@ Auth Service ──publishes──▶ "user.deleted" { userId: "abc123" }
               ┌────────────────┼────────────────┐
               ▼                ▼                ▼
         Listing Service  Review Service  Booking Service
-        "Delete user's   "Delete user's  "Delete user's
+        "Delete user's   "Delete user's  "Cancel user's
          listings"        reviews"        bookings"
 ```
 
-**Exchange**: `heavenly.events` (Topic exchange)  
-**Pattern**: Each consumer has its own durable queue (e.g., `listing-service.user-deleted`)  
-**Reliability**: Messages persist on disk and survive broker restarts
+**Event Exchange**: `heavenly.events` (Topic Exchange)  
+**Queue Pattern**: Durable queues per consumer (e.g., `listing-service.user-deleted`)  
+**Reliability**: Messages survive broker restarts
 
 ---
 
-## Tech Stack
+## 📦 Service Catalog
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Runtime** | Node.js 20 (Alpine) | Lightweight containers |
-| **Framework** | Express 5 | HTTP server for all services |
-| **Database** | MongoDB 7 | Per-service document storage |
-| **Message Broker** | RabbitMQ 3 (+ Management UI) | Async event-driven communication |
-| **Cache** | Redis 7 | JWT blacklist, geocoding cache, search cache |
-| **Auth** | JWT (jsonwebtoken) + bcrypt | Stateless authentication |
-| **File Storage** | Cloudinary | Image upload and CDN |
-| **Geocoding** | Nominatim (OpenStreetMap) | Free address-to-coordinates |
-| **Validation** | Joi | Request schema validation |
-| **Orchestration** | Docker Compose | Multi-container orchestration |
-| **Frontend** | EJS + ejs-mate (via BFF) | Server-side rendered HTML (unchanged from monolith) |
+### Infrastructure Services
+
+| Service | Port | Purpose | Dependencies |
+|---------|------|---------|--------------|
+| **MongoDB** | 27017 | Document database (per-service DBs) | — |
+| **Redis** | 6379 | Caching & JWT blacklist | — |
+| **RabbitMQ** | 5672, 15672 | Message broker + Management UI | — |
+
+### Core Microservices
+
+| Service | Port | Database | Responsibility | Status |
+|---------|------|----------|----------------|--------|
+| **API Gateway** | 3000 | — | Request routing, JWT validation, rate limiting | ✅ Complete |
+| **Auth Service** | 3001 | `heavenly_auth` | User identity, authentication, JWT lifecycle | ✅ Complete |
+| **Listing Service** | 3002 | `heavenly_listings` | Property CRUD, availability, ownership | ✅ Complete |
+| **Review Service** | 3003 | `heavenly_reviews` | Ratings & reviews for listings | ✅ Complete |
+| **Booking Service** | 3004 | `heavenly_bookings` | Reservations, payments, date validation | ✅ Complete |
+| **Media Service** | 3005 | — | Image uploads via Cloudinary | ✅ Complete |
+| **Search Service** | 3006 | — | Full-text search, geocoding (Redis cached) | ✅ Complete |
+| **Admin Service** | 3007 | — | Cross-service aggregation, admin operations | ✅ Complete |
+| **BFF** | 8080 | — | EJS rendering, session management | ✅ Complete |
 
 ---
 
-## Project Structure
+## 🛠️ Tech Stack
+
+### Core Technologies
+
+| Category | Technology | Version | Purpose |
+|----------|-----------|---------|---------|
+| **Runtime** | Node.js (Alpine) | 20 | Lightweight container runtime |
+| **Framework** | Express.js | 5.2 | HTTP server for all services |
+| **Database** | MongoDB | 7 | Per-service document storage |
+| **Message Broker** | RabbitMQ | 3 | Event-driven async communication |
+| **Cache** | Redis | 7 | JWT blacklist, geocoding cache |
+| **Authentication** | JWT + bcrypt | — | Stateless token-based auth |
+| **Validation** | Joi | 18 | Request schema validation |
+| **File Storage** | Cloudinary | — | Image CDN and storage |
+| **Geocoding** | Nominatim (OSM) | — | Free address-to-coordinates API |
+| **Orchestration** | Docker Compose | — | Multi-container development |
+| **Templating** | EJS + ejs-mate | 4 | Server-side HTML rendering |
+
+### Service-Specific Dependencies
+
+```json
+{
+  "shared": ["amqplib", "jsonwebtoken", "redis"],
+  "gateway": ["http-proxy-middleware", "express-rate-limit"],
+  "auth-service": ["bcrypt", "mongoose", "redis", "amqplib"],
+  "listing-service": ["mongoose", "amqplib", "multer"],
+  "review-service": ["mongoose", "amqplib"],
+  "booking-service": ["mongoose", "amqplib"],
+  "media-service": ["multer", "multer-storage-cloudinary", "cloudinary"],
+  "search-service": ["redis", "amqplib"],
+  "admin-service": [],
+  "bff": ["express-session", "connect-flash", "ejs", "ejs-mate"]
+}
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 microservices/
-├── docker-compose.yml               # 🐳 Orchestrates all 12 containers
-├── .env.example                     # 🔐 Environment variables template
-├── .gitignore
+├── docker-compose.yml           # 🐳 Orchestrates 12 containers
+├── docker-compose.prod.yml      # 🚀 Production configuration
+├── .env.example                 # 🔐 Environment variables template
+├── Makefile                     # 🛠️ Development commands
 │
-├── shared/                          # 📦 Shared NPM package
+├── shared/                      # 📦 Shared NPM Package
 │   ├── package.json
-│   ├── index.js                     # Barrel export
+│   ├── index.js                 # Barrel export
 │   ├── middleware/
-│   │   └── authMiddleware.js        # JWT verification (required/optional/admin)
+│   │   └── authMiddleware.js    # JWT verification
 │   ├── errors/
-│   │   └── AppError.js              # Consistent error class with HTTP status codes
+│   │   └── AppError.js          # Consistent error class
 │   ├── events/
-│   │   ├── eventNames.js            # Centralized event name constants
-│   │   └── broker.js                # RabbitMQ client (connect/publish/consume)
+│   │   ├── eventNames.js        # Event name constants
+│   │   └── broker.js            # RabbitMQ client
 │   └── utils/
-│       └── serviceClient.js         # HTTP client for inter-service calls
+│       └── serviceClient.js     # HTTP client for inter-service calls
 │
-├── gateway/                         # 🚪 API Gateway (:3000)
+├── gateway/                     # 🚪 API Gateway (:3000)
 │   ├── Dockerfile
 │   ├── package.json
 │   └── src/
-│       ├── index.js                 # Entry point — middleware pipeline
-│       ├── proxy.js                 # Route → service mapping configuration
+│       ├── index.js             # Entry point
+│       ├── proxy.js             # Route → service mapping
 │       └── middleware/
-│           ├── jwtValidation.js     # Token verification at gateway level
-│           ├── rateLimiter.js       # Global + auth-specific rate limiting
-│           └── errorHandler.js      # Consistent JSON error responses
+│           ├── jwtValidation.js # Token verification
+│           ├── rateLimiter.js   # Rate limiting
+│           └── errorHandler.js  # Error responses
 │
 ├── services/
-│   ├── auth-service/                # 🔐 Port 3001 — User identity & JWT ✅
-│   │   ├── Dockerfile
-│   │   ├── package.json
-│   │   └── src/
-│   │       ├── index.js             # Entry point — MongoDB, Redis, RabbitMQ
-│   │       ├── models/user.js       # Mongoose + bcrypt (pre-save hash)
-│   │       ├── controllers/auth.js  # 8 endpoints (register→deleteUser)
-│   │       ├── routes/auth.js       # Public + protected + admin routes
-│   │       └── utils/jwt.js         # Access + refresh token generation
-│   │
-│   ├── listing-service/             # 🏠 Port 3002 — Property CRUD ✅
-│   │   ├── Dockerfile
-│   │   ├── package.json
-│   │   └── src/
-│   │       ├── index.js             # Entry point — MongoDB, RabbitMQ
-│   │       ├── models/listing.js    # No reviews[], ownerId as string, GeoJSON
-│   │       ├── controllers/listing.js # CRUD + ownership + toggle availability
-│   │       ├── routes/listing.js    # Public read + protected write
-│   │       ├── validators/validateListing.js # Joi validation middleware
-│   │       └── events/consumers.js  # user.deleted → cascade delete
-│   │
-│   ├── review-service/              # ⭐ Port 3003 — Ratings & reviews ✅
-│   │   ├── Dockerfile
-│   │   ├── package.json
-│   │   └── src/
-│   │       ├── index.js             # Entry point — MongoDB, RabbitMQ
-│   │       ├── models/review.js     # Denormalized authorUsername
-│   │       ├── controllers/review.js # CRUD + listing stats
-│   │       ├── routes/review.js     # Public reads + protected writes
-│   │       ├── validators/validateReview.js # Joi validation
-│   │       └── events/consumers.js  # listing/user.deleted → cascade
-│   │
-│   ├── booking-service/             # 📅 Port 3004 — Reservations & payments ✅
-│   │   ├── Dockerfile
-│   │   ├── package.json
-│   │   └── src/
-│   │       ├── index.js             # Entry point — MongoDB, RabbitMQ
-│   │       ├── models/booking.js    # Denormalized data, payment fields
-│   │       ├── controllers/booking.js # Overlap detection, simulated payment
-│   │       ├── routes/booking.js    # CRUD + payment + cancel
-│   │       ├── validators/validateBooking.js # Joi (checkOut > checkIn)
-│   │       └── events/consumers.js  # listing/user.deleted → cancel+refund
-│   │
-│   ├── media-service/               # 📸 Port 3005 — Cloudinary uploads ✅
-│   │   ├── Dockerfile
-│   │   ├── package.json
-│   │   └── src/
-│   │       ├── index.js             # Entry point — lightweight, no DB
-│   │       ├── controllers/media.js # Upload + delete via Cloudinary SDK
-│   │       └── routes/media.js      # POST upload, DELETE filename
-│   │
-│   ├── search-service/              # 🔍 Port 3006 — Search & geocoding ✅
-│   │   ├── Dockerfile
-│   │   ├── package.json
-│   │   └── src/
-│   │       ├── index.js             # Entry point — Redis, RabbitMQ
-│   │       ├── controllers/search.js # Nominatim geocoding + search index
-│   │       ├── routes/search.js     # GET /geocode, GET /search
-│   │       └── events/consumers.js  # listing.* → index sync
-│   │
-│   └── admin-service/               # 👑 Port 3007 — Admin aggregator ✅
-│       ├── Dockerfile
-│       ├── package.json
-│       └── src/
-│           ├── index.js             # Entry point — pure aggregator, no DB/MQ
-│           ├── controllers/admin.js # Dashboard stats, admin CRUD delegation
-│           └── routes/admin.js      # All routes require admin auth
+│   ├── auth-service/            # 🔐 User Identity (:3001)
+│   ├── listing-service/         # 🏠 Property Management (:3002)
+│   ├── review-service/          # ⭐ Ratings & Reviews (:3003)
+│   ├── booking-service/         # 📅 Reservations (:3004)
+│   ├── media-service/           # 📸 Image Uploads (:3005)
+│   ├── search-service/          # 🔍 Search & Geocoding (:3006)
+│   └── admin-service/           # 👑 Admin Aggregator (:3007)
 │
-├── bff/                             # 🖥️ Backend-for-Frontend (:8080) ✅
+├── bff/                         # 🖥️ Backend-for-Frontend (:8080)
 │   ├── Dockerfile
 │   ├── package.json
 │   └── src/
-│       ├── index.js             # Entry point — EJS, sessions, flash, routes
-│       ├── middleware.js         # isLoggedIn + isAdmin (replaces Passport)
-│       ├── utils/apiClient.js   # Session → JWT translation layer
-│       ├── routes/              # 7 route modules (auth, listings, reviews, bookings, dashboard, admin, pages)
-│       ├── views/               # 28 EJS templates (copied from monolith)
-│       └── public/              # 17 static files (CSS, JS, favicon)
+│       ├── index.js             # Entry point
+│       ├── middleware.js        # Auth middleware
+│       ├── utils/apiClient.js   # Session → JWT translation
+│       ├── routes/              # 7 route modules
+│       ├── views/               # 28 EJS templates
+│       └── public/              # Static assets (CSS, JS)
 │
-└── scripts/                         # 🔧 Migration & testing utilities
-    ├── package.json             # mongoose dependency
-    ├── migrate.js               # Monolith DB → per-service DBs
-    └── smoke-test.js            # E2E health + routing + auth tests
+└── scripts/                     # 🔧 Utilities
+    ├── package.json
+    ├── data.js                  # Sample data
+    ├── seed-microservices.js    # Database seeding
+    ├── migrate.js               # Monolith → microservices migration
+    ├── smoke-test.js            # E2E testing
+    ├── backup-data.sh           # MongoDB backup
+    └── restore-data.sh          # MongoDB restore
 ```
 
 ---
 
-## Service Deep Dives
+## ⚡ Quick Start
 
-### 1. API Gateway (Port 3000)
+### Prerequisites
 
-The **single entry point** for all API traffic. No business logic — pure routing and cross-cutting concerns.
+- **Docker** 20+ and **Docker Compose** 2+
+- **Node.js** 20+ (for local development)
+- **Cloudinary Account** (free tier works)
 
-**What it does:**
-- **Route Proxying** — Maps `/api/listings/*` → Listing Service, `/api/auth/*` → Auth Service, etc.
-- **JWT Validation** — Verifies tokens before forwarding requests. Three modes:
-  - `required` — blocks unauthenticated requests (bookings, media)
-  - `optional` — attaches user if token present (listings, reviews)
-  - `requireAdmin` — blocks non-admin users (admin endpoints)
-- **Rate Limiting** — 100 req/15min globally, 20 req/15min for auth endpoints
-- **User Context Forwarding** — Passes decoded JWT data to services via `X-User-*` headers
-- **Error Handling** — Returns consistent JSON errors when services are unavailable
+### Installation
 
-**Key Design Choice:**  
-The Gateway validates JWT tokens centrally so individual services don't need to. Services receive pre-validated user context via headers, reducing redundant token verification.
+```bash
+# Clone the repository
+git clone https://github.com/rudra1806/Heavenly.git
+cd Heavenly/microservices
+
+# Configure environment variables
+cp .env.example .env
+# Edit .env with your credentials (see Configuration section)
+
+# Start all services
+make up-build
+
+# Or using docker-compose directly
+docker-compose up --build
+```
+
+### Configuration
+
+Create a `.env` file in the `microservices/` directory:
+
+```env
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_key_here_make_it_long_and_random
+JWT_REFRESH_SECRET=your_jwt_refresh_secret_key_here_different_from_above
+
+# Session (BFF)
+SESSION_SECRET=your_session_secret_here
+
+# Cloudinary (Media Service)
+CLOUD_NAME=your_cloudinary_cloud_name
+CLOUD_API_KEY=your_cloudinary_api_key
+CLOUD_API_SECRET=your_cloudinary_api_secret
+
+# RabbitMQ
+RABBITMQ_USER=heavenly
+RABBITMQ_PASS=heavenly123
+
+# Admin Seed (optional)
+ADMIN_USERNAME=admin
+ADMIN_EMAIL=admin@heavenly.com
+ADMIN_PASSWORD=admin123
+```
+
+### Seeding Data
+
+```bash
+# Seed admin user + 30 sample listings
+make seed
+
+# Or manually
+cd scripts && node seed-microservices.js
+```
+
+### Access Points
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **BFF (Frontend)** | http://localhost:8080 | Main application |
+| **API Gateway** | http://localhost:3000 | REST API entry point |
+| **RabbitMQ Management** | http://localhost:15672 | Message broker UI (heavenly/heavenly123) |
+| **Auth Service** | http://localhost:3001 | Direct service access (dev only) |
+| **Listing Service** | http://localhost:3002 | Direct service access (dev only) |
+| **Review Service** | http://localhost:3003 | Direct service access (dev only) |
+| **Booking Service** | http://localhost:3004 | Direct service access (dev only) |
+| **Media Service** | http://localhost:3005 | Direct service access (dev only) |
+| **Search Service** | http://localhost:3006 | Direct service access (dev only) |
+| **Admin Service** | http://localhost:3007 | Direct service access (dev only) |
 
 ---
 
-### 2. Auth Service (Port 3001) ✅
+## 🔧 Development Commands
 
-**Owns**: User identity, registration, authentication, JWT token lifecycle
+The project includes a comprehensive Makefile for common operations:
 
-**Status**: Fully implemented
+```bash
+# Start all services
+make up              # Foreground mode
+make up-d            # Background (detached) mode
+make up-build        # Rebuild and start
+
+# Stop services
+make down            # Stop all (keeps data)
+make clean           # ⚠️ Stop and delete all data
+
+# View logs
+make logs            # All services
+make logs-bff        # BFF only
+make logs-booking    # Booking service only
+
+# Restart services
+make restart         # All services
+make restart-bff     # BFF only
+make restart-auth    # Auth service only
+
+# Database operations
+make seed            # Seed initial data
+make backup          # Backup MongoDB data
+make restore BACKUP=./backups/20260511_143000  # Restore from backup
+
+# Utilities
+make ps              # Show running containers
+make status          # Service status + volumes
+make mongo           # Connect to MongoDB shell
+make redis           # Connect to Redis CLI
+```
+
+---
+
+## 🔍 Service Deep Dives
+
+### 1. API Gateway (:3000)
+
+**Role**: Single entry point for all API traffic
+
+**What it does**:
+- Request Routing: Maps `/api/auth/*` → Auth Service, `/api/listings/*` → Listing Service
+- JWT Validation: Verifies tokens in one place (required/optional/admin modes)
+- Rate Limiting: 500 req/15min per user, 20 req/15min for auth endpoints
+- User Context Forwarding: Passes decoded JWT data via `X-User-*` headers
+- Error Handling: Consistent JSON error responses
+- Timeout Management: 15s upstream timeout with `503` + `Retry-After` header
+
+**Why this matters**: The gateway validates JWT centrally so individual services don't need to, reducing redundant token verification across services.
+
+---
+
+### 2. Auth Service (:3001)
+
+**Role**: User identity and authentication
+
+**Database**: `heavenly_auth`
+
+**API Endpoints**:
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/auth/register` | POST | Public | Create new user account, returns access + refresh tokens |
-| `/auth/login` | POST | Public | Authenticate with username/email + password, returns tokens |
-| `/auth/logout` | POST | Required | Blacklists current access token in Redis (TTL: 15min) |
-| `/auth/refresh` | POST | Public | Exchange valid refresh token for a new access token |
-| `/auth/me` | GET | Required | Get current authenticated user's profile |
-| `/auth/users/:id` | GET | Internal | Fetch user info (called by other services) |
-| `/auth/users` | GET | Admin | List all users with optional search |
+| `/auth/register` | POST | Public | Create account, returns access + refresh tokens |
+| `/auth/login` | POST | Public | Authenticate, returns tokens |
+| `/auth/logout` | POST | Required | Blacklist current token |
+| `/auth/refresh` | POST | Public | Exchange refresh token for new access token |
+| `/auth/me` | GET | Required | Get current user profile |
+| `/auth/users/:id` | GET | Internal | Fetch user info (inter-service) |
+| `/auth/users` | GET | Admin | List all users with search |
 | `/auth/users/:id` | DELETE | Admin | Delete user + publish `user.deleted` event |
 
-**Implementation Details:**
-
-| Component | Details |
-|-----------|---------|
-| **User Model** | Mongoose schema with bcrypt pre-save middleware (12 salt rounds), `comparePassword()` instance method, `toJSON()` auto-strips password from responses |
-| **JWT Tokens** | Access token (15min expiry, contains id/username/email/role) + Refresh token (7d expiry, contains only id). Separate secrets prevent cross-use. |
-| **Logout** | Adds current access token to Redis blacklist with TTL matching remaining token lifetime — token rejected on subsequent requests |
-| **Cascade Delete** | On `DELETE /auth/users/:id`, publishes `user.deleted` event via RabbitMQ so Listing, Review, and Booking services can clean up related data |
-| **Startup** | Connects to MongoDB, Redis, and RabbitMQ with retry logic. Graceful shutdown on SIGTERM/SIGINT closes all connections. |
-
-**Migration from Monolith:**
-- Replaces `passport-local-mongoose` plugin with **manual bcrypt hashing** (gives full control over password handling)
-- Replaces session-based auth (`express-session` + `MongoStore`) with **stateless JWT** tokens
-- Replaces Passport's `serializeUser/deserializeUser` with JWT payload containing user identity
-- The "pending review on signup" flow (monolith's session-based feature) moves to the BFF/frontend layer
-- Login accepts both username AND email (monolith only accepted username)
+**Implementation Highlights**:
+- Password Security: bcrypt with 12 salt rounds, pre-save middleware
+- JWT Strategy: Access token (15min) + Refresh token (7d) with separate secrets
+- Logout: Redis blacklist with TTL matching token expiry
+- Event Publishing: `user.deleted` triggers cascading deletes across services
+- Graceful Shutdown: Closes MongoDB, Redis, and RabbitMQ connections on SIGTERM/SIGINT
 
 ---
 
-### 3. Listing Service (Port 3002) ✅
+### 3. Listing Service (:3002)
 
-**Owns**: Property CRUD, availability status, ownership verification
+**Role**: Property management
 
-**Status**: Fully implemented
+**Database**: `heavenly_listings`
+
+**API Endpoints**:
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/listings` | GET | Public | All listings (filter by `ownerId`, `isAvailable`) |
-| `/listings/:id` | GET | Public | Single listing by ID |
-| `/listings` | POST | Required | Create listing (auto-geocodes location) |
+| `/listings/:id` | GET | Public | Single listing |
+| `/listings` | POST | Required | Create listing (auto-geocodes) |
 | `/listings/:id` | PUT | Owner/Admin | Update listing (re-geocodes if location changed) |
-| `/listings/:id` | DELETE | Owner/Admin | Delete listing + Cloudinary image + publish event |
-| `/listings/:id/toggle-availability` | POST | Owner/Admin | Toggle `isAvailable` flag |
+| `/listings/:id` | DELETE | Owner/Admin | Delete listing + image + publish event |
+| `/listings/:id/toggle-availability` | POST | Owner/Admin | Toggle availability flag |
 
-**Implementation Details:**
-
-| Component | Details |
-|-----------|---------|
-| **Model** | No `reviews[]` array (decoupled), `ownerId` as plain string (no cross-DB populate), GeoJSON Point geometry, MongoDB text index on title/description/location/country |
-| **Ownership** | Checks `ownerId === X-User-Id` header (set by Gateway). Admin role bypasses ownership check. |
-| **Inter-service Calls** | `POST /media/upload` → Media Service (image upload), `GET /geocode` → Search Service (address to coordinates) |
-| **Events Published** | `listing.created`, `listing.updated`, `listing.deleted` — consumed by Search (index) and Review/Booking (cascade) |
-| **Events Consumed** | `user.deleted` → deletes all user's listings AND re-publishes `listing.deleted` for each (triggering downstream cascades) |
-| **Validation** | Joi schema validates title, description, price, location, country, maxGuests before creation |
-
-**Migration from Monolith:**
-- `reviews[]` array **removed** — reviews are owned by the Review Service, queried separately
-- `owner` (ObjectId ref) → `ownerId` (plain string) — no Mongoose populate across databases
-- `cloudinary.uploader.destroy()` → HTTP call to Media Service `DELETE /media/:filename`
-- `nominatim` geocoding → HTTP call to Search Service `GET /geocode?location=X`
-- Mongoose cascade `post('findOneAndDelete')` middleware → RabbitMQ event-driven cascade
+**Implementation Highlights**:
+- Decoupled Reviews: No `reviews[]` array (owned by Review Service)
+- Ownership Check: Verifies `ownerId === X-User-Id` header (admin bypass)
+- Inter-Service Calls: Media Service (image upload), Search Service (geocoding)
+- Event Publishing: `listing.created`, `listing.updated`, `listing.deleted`
+- Event Consumption: `user.deleted` → cascade delete user's listings
 
 ---
 
-### 4. Review Service (Port 3003) ✅
+### 4. Review Service (:3003)
 
-**Owns**: Reviews with `listingId` and `authorId` as string references
+**Role**: Ratings and reviews
 
-**Status**: Fully implemented
+**Database**: `heavenly_reviews`
+
+**API Endpoints**:
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/reviews` | GET | Public | List reviews (filter by `listingId` or `authorId`) |
-| `/reviews/stats/:listingId` | GET | Public | Rating count + average for a listing |
-| `/reviews/:id` | GET | Public | Single review by ID |
-| `/reviews` | POST | Required | Create review (author from JWT via headers) |
+| `/reviews/stats/:listingId` | GET | Public | Rating count + average |
+| `/reviews/:id` | GET | Public | Single review |
+| `/reviews` | POST | Required | Create review |
 | `/reviews/:id` | DELETE | Author/Admin | Delete review |
 
-**Implementation Details:**
-
-| Component | Details |
-|-----------|---------|
-| **Model** | `listingId` and `authorId` as plain strings. Denormalized `authorUsername` avoids HTTP call on every read. Compound index on `(listingId, createdAt)` for efficient queries. |
-| **Stats Endpoint** | Calculates average rating and review count per listing — used by BFF to display star ratings without fetching all reviews |
-| **Authorization** | Only the review author or an admin can delete a review |
-| **Events Published** | `review.created`, `review.deleted` |
-| **Events Consumed** | `listing.deleted` → delete all reviews for that listing. `user.deleted` → delete all reviews by that user. |
-
-**Migration from Monolith:**
-- Reviews were embedded in the Listing model as `reviews[]` ObjectId array → now a standalone collection in a separate database
-- `listing.populate('reviews')` → `GET /reviews?listingId=X` (separate HTTP call)
-- Cascade delete via Mongoose middleware → RabbitMQ event consumers
-- Author info was populated via `review.populate('author')` → now denormalized as `authorUsername` at creation time
+**Implementation Highlights**:
+- Denormalized Data: Stores `authorUsername` to avoid calling other services on read
+- Stats Endpoint: Calculates average rating and count per listing
+- Authorization: Only author or admin can delete
+- Event Publishing: `review.created`, `review.deleted`
+- Event Consumption: `listing.deleted` → delete all reviews, `user.deleted` → delete user's reviews
 
 ---
 
-### 5. Booking Service (Port 3004) ✅
+### 5. Booking Service (:3004)
 
-**Owns**: Reservations, payment simulation, date overlap detection
+**Role**: Reservations and payments
 
-**Status**: Fully implemented
+**Database**: `heavenly_bookings`
+
+**API Endpoints**:
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
@@ -436,481 +483,667 @@ The Gateway validates JWT tokens centrally so individual services don't need to.
 | `/bookings/:id` | GET | Public | Single booking |
 | `/bookings` | POST | Required | Create booking (validates listing, checks overlap) |
 | `/bookings/:id/payment` | POST | Required | Process simulated payment |
-| `/bookings/:id/cancel` | POST | Owner/Admin | Cancel booking + simulate refund |
+| `/bookings/:id/cancel` | POST | Owner/Admin | Cancel booking + refund |
 | `/bookings/:id` | DELETE | Admin | Hard delete booking |
 
-**Implementation Details:**
-
-| Component | Details |
-|-----------|---------|
-| **Model** | Denormalized `listingTitle`, `listingImage`, `listingLocation`, `guestUsername` to avoid inter-service calls on read. Payment sub-document with `status`, `method`, `transactionId`, `paidAt`. Indexes on `(listingId, checkIn, checkOut)` for overlap queries. |
-| **Overlap Detection** | Queries existing `pending`/`confirmed` bookings where `checkIn < newCheckOut AND checkOut > newCheckIn` — standard interval overlap formula |
-| **Listing Validation** | HTTP call to Listing Service: verifies listing exists, is available, checks guest count limit, and prevents self-booking |
-| **Payment Simulation** | Generates `SIM_<timestamp>_<random>` transaction IDs. Status lifecycle: `pending` → `completed` (on payment) → `refunded` (on cancel). Ready for Razorpay/Stripe integration. |
-| **Events Published** | `booking.created`, `booking.payment.completed`, `booking.cancelled` |
-| **Events Consumed** | `listing.deleted` → **cancel** (not delete) active bookings + mark refunded. `user.deleted` → cancel + refund. |
-
-**Migration from Monolith:**
-- `Listing.findById()` for price/availability → HTTP call to Listing Service
-- Overlap detection was inline in `controllers/booking.js` → same logic, but queries only Booking Service's own database
-- Payment was tightly coupled with booking creation → now a separate `POST /bookings/:id/payment` endpoint
-- Cascade was hard-delete via Mongoose → now soft-cancel via event consumers (preserves booking history for accounting)
+**Implementation Highlights**:
+- Overlap Detection: Checks existing bookings where `checkIn < newCheckOut AND checkOut > newCheckIn`
+- Listing Validation: HTTP call to Listing Service (exists, available, guest limit, no self-booking)
+- Payment Simulation: Generates `SIM_<timestamp>_<random>` transaction IDs (ready for Razorpay/Stripe)
+- Denormalized Data: Stores `listingTitle`, `listingImage`, `listingLocation`, `guestUsername`
+- Event Publishing: `booking.created`, `booking.payment.completed`, `booking.cancelled`
 
 ---
 
-### 6. Media Service (Port 3005) ✅
+### 6. Media Service (:3005)
 
-**Owns**: All Cloudinary interactions
+**Role**: Image upload and management
 
-**Status**: Fully implemented
+**Database**: None (stateless)
+
+**API Endpoints**:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/media/upload` | POST | Upload image (multipart form) → Cloudinary → returns URL + filename |
+| `/media/upload` | POST | Upload image (multipart) → Cloudinary → returns URL + filename |
 | `/media/:filename` | DELETE | Delete image from Cloudinary by public_id |
 
-**Implementation Details:**
-- Uses `multer` + `multer-storage-cloudinary` for seamless file handling
-- Images stored in `Heavenly_DEV` folder on Cloudinary
-- Filenames sanitized (alphanumeric + hyphens/underscores only) with timestamp suffix for uniqueness
-- Allowed formats: JPG, JPEG, PNG, AVIF
-- Prevents deletion of the default placeholder image (`default.jpg`)
-- No database needed — this is a pure proxy to Cloudinary's API
-
-**Migration from Monolith:**
-- Extracted from `cloudConfig.js` and the upload logic scattered across `controllers/listing.js`
-- Centralizes all Cloudinary credentials in one service
-- Other services (Listing) now call `POST /media/upload` instead of directly importing cloudinary SDK
-- Enables swapping storage providers (S3, Azure Blob) without touching business services
+**Implementation Highlights**:
+- Multer Integration: `multer-storage-cloudinary` for easy file handling
+- Storage: Images stored in `Heavenly_DEV` folder on Cloudinary
+- Filename Sanitization: Alphanumeric + hyphens/underscores with timestamp suffix
+- Allowed Formats: JPG, JPEG, PNG, AVIF
+- Protection: Can't delete the default placeholder image
 
 ---
 
-### 7. Search & Geocoding Service (Port 3006) ✅
+### 7. Search Service (:3006)
 
-**Owns**: Full-text listing search, address geocoding
+**Role**: Full-text search and geocoding
 
-**Status**: Fully implemented
+**Database**: None (in-memory index + Redis cache)
+
+**API Endpoints**:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/geocode?location=X` | GET | Convert address → `[longitude, latitude]` coordinates |
+| `/geocode?location=X` | GET | Convert address → `[longitude, latitude]` |
 | `/search?q=X&minPrice=N&maxPrice=N` | GET | Search listings by text and price range |
 
-**Implementation Details:**
-
-| Component | Details |
-|-----------|---------|
-| **Geocoding** | Calls Nominatim (OpenStreetMap) API, caches results in Redis with 7-day TTL. Respects Nominatim's 1 req/sec rate limit via caching. Returns `[lon, lat]` coordinates. |
-| **Search Index** | In-memory `Map` keyed by listing ID. Stores title, description, location, country, price, coordinates. In production, you'd use Elasticsearch — this demonstrates the pattern. |
-| **Text Search** | Case-insensitive substring matching across title + description + location + country |
-| **Price Filtering** | `minPrice` and `maxPrice` query params for range filtering |
-| **Events Consumed** | `listing.created` → add to index, `listing.updated` → update in index, `listing.deleted` → remove from index |
-| **No Database** | Pure in-memory index + Redis cache. Index rebuilds from events on restart (or can be seeded from Listing Service). |
-
-**Migration from Monolith:**
-- Geocoding was inline in `controllers/listing.js` → now a dedicated endpoint with Redis caching
-- Search was via MongoDB `$regex` on the listings collection → now an independent searchable index
-- Decoupling search from the listing database enables future migration to Elasticsearch without touching the Listing Service
+**Implementation Highlights**:
+- Geocoding: Nominatim (OpenStreetMap) API with Redis caching (7-day TTL)
+- Rate Limiting: Respects Nominatim's 1 req/sec limit through caching
+- Search Index: In-memory `Map` keyed by listing ID (demonstrates Elasticsearch pattern)
+- Text Search: Case-insensitive substring matching across title, description, location, country
+- Event Consumption: `listing.created` → add to index, `listing.updated` → update, `listing.deleted` → remove
 
 ---
 
-### 8. Admin/Dashboard Aggregator (Port 3007) ✅
+### 8. Admin Service (:3007)
 
-**Owns**: Nothing — pure aggregation layer
+**Role**: Cross-service aggregation and admin operations
 
-**Status**: Fully implemented
+**Database**: None (pure aggregation layer)
+
+**API Endpoints**:
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/admin/dashboard` | GET | Admin | Platform-wide stats (users, listings, reviews, bookings, revenue) |
 | `/admin/user-dashboard/:userId` | GET | Admin | User-specific host + guest dashboard |
 | `/admin/users` | GET | Admin | All users (with search) |
-| `/admin/users/:id` | DELETE | Admin | Delete user → delegates to Auth Service → triggers cascades |
+| `/admin/users/:id` | DELETE | Admin | Delete user → delegates to Auth Service |
 | `/admin/listings` | GET | Admin | All listings (with search) |
-| `/admin/listings/:id` | DELETE | Admin | Delete listing → delegates to Listing Service → triggers cascades |
+| `/admin/listings/:id` | DELETE | Admin | Delete listing → delegates to Listing Service |
 | `/admin/reviews` | GET | Admin | All reviews (with search) |
 | `/admin/reviews/:id` | DELETE | Admin | Delete review → delegates to Review Service |
 | `/admin/bookings` | GET | Admin | All bookings |
 | `/admin/bookings/:id` | DELETE | Admin | Hard delete booking → delegates to Booking Service |
 
-**Implementation Details:**
-
-| Component | Details |
-|-----------|---------|
-| **Architecture** | Pure aggregation — no database, no message broker. Only HTTP calls to owning services. |
-| **Dashboard** | Parallel `Promise.all` calls to Auth + Listing + Review + Booking services. Computes booking status breakdown, payment stats, revenue, and guest counts client-side. |
-| **User Dashboard** | Aggregates host stats (listings, bookings received, revenue) and guest stats (bookings made, total spent, reviews written) for a specific user. |
-| **Admin CRUD** | Every delete operation delegates to the owning service. The owning service publishes the event (e.g., `user.deleted`), triggering cascades. Admin Service never publishes events directly. |
-| **Search** | User search delegates to Auth Service. Listing search uses Search Service. Review search is client-side filter (Review Service doesn't have built-in search). |
-
-**Migration from Monolith:**
-- Monolith's `controllers/admin.js` queried 4 collections directly → now makes 4 parallel HTTP calls
-- `User.countDocuments()`, `Listing.find()` etc → `serviceClient.get()` to each service
-- Cascade delete via inline `for` loops → delegates to owning service (which publishes events)
-- `Booking.aggregate()` for revenue → client-side reduce on fetched bookings
+**Implementation Highlights**:
+- Pure Aggregation: No database, no message broker (only HTTP calls)
+- Parallel Queries: `Promise.all` for dashboard stats from multiple services
+- Delegation Pattern: All delete operations delegate to the owning service (which publishes events)
+- Client-Side Computation: Booking status breakdown, payment stats, revenue calculations
 
 ---
 
-### 9. BFF (Backend-for-Frontend) (Port 8080) ✅
+### 9. BFF (Backend-for-Frontend) (:8080)
 
-**The user-facing server** — replaces `app.js` from the monolith.
+**Role**: User-facing server (replaces monolith's `app.js`)
 
-**Status**: Fully implemented
+**Database**: None (session-based, no persistence)
 
-**Route Mapping (Monolith → BFF):**
-
-| Browser URL | BFF Route Module | API Gateway Call |
-|-------------|-----------------|------------------|
-| `GET /` | `index.js` (inline) | None — renders `home.ejs` directly |
-| `GET /signup`, `POST /signup` | `routes/auth.js` | `POST /api/auth/register` |
-| `GET /login`, `POST /login` | `routes/auth.js` | `POST /api/auth/login` |
-| `GET /logout` | `routes/auth.js` | `POST /api/auth/logout` |
-| `GET /listings` | `routes/listings.js` | `GET /api/listings` |
-| `GET /listings/:id` | `routes/listings.js` | `GET /api/listings/:id` + `GET /api/reviews?listingId=` |
-| `POST /listings` | `routes/listings.js` | `POST /api/listings` |
-| `PUT /listings/:id` | `routes/listings.js` | `PUT /api/listings/:id` |
-| `DELETE /listings/:id` | `routes/listings.js` | `DELETE /api/listings/:id` |
-| `POST /listings/:id/reviews` | `routes/reviews.js` | `POST /api/reviews` |
-| `DELETE /listings/:id/reviews/:rid` | `routes/reviews.js` | `DELETE /api/reviews/:rid` |
-| `GET /listings/:id/book` | `routes/bookings.js` | `GET /api/listings/:id` |
-| `POST /bookings` | `routes/bookings.js` | `POST /api/bookings` |
-| `GET /bookings/:id` | `routes/bookings.js` | `GET /api/bookings/:id` |
-| `POST /bookings/:id/payment` | `routes/bookings.js` | `POST /api/bookings/:id/payment` |
-| `POST /bookings/:id/cancel` | `routes/bookings.js` | `POST /api/bookings/:id/cancel` |
-| `GET /dashboard` | `routes/dashboard.js` | `GET /api/admin/user-dashboard/:userId` |
-| `GET /dashboard/listings` | `routes/dashboard.js` | `GET /api/listings?ownerId=` |
-| `GET /dashboard/bookings` | `routes/dashboard.js` | `GET /api/bookings?userId=` |
-| `GET /admin/dashboard` | `routes/admin.js` | `GET /api/admin/dashboard` |
-| `GET /admin/users` | `routes/admin.js` | `GET /api/admin/users` |
-| `DELETE /admin/users/:id` | `routes/admin.js` | `DELETE /api/admin/users/:id` |
-| `GET /contact`, `/privacy`, `/terms` | `routes/pages.js` | None — static templates |
-
-**Implementation Details:**
-
-| Component | Details |
-|-----------|---------|
-| **Session → JWT** | On login, BFF calls Auth Service API and stores the returned JWT tokens in the Express session. All subsequent API calls forward the token via `Authorization: Bearer`. |
-| **Auth Middleware** | `isLoggedIn` checks `req.session.user` + `req.session.accessToken` (replaces Passport's `isAuthenticated()`). `isAdmin` checks `req.session.user.role === 'admin'`. |
-| **API Client** | `apiClient.js` wraps `fetch()` with JWT injection, JSON parsing, and error handling. Provides `login()`, `register()`, `logout()`, `refreshToken()` convenience methods. |
-| **Template Locals** | `res.locals.currentUser` populated from `req.session.user` (replaces Passport's `req.user`). Flash messages work identically to the monolith. |
-| **No Database** | BFF has no MongoDB connection. Sessions use in-memory store (Redis-backed in production). |
-
-**Migration from Monolith:**
-- `app.js` (161 lines, Passport+Mongoose) → `index.js` (120 lines, session+fetch)
-- `passport.authenticate('local')` → `apiClient.login()` + session token storage
-- `req.user` (from Passport deserialize) → `req.session.user` (from login response)
-- `Listing.find()` inline in routes → `apiCall('/api/listings')` via Gateway
-- Same EJS templates, same URLs, same user experience — zero frontend changes
-
-**Why BFF?** Allows migrating the backend to microservices **without rewriting the frontend**.
+**What it does**:
+- HTML Rendering: EJS templates for all user-facing pages
+- Session Management: Express sessions (replaces Passport.js)
+- Session → JWT Translation: Converts session data to JWT for API Gateway calls
+- Flash Messages: User feedback via `connect-flash`
+- Static Assets: Serves CSS, JavaScript, images
+- Route Mapping: 7 route modules (auth, listings, reviews, bookings, dashboard, admin, pages)
 
 ---
 
-## Shared Package
+## 📦 Shared Package
 
-The `@heavenly/shared` package provides utilities used by all services:
+The `@heavenly/shared` package provides common utilities used across all services:
 
-| Module | Purpose |
-|--------|---------|
-| `authMiddleware` | JWT verification with `required`, `optional`, and `requireAdmin` variants |
-| `AppError` | Custom error class with HTTP status codes and JSON serialization |
-| `broker` | RabbitMQ client — connect, publish events, consume events with retry logic |
-| `eventNames` | Centralized constants for all event routing keys |
-| `serviceClient` | HTTP client for inter-service calls with timeout, auth forwarding, and error handling |
+### Middleware
+
+**`authMiddleware.js`**: JWT verification with three modes
+- `requireAuth`: Blocks unauthenticated requests
+- `optionalAuth`: Attaches user if token present
+- `requireAdmin`: Blocks non-admin users
+
+### Errors
+
+**`AppError.js`**: Consistent error class with HTTP status codes
+
+```javascript
+throw new AppError('Resource not found', 404);
+```
+
+### Events
+
+**`eventNames.js`**: Centralized event name constants
+
+```javascript
+module.exports = {
+  USER_DELETED: 'user.deleted',
+  LISTING_CREATED: 'listing.created',
+  LISTING_UPDATED: 'listing.updated',
+  LISTING_DELETED: 'listing.deleted',
+  REVIEW_CREATED: 'review.created',
+  REVIEW_DELETED: 'review.deleted',
+  BOOKING_CREATED: 'booking.created',
+  BOOKING_PAYMENT_COMPLETED: 'booking.payment.completed',
+  BOOKING_CANCELLED: 'booking.cancelled'
+};
+```
+
+**`broker.js`**: RabbitMQ client
+- `connect()`: Establish connection with retry logic
+- `publish(eventName, data)`: Publish event to topic exchange
+- `consume(queueName, eventName, handler)`: Subscribe to events
+
+### Utils
+
+**`serviceClient.js`**: HTTP client for inter-service calls
+
+```javascript
+const { get, post, put, del } = require('@heavenly/shared').serviceClient;
+
+// Example usage
+const listing = await get('http://listing-service:3002/listings/123');
+```
 
 ---
 
-## Infrastructure
+## 🔐 Security & Authentication
 
-### Docker Compose Services (12 total)
+### JWT Token Strategy
 
-| Container | Image | Purpose |
-|-----------|-------|---------|
-| `heavenly-mongodb` | mongo:7 | Shared MongoDB instance (per-service databases) |
-| `heavenly-redis` | redis:7-alpine | Caching + JWT blacklist |
-| `heavenly-rabbitmq` | rabbitmq:3-management | Event messaging (management UI at `:15672`) |
-| `heavenly-gateway` | Custom (Node 20) | API Gateway |
-| `heavenly-auth` | Custom | Auth Service |
-| `heavenly-listing` | Custom | Listing Service |
-| `heavenly-review` | Custom | Review Service |
-| `heavenly-booking` | Custom | Booking Service |
-| `heavenly-media` | Custom | Media Service |
-| `heavenly-search` | Custom | Search Service |
-| `heavenly-admin` | Custom | Admin Aggregator |
-| `heavenly-bff` | Custom | BFF (Frontend) |
+**Access Token**:
+- Expiry: 15 minutes
+- Payload: `{ id, username, email, role }`
+- Purpose: API authentication
+- Storage: HTTP-only cookie (BFF) or Authorization header
+
+**Refresh Token**:
+- Expiry: 7 days
+- Payload: `{ id }`
+- Purpose: Obtain new access token
+- Storage: HTTP-only cookie
+
+**Logout**:
+- Access token added to Redis blacklist
+- TTL matches remaining token lifetime
+- Blacklisted tokens get rejected on subsequent requests
+
+### Authorization Levels
+
+1. **Public**: No authentication required
+2. **Authenticated**: Valid JWT required
+3. **Owner**: Resource ownership verification
+4. **Admin**: Admin role required
+
+### Rate Limiting
+
+- **Global**: 500 requests per 15 minutes per user
+- **Auth Endpoints**: 20 requests per 15 minutes per IP
+- **Key Strategy**: Uses `X-User-Id` from JWT (not container IP)
+
+---
+
+## 🔄 Event-Driven Architecture
+
+### Event Flow Example: User Deletion
+
+```
+1. Admin clicks "Delete User" in BFF
+   ↓
+2. BFF → API Gateway → Admin Service
+   ↓
+3. Admin Service → Auth Service (DELETE /auth/users/:id)
+   ↓
+4. Auth Service:
+   - Deletes user from database
+   - Publishes "user.deleted" event to RabbitMQ
+   ↓
+5. RabbitMQ routes event to 3 queues:
+   - listing-service.user-deleted
+   - review-service.user-deleted
+   - booking-service.user-deleted
+   ↓
+6. Listing Service:
+   - Deletes user's listings
+   - Publishes "listing.deleted" for each
+   ↓
+7. Review Service:
+   - Deletes user's reviews
+   ↓
+8. Booking Service:
+   - Cancels user's bookings
+   - Marks payments as refunded
+```
+
+### Event Catalog
+
+| Event | Publisher | Consumers | Purpose |
+|-------|-----------|-----------|---------|
+| `user.deleted` | Auth Service | Listing, Review, Booking | Cascade delete user data |
+| `listing.created` | Listing Service | Search | Add to search index |
+| `listing.updated` | Listing Service | Search | Update search index |
+| `listing.deleted` | Listing Service | Review, Booking, Search | Cascade delete + remove from index |
+| `review.created` | Review Service | — | Future: Notification service |
+| `review.deleted` | Review Service | — | Future: Analytics service |
+| `booking.created` | Booking Service | — | Future: Notification service |
+| `booking.payment.completed` | Booking Service | — | Future: Analytics service |
+| `booking.cancelled` | Booking Service | — | Future: Notification service |
+
+---
+
+## 📊 Database Schema
+
+### Database-per-Service Pattern
+
+Each service owns its database with clear boundaries:
+
+**heavenly_auth**
+```javascript
+users {
+  _id: ObjectId,
+  username: String (unique),
+  email: String (unique),
+  password: String (hashed),
+  role: String ('user' | 'admin'),
+  createdAt: Date
+}
+```
+
+**heavenly_listings**
+```javascript
+listings {
+  _id: ObjectId,
+  title: String,
+  description: String,
+  image: { url: String, filename: String },
+  price: Number,
+  location: String,
+  country: String,
+  maxGuests: Number,
+  ownerId: String,
+  isAvailable: Boolean,
+  geometry: { type: "Point", coordinates: [lon, lat] },
+  createdAt: Date
+}
+```
+
+**heavenly_reviews**
+```javascript
+reviews {
+  _id: ObjectId,
+  listingId: String,
+  authorId: String,
+  authorUsername: String (denormalized),
+  rating: Number (1-5),
+  comment: String,
+  createdAt: Date
+}
+```
+
+**heavenly_bookings**
+```javascript
+bookings {
+  _id: ObjectId,
+  listingId: String,
+  listingTitle: String (denormalized),
+  listingImage: String (denormalized),
+  listingLocation: String (denormalized),
+  userId: String,
+  guestUsername: String (denormalized),
+  checkIn: Date,
+  checkOut: Date,
+  guests: Number,
+  totalPrice: Number,
+  bookingStatus: String,
+  payment: {
+    status: String,
+    method: String,
+    transactionId: String,
+    paidAt: Date
+  },
+  createdAt: Date
+}
+```
+
+---
+
+## 🧪 Testing
+
+### Smoke Test
+
+Run end-to-end health checks:
+
+```bash
+cd scripts
+node smoke-test.js
+```
+
+**What it tests**:
+- ✅ All services health endpoints
+- ✅ User registration and login
+- ✅ JWT token validation
+- ✅ Listing CRUD operations
+- ✅ Review creation and deletion
+- ✅ Booking creation and payment
+- ✅ Admin dashboard access
+- ✅ Event publishing and consumption
+
+### Manual Testing
+
+```bash
+# Test API Gateway
+curl http://localhost:3000/health
+
+# Test Auth Service
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","email":"test@example.com","password":"password123"}'
+
+# Test Listing Service
+curl http://localhost:3000/api/listings
+
+# Test with JWT
+curl http://localhost:3000/api/auth/me \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+---
+
+## 📈 Monitoring & Observability
 
 ### Health Checks
 
-All infrastructure containers have health checks configured. Services use `depends_on` with `condition: service_healthy` to ensure proper startup ordering:
-
-```
-MongoDB ──healthy──▶ Auth, Listing, Review, Booking
-Redis   ──healthy──▶ Gateway, Auth, Search
-RabbitMQ──healthy──▶ Auth, Listing, Review, Booking, Search
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/install/)
-- [Node.js 20+](https://nodejs.org/) (for local development without Docker)
-
-### Setup
+All services expose `/health` endpoints:
 
 ```bash
-# 1. Clone and navigate
-cd Heavenly/microservices
-
-# 2. Create environment file
-cp .env.example .env
-# Edit .env with your actual secrets (JWT_SECRET, Cloudinary keys, etc.)
-
-# 3. Start all services
-docker-compose up --build
-
-# 4. Verify everything is running
-curl http://localhost:3000/health   # Gateway
-curl http://localhost:3001/health   # Auth Service
-curl http://localhost:8080/health   # BFF
-# ... etc for all services
-
-# 5. RabbitMQ Management UI
-open http://localhost:15672          # Login: heavenly / heavenly123
+# Check all services
+curl http://localhost:3000/health  # API Gateway
+curl http://localhost:3001/health  # Auth Service
+curl http://localhost:3002/health  # Listing Service
+# ... etc
 ```
 
-### Local Development (without Docker)
+### RabbitMQ Management UI
+
+Access at http://localhost:15672 (heavenly/heavenly123)
+
+**What you can monitor**:
+- Message rates
+- Queue depths
+- Consumer status
+- Exchange bindings
+
+### Docker Logs
 
 ```bash
-# Install dependencies for a specific service
-cd services/auth-service && npm install
+# View all logs
+docker-compose logs -f
 
-# Run in dev mode with hot reload
-npm run dev
+# View specific service
+docker-compose logs -f auth-service
+
+# View last 100 lines
+docker-compose logs --tail=100 booking-service
+```
+
+### Service Status
+
+```bash
+# Check running containers
+make ps
+
+# Check service health
+make status
+
+# Check volumes
+make volumes
 ```
 
 ---
 
-## Migration Progress
+## 🚀 Deployment
 
-> **127 files created** across 7 completed phases. **Migration complete.** All 8 services + Gateway + BFF + scripts fully implemented.
+### Production Considerations
 
-### ✅ Phase 1 — Foundation (Complete)
+1. **Environment Variables**: Use secrets management (AWS Secrets Manager, HashiCorp Vault)
+2. **Database**: Use managed MongoDB (MongoDB Atlas, AWS DocumentDB)
+3. **Message Broker**: Use managed RabbitMQ (CloudAMQP, AWS MQ)
+4. **Cache**: Use managed Redis (AWS ElastiCache, Redis Cloud)
+5. **Container Orchestration**: Kubernetes or AWS ECS
+6. **Load Balancing**: AWS ALB, NGINX, or Traefik
+7. **Service Discovery**: Consul, Eureka, or Kubernetes DNS
+8. **Monitoring**: Prometheus + Grafana, Datadog, or New Relic
+9. **Logging**: ELK Stack, Splunk, or CloudWatch
+10. **CI/CD**: GitHub Actions, GitLab CI, or Jenkins
 
-| Component | Status | Files |
-|-----------|--------|-------|
-| Docker Compose | ✅ Done | `docker-compose.yml` — 12 containers with health checks |
-| Shared Package | ✅ Done | JWT middleware, RabbitMQ broker, AppError, serviceClient (7 files) |
-| API Gateway | ✅ Done | Proxy routing, JWT validation, rate limiting, error handling (6 files) |
-| Dockerfiles | ✅ Done | All 9 service/gateway/bff Dockerfiles |
-| Service Scaffolds | ✅ Done | `package.json` + stub `index.js` for all services |
+### Docker Compose Production
 
-### ✅ Phase 2 — Auth + Media Services (Complete)
+```bash
+# Use production compose file
+docker-compose -f docker-compose.prod.yml up -d
 
-| Component | Status | Files |
-|-----------|--------|-------|
-| Auth: User Model | ✅ Done | `models/user.js` — bcrypt, pre-save hash, comparePassword, toJSON strips password |
-| Auth: JWT Utils | ✅ Done | `utils/jwt.js` — access (15min) + refresh (7d) token generation/verification |
-| Auth: Controller | ✅ Done | `controllers/auth.js` — 8 endpoints (register, login, logout, refresh, me, getUserById, getAllUsers, deleteUser) |
-| Auth: Routes | ✅ Done | `routes/auth.js` — public, protected, and admin route definitions |
-| Auth: Entry Point | ✅ Done | `index.js` — MongoDB + Redis + RabbitMQ connections, graceful shutdown |
-| Auth: Redis Blacklist | ✅ Done | Logout adds token to Redis with TTL, blocking reuse |
-| Auth: Event Publishing | ✅ Done | Publishes `user.deleted` via RabbitMQ for cascade cleanup |
-| Media: Controller | ✅ Done | `controllers/media.js` — Cloudinary upload + delete |
-| Media: Routes | ✅ Done | `routes/media.js` — POST upload, DELETE filename |
-| Media: Entry Point | ✅ Done | `index.js` — lightweight, no DB or broker |
+# Scale specific services
+docker-compose -f docker-compose.prod.yml up -d --scale listing-service=3
+```
 
-### ✅ Phase 3 — Listing + Search Services (Complete)
+### Kubernetes Deployment Example
 
-| Component | Status | Files |
-|-----------|--------|-------|
-| Listing: Model | ✅ Done | `models/listing.js` — no reviews[], ownerId as string, GeoJSON, text index |
-| Listing: Validator | ✅ Done | `validators/validateListing.js` — Joi schema migrated from monolith |
-| Listing: Controller | ✅ Done | `controllers/listing.js` — CRUD, ownership auth, inter-service calls (Media + Search), event publishing |
-| Listing: Routes | ✅ Done | `routes/listing.js` — public read + protected write (6 endpoints) |
-| Listing: Events | ✅ Done | `events/consumers.js` — `user.deleted` → cascade delete + re-publish `listing.deleted` |
-| Listing: Entry Point | ✅ Done | `index.js` — MongoDB + RabbitMQ + dependency injection |
-| Search: Controller | ✅ Done | `controllers/search.js` — Nominatim geocoding (Redis cached 7d), in-memory search index |
-| Search: Routes | ✅ Done | `routes/search.js` — `GET /geocode`, `GET /search` with text + price filtering |
-| Search: Events | ✅ Done | `events/consumers.js` — `listing.created/updated/deleted` → index sync |
-| Search: Entry Point | ✅ Done | `index.js` — Redis + RabbitMQ, no database |
-
-### ✅ Phase 4 — Review + Booking Services (Complete)
-
-| Component | Status | Files |
-|-----------|--------|-------|
-| Review: Model | ✅ Done | `models/review.js` — denormalized `authorUsername`, `listingId`/`authorId` as strings |
-| Review: Validator | ✅ Done | `validators/validateReview.js` — comment (5-500 chars), rating (1-5) |
-| Review: Controller | ✅ Done | `controllers/review.js` — CRUD + `getListingStats` (avg rating + count) |
-| Review: Routes | ✅ Done | `routes/review.js` — public reads + protected writes (5 endpoints) |
-| Review: Events | ✅ Done | `events/consumers.js` — `listing.deleted` + `user.deleted` → cascade delete reviews |
-| Review: Entry Point | ✅ Done | `index.js` — MongoDB + RabbitMQ, event publisher injection |
-| Booking: Model | ✅ Done | `models/booking.js` — denormalized listing/user data, payment simulation, overlap indexes |
-| Booking: Validator | ✅ Done | `validators/validateBooking.js` — checkOut > checkIn, guests ≥ 1 |
-| Booking: Controller | ✅ Done | `controllers/booking.js` — overlap detection, Listing Service validation, simulated payment, cancel+refund |
-| Booking: Routes | ✅ Done | `routes/booking.js` — CRUD + payment + cancel (6 endpoints) |
-| Booking: Events | ✅ Done | `events/consumers.js` — `listing.deleted` + `user.deleted` → cancel bookings + refund |
-| Booking: Entry Point | ✅ Done | `index.js` — MongoDB + RabbitMQ + Listing Service dependency injection |
-
-### ✅ Phase 5 — Admin/Dashboard Aggregator (Complete)
-
-| Component | Status | Files |
-|-----------|--------|-------|
-| Admin: Controller | ✅ Done | `controllers/admin.js` — 11 exports: dashboard, user dashboard, CRUD for users/listings/reviews/bookings |
-| Admin: Routes | ✅ Done | `routes/admin.js` — all routes guarded by `authMiddleware` + `requireAdmin` |
-| Admin: Entry Point | ✅ Done | `index.js` — pure aggregator, no database, no message broker |
-
-### ✅ Phase 6 — BFF Service (Complete)
-
-| Component | Status | Files |
-|-----------|--------|-------|
-| BFF: API Client | ✅ Done | `utils/apiClient.js` — session → JWT translation, login/register/logout/refresh helpers |
-| BFF: Middleware | ✅ Done | `middleware.js` — `isLoggedIn` + `isAdmin` replacing Passport.js |
-| BFF: Auth Routes | ✅ Done | `routes/auth.js` — signup, login, logout (form → API → session) |
-| BFF: Listing Routes | ✅ Done | `routes/listings.js` — full CRUD (index, show, new, edit, create, update, delete) |
-| BFF: Review Routes | ✅ Done | `routes/reviews.js` — create + delete reviews on listings |
-| BFF: Booking Routes | ✅ Done | `routes/bookings.js` — booking form, create, show, payment, cancel |
-| BFF: Dashboard Routes | ✅ Done | `routes/dashboard.js` — user dashboard, my listings, toggle, my bookings, host bookings |
-| BFF: Admin Routes | ✅ Done | `routes/admin.js` — admin dashboard + CRUD for users/listings/reviews/bookings |
-| BFF: Page Routes | ✅ Done | `routes/pages.js` — contact, privacy, terms |
-| BFF: Entry Point | ✅ Done | `index.js` — EJS + ejsMate, sessions, flash, method-override, static files |
-| BFF: Templates | ✅ Done | 28 EJS templates copied from monolith (layouts, includes, all pages) |
-| BFF: Static Assets | ✅ Done | 17 files (13 CSS, 3 JS, 1 favicon) |
-
-### ✅ Phase 7 — Integration & Testing (Complete)
-
-| Component | Status | Files |
-|-----------|--------|-------|
-| Migration Script | ✅ Done | `scripts/migrate.js` — monolith DB → per-service DBs, transforms ObjectId refs → strings, denormalizes usernames, restructures payment fields. `--dry-run` supported, idempotent. |
-| Smoke Test | ✅ Done | `scripts/smoke-test.js` — health checks (9 services), Gateway routing, BFF page rendering (7 pages), auth flow (register) |
-| Prod Config | ✅ Done | `docker-compose.prod.yml` — `restart: unless-stopped`, memory/CPU limits, no bind mounts, no debug ports |
-| Scripts Package | ✅ Done | `scripts/package.json` — mongoose dependency for migration |
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listing-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: listing-service
+  template:
+    metadata:
+      labels:
+        app: listing-service
+    spec:
+      containers:
+      - name: listing-service
+        image: heavenly/listing-service:latest
+        ports:
+        - containerPort: 3002
+        env:
+        - name: MONGO_URL
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: jwt-secret
+              key: secret
+```
 
 ---
 
-## Key Design Decisions
+## 🔧 Troubleshooting
 
-### 1. BFF Pattern over Frontend Rewrite
+### Common Issues
 
-> **Decision**: Keep all existing EJS templates and add a BFF layer instead of rewriting to React.
+**Services won't start**:
+```bash
+# Check Docker resources
+docker system df
 
-**Rationale**: The migration's primary goal is learning microservices architecture. Rewriting the frontend simultaneously would double the scope and blur the learning focus. The BFF pattern allows us to migrate the backend completely while preserving the existing, working UI.
+# Clean up unused resources
+docker system prune -a
 
-**Trade-off**: An extra service (BFF) that translates session-based browser requests into JWT-authenticated API calls. This will be removed when/if we migrate to a React frontend later.
+# Rebuild from scratch
+make clean
+make up-build
+```
 
-### 2. JWT over Sessions
+**Database connection errors**:
+```bash
+# Check MongoDB health
+make mongo
+# In mongo shell:
+db.adminCommand('ping')
 
-> **Decision**: Replace Passport.js session-based authentication with stateless JWT tokens.
+# Check connection string in .env
+MONGO_URL=mongodb://mongodb:27017/heavenly_auth
+```
 
-**Rationale**: Sessions require shared state (a session store) accessible by all services. In microservices, this creates a coupling point and single point of failure. JWT tokens are self-contained — any service can verify them independently using a shared secret, enabling truly stateless services.
+**RabbitMQ connection errors**:
+```bash
+# Check RabbitMQ status
+docker-compose logs rabbitmq
 
-**Trade-off**: JWTs can't be instantly invalidated (unlike sessions). We mitigate this with short-lived access tokens (15min) and a Redis-based blacklist for logout.
+# Access management UI
+open http://localhost:15672
+```
 
-### 3. Database per Service
+**Port conflicts**:
+```bash
+# Check what's using a port
+lsof -i :3000
 
-> **Decision**: Each service gets its own database instead of sharing one.
+# Kill process
+kill -9 <PID>
+```
 
-**Rationale**: The monolith's biggest coupling point is the shared database. When `Listing` embeds `Review` IDs and `Booking` references `Listing`, changing one model can break others. Separate databases enforce clean boundaries — services can only access their own data and must use APIs to read other services' data.
+**Service crashes**:
+```bash
+# View logs
+docker-compose logs --tail=100 <service-name>
 
-**Trade-off**: No more cross-collection `populate()` calls. The BFF or frontend must make multiple API calls and combine data. Eventual consistency for cascade operations (handled by RabbitMQ events).
-
-### 4. RabbitMQ over Redis Pub/Sub
-
-> **Decision**: Use RabbitMQ for event-driven messaging instead of Redis Pub/Sub.
-
-**Rationale**: Redis Pub/Sub is fire-and-forget — if a consumer is down when an event is published, the message is lost. RabbitMQ provides durable queues with acknowledgment, meaning messages persist until successfully processed. This is critical for cascade operations like user deletion, where losing an event would leave orphaned data.
-
-**Trade-off**: Additional infrastructure component. RabbitMQ is more complex to operate than Redis Pub/Sub, but its reliability guarantees are worth it for data integrity.
-
-### 5. Dedicated Admin Aggregator
-
-> **Decision**: Create a dedicated Admin/Dashboard service rather than folding it into the Gateway or frontend.
-
-**Rationale**: Admin and Dashboard are aggregation layers that query across ALL domains. Putting this logic in the Gateway would violate its role as a thin routing layer. Putting it in the frontend would expose internal service URLs. A dedicated aggregator keeps the architecture clean and provides a single place for cross-service business logic.
-
----
-
-## Lessons Learned
-
-### From Phase 1
-
-1. **Monorepo shared packages require careful dependency management** — The `@heavenly/shared` package must be available to all services both locally (via `../shared`) and in Docker (via `COPY`). The Dockerfile pattern of copying shared first, then service code, enables efficient layer caching.
-
-2. **Docker Compose health checks are essential** — Without them, services would start before MongoDB/Redis/RabbitMQ are ready, causing connection failures. The `depends_on: condition: service_healthy` pattern ensures correct startup ordering.
-
-3. **The Gateway should be thin** — It's tempting to add business logic to the Gateway (validation, data transformation). Resist this. The Gateway should only handle routing, auth, and rate limiting. Business logic belongs in services.
-
-### From Phase 2
-
-4. **bcrypt gives more control than passport-local-mongoose** — The monolith's `passport-local-mongoose` plugin magically added `username`, `password`, and authentication methods. With bcrypt, we explicitly define the schema, hash in pre-save middleware, and write our own `comparePassword()`. More code, but complete transparency into what's happening. Essential for debugging auth issues in a distributed system.
-
-5. **JWT dual-token strategy solves the logout problem** — Short-lived access tokens (15min) limit damage if stolen. Refresh tokens (7 days) prevent frequent re-login. Redis blacklist handles the "instant logout" edge case that pure JWT can't solve. This is a common production pattern worth understanding deeply.
-
-6. **Dependency injection keeps controllers testable** — The auth controller receives its Redis client and RabbitMQ publisher via setter functions (`setRedisClient`, `_publishEvent`), not imports. This means controllers can be unit-tested without spinning up Redis or RabbitMQ — just inject mocks.
-
-7. **Peer dependency conflicts are real in microservices** — `multer-storage-cloudinary@4` requires `cloudinary@^1`, not `cloudinary@^2`. In a monolith, you hit this once. With 8 services, dependency conflicts multiply. Pinning exact versions in `package.json` prevents surprises.
-
-8. **Not every service needs a database** — The Media Service is a stateless proxy to Cloudinary. No MongoDB, no Redis, no RabbitMQ. This is the ideal microservice: tiny, focused, independently deployable. It proves that "microservice" doesn't mean "mini monolith."
-
-### From Phase 3
-
-9. **Cascade events can trigger further cascades** — When `user.deleted` fires, the Listing Service deletes all user's listings AND re-publishes `listing.deleted` for each one. This triggers the Review and Booking services to clean up their data. This "event chain" pattern is powerful but requires careful design to avoid infinite loops. Always ensure events flow in one direction: `user.deleted` → `listing.deleted` → review/booking cleanup (never back up).
-
-10. **Ownership authorization works differently across service boundaries** — In the monolith, `isOwner()` middleware called `Listing.findById()` and compared `listing.owner` to `req.user._id`. In microservices, the Gateway decodes the JWT and forwards `X-User-Id` as a header. The Listing Service compares `listing.ownerId === req.headers['x-user-id']`. Same logic, different mechanism — and no cross-database query needed.
-
-11. **In-memory search indexes are a valid learning pattern** — The Search Service uses a simple `Map` instead of Elasticsearch. It demonstrates the core concept: an independent, event-driven read model that stays synchronized with the source of truth (Listing Service) via RabbitMQ. Swapping to Elasticsearch later means changing only the Search Service — no other service is affected.
-
-### From Phase 4
-
-12. **Denormalization is the microservices answer to populate()** — In the monolith, `review.populate('author')` fetches the author's username from the User collection. In microservices, that would require an HTTP call per review on every read — a performance nightmare. Instead, we store `authorUsername` directly in the Review document at creation time. Trade-off: if a user changes their username, old reviews show the old name. Acceptable for most use cases.
-
-13. **Soft-cancel vs hard-delete is a design choice per service** — When a listing is deleted, the Review Service **hard-deletes** reviews (they're meaningless without the listing). The Booking Service **soft-cancels** bookings and marks payments as refunded (preserves history for accounting and disputes). Different services, different cascade strategies.
-
-14. **Date overlap detection must use the standard interval formula** — Two intervals `[A, B)` and `[C, D)` overlap if and only if `A < D AND C < B`. This is the canonical algorithm used in every booking system. The key insight: query only `pending`/`confirmed` bookings — cancelled bookings should not block new reservations.
-
-### From Phase 5
-
-15. **Aggregator services are the microservices equivalent of database JOINs** — In the monolith, the admin dashboard runs `User.countDocuments()`, `Listing.find()`, `Booking.aggregate()` in one controller. In microservices, these become 4 parallel HTTP calls via `Promise.all`. It's more code, but each service retains full ownership of its data — the Admin Service computes derived stats (revenue, guest count) client-side from the fetched results.
-
-16. **Not every service needs events — pure aggregators are valid** — The Admin Service has no database, no RabbitMQ connection, and publishes zero events. It delegates every delete operation to the owning service (e.g., `DELETE /auth/users/:id`), which then publishes the cascade event. This keeps event ownership clear: only data owners publish events about their data.
-
-### From Phase 6
-
-17. **The BFF is the thinnest possible translation layer** — Every BFF route handler follows the same pattern: receive form submission → call `apiCall()` with JWT from session → handle response (flash + redirect or render template). No business logic lives here — that's critical. If business logic creeps into the BFF, you've recreated the monolith.
-
-18. **Session → JWT translation is the key BFF concept** — Browsers work with cookies and sessions. Microservices work with stateless JWT tokens. The BFF bridges these worlds: on login, it stores the JWT in the Express session. On every subsequent API call, it extracts the JWT from the session and sends it as an `Authorization: Bearer` header. The browser never sees the JWT.
-
-19. **Replacing Passport.js is simpler than expected** — Passport provides `req.user` via session deserialization from MongoDB. The BFF replaces this with `req.session.user` populated at login time from the Auth Service response. `isAuthenticated()` becomes `!!req.session.accessToken`. The templates work unchanged because we set `res.locals.currentUser = req.session.user` — same variable name, same template logic.
-
-### From Phase 7
-
-20. **Data migration is a schema translation problem** — The monolith stores `owner: ObjectId` → the microservice needs `ownerId: String` + `ownerUsername: String`. Reviews are embedded as `listing.reviews[]` → need a reverse lookup map to find which listing each review belongs to. These aren't just copies — they're transformations that require understanding both the source and target schemas.
-
-21. **Idempotent migrations prevent data corruption** — The migration script checks `await targetCollection.findOne({ _id })` before inserting. Re-running the script skips already-migrated documents instead of duplicating them. This is critical for production — migration scripts WILL be run multiple times during testing.
-
-22. **Production Docker Compose should be a thin override** — `docker-compose.prod.yml` only adds `restart: unless-stopped`, resource limits, and removes bind mounts. It doesn't redefine the entire stack. Using `docker-compose -f docker-compose.yml -f docker-compose.prod.yml up` merges both files cleanly.
-
-23. **`.dockerignore` is mandatory for native modules** — `bcrypt` compiles a C++ binding to a platform-specific binary. Without `.dockerignore`, Docker copies the macOS-compiled `node_modules/bcrypt` into the Alpine Linux container, causing `ERR_DLOPEN_FAILED: Exec format error`. Always exclude `**/node_modules` from Docker builds.
-
-24. **API Gateways must NOT parse request bodies** — Adding `express.json()` to the Gateway consumes the request stream before `http-proxy-middleware` can forward it, causing all POST/PUT/DELETE requests to hang indefinitely. The Gateway is a pass-through proxy — body parsing belongs in the downstream services.
-
-25. **Mongoose 9 async pre-hooks don't receive `next`** — In Mongoose 8 and below, `schema.pre('save', async function(next))` received a `next` callback. In Mongoose 9, async hooks no longer receive `next` — calling it throws `next is not a function`. Use `return` instead of `next()` for flow control.
+# Restart specific service
+make restart-<service-name>
+```
 
 ---
 
-## Contributing
+## 📚 Design Decisions
 
-This project is a learning exercise in microservices architecture. Contributions and feedback are welcome!
+### 1. Database-per-Service
 
-## License
+**What we did**: Each service owns its database  
+**Why**: Data isolation, independent scaling, technology freedom  
+**Trade-off**: No cross-database joins, eventual consistency
 
-ISC
+### 2. Event-Driven Cascade Deletes
+
+**What we did**: Use RabbitMQ events instead of database triggers  
+**Why**: Loose coupling, service independence, audit trail  
+**Trade-off**: Eventual consistency, added complexity
+
+### 3. Denormalized Data
+
+**What we did**: Store `authorUsername`, `listingTitle`, etc. in dependent services  
+**Why**: Avoid calling other services on every read, better performance  
+**Trade-off**: Data duplication, potential inconsistency
+
+### 4. JWT over Sessions
+
+**What we did**: Stateless JWT tokens instead of session-based auth  
+**Why**: Scalability, no shared session store, works well with microservices  
+**Trade-off**: Token size, revocation complexity (solved with Redis blacklist)
+
+### 5. API Gateway Pattern
+
+**What we did**: Single entry point for all API traffic  
+**Why**: Centralized auth, rate limiting, routing, monitoring  
+**Trade-off**: Single point of failure (mitigated with health checks)
+
+### 6. BFF Pattern
+
+**What we did**: Separate BFF for frontend instead of direct API calls  
+**Why**: Better client experience, session management, SSR  
+**Trade-off**: Additional service, more complexity
+
+### 7. In-Memory Search Index
+
+**What we did**: In-memory `Map` instead of Elasticsearch (for now)  
+**Why**: Simplicity, demonstrates the pattern, good enough for MVP  
+**Trade-off**: Won't scale for large datasets, no persistence
+
+### 8. Simulated Payments
+
+**What we did**: Simulated payment flow instead of real integration  
+**Why**: Demonstrates the pattern, ready for Razorpay/Stripe  
+**Trade-off**: Not ready for production (but easy to swap)
 
 ---
 
-<p align="center">
-  <strong>Heavenly Microservices</strong> — Built from scratch for learning, designed for scale.<br>
-  <em>127 files • 7 phases • 8 services + Gateway + BFF • 25 lessons learned</em>
-</p>
+## 🎓 What We Learned
+
+### What Worked Well
+
+1. **Event-Driven Architecture**: Clean cascade deletes without tight coupling
+2. **Shared Package**: Reduced code duplication across services
+3. **Docker Compose**: Made local development and testing much easier
+4. **Health Checks**: Caught service failures early
+5. **Makefile**: Made common operations simple
+6. **Denormalization**: Big performance improvement for reads
+
+### Challenges We Faced
+
+1. **Eventual Consistency**: Debugging cascade operations across services was tricky
+2. **Inter-Service Communication**: Had to handle network latency and errors carefully
+3. **Data Migration**: Moving from monolith to microservices took some work
+4. **Testing Complexity**: E2E tests need all services running
+5. **Debugging**: Distributed tracing would help (future: Jaeger/Zipkin)
+
+### What's Next
+
+1. **Service Mesh**: Istio or Linkerd for better traffic management
+2. **Distributed Tracing**: Jaeger or Zipkin to trace requests across services
+3. **Centralized Logging**: ELK Stack or Loki for log aggregation
+4. **API Documentation**: Swagger/OpenAPI for all services
+5. **GraphQL Gateway**: Alternative to REST for complex queries
+6. **CQRS Pattern**: Separate read/write models for high-traffic services
+7. **Saga Pattern**: Handle distributed transactions better
+8. **Circuit Breaker**: Resilience4j or Hystrix for fault tolerance
+9. **Real Payment Integration**: Razorpay or Stripe
+10. **Elasticsearch**: Replace in-memory search index
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/new-feature`)
+3. Commit changes (`git commit -m 'Add new feature'`)
+4. Push to branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
+
+### How to Contribute
+
+- Follow existing code structure and naming conventions
+- Add health checks to new services
+- Document API endpoints in this README
+- Add event names to `shared/events/eventNames.js`
+- Update docker-compose.yml for new services
+- Add Makefile commands for common operations
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 👤 Author
+
+**Rudra Sanandiya**
+
+- GitHub: [@rudra1806](https://github.com/rudra1806)
+- Project: [Heavenly](https://github.com/rudra1806/Heavenly)
+
+---
+
+## 🙏 Thanks
+
+- **Monolith Version**: The original Heavenly application
+- **Inspiration**: Airbnb and Booking.com architecture patterns
+- **Technologies**: Express.js, MongoDB, RabbitMQ, Redis, and Docker communities
+
+---
+
+<div align="center">
+
+**Built with ❤️ using microservices architecture**
+
+[⬆ Back to Top](#-heavenly-microservices-architecture)
+
+</div>
