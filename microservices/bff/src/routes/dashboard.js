@@ -19,13 +19,16 @@ function transformBooking(booking) {
         bookingStatus: booking.status,
         paymentStatus: booking.payment?.status || 'pending',
         paymentId: booking.payment?.transactionId || null,
+        // Ensure listing object exists with denormalized data
         listing: booking.listing || {
             _id: booking.listingId,
             title: booking.listingTitle || '',
             image: { url: booking.listingImage || '' },
             location: booking.listingLocation || '',
             country: ''
-        }
+        },
+        // Ensure guest username is available
+        guestUsername: booking.guestUsername || 'Guest'
     };
 }
 
@@ -35,31 +38,59 @@ router.get('/dashboard', isLoggedIn, async (req, res) => {
         const userId = req.session.user?.id;
         console.log('[Dashboard] Fetching dashboard for userId:', userId);
 
-        // Fetch listings and bookings in parallel (don't fail if one errors)
-        const [listingsRes, guestBookingsRes, reviewsRes] = await Promise.allSettled([
-            apiCall(`/api/listings?ownerId=${userId}`, { session: req.session }),
-            apiCall(`/api/bookings?userId=${userId}`, { session: req.session }),
-            apiCall(`/api/reviews?authorId=${userId}`, { session: req.session })
-        ]);
+        // Fetch listings first to get listing IDs
+        const listingsRes = await apiCall(`/api/listings?ownerId=${userId}`, { session: req.session }).catch(() => ({ data: { listings: [] } }));
+        const listings = listingsRes.data?.listings || [];
+        const listingIds = listings.map(l => l._id);
 
-        const listings = listingsRes.status === 'fulfilled' ? (listingsRes.value.data?.listings || []) : [];
-        const guestBookings = guestBookingsRes.status === 'fulfilled' ? (guestBookingsRes.value.data?.bookings || []).map(transformBooking) : [];
-        const reviews = reviewsRes.status === 'fulfilled' ? (reviewsRes.value.data?.reviews || []) : [];
+        // Fetch guest bookings
+        const guestBookingsRes = await apiCall(`/api/bookings?userId=${userId}`, { session: req.session }).catch(() => ({ data: { bookings: [] } }));
+        const guestBookings = (guestBookingsRes.data?.bookings || []).map(transformBooking);
 
-        console.log('[Dashboard] Found bookings:', guestBookings.length);
-        if (guestBookingsRes.status === 'rejected') {
-            console.error('[Dashboard] Bookings fetch failed:', guestBookingsRes.reason);
+        // Fetch host bookings - need to fetch for each listing individually
+        let hostBookings = [];
+        if (listingIds.length > 0) {
+            console.log('[Dashboard] Fetching bookings for', listingIds.length, 'listings');
+            const hostBookingPromises = listingIds.map(listingId =>
+                apiCall(`/api/bookings?listingId=${listingId}`, { session: req.session })
+                    .then(res => res.data?.bookings || [])
+                    .catch(err => {
+                        console.error(`[Dashboard] Failed to fetch bookings for listing ${listingId}:`, err.message);
+                        return [];
+                    })
+            );
+            const hostBookingArrays = await Promise.all(hostBookingPromises);
+            hostBookings = hostBookingArrays.flat().map(transformBooking);
+            console.log('[Dashboard] Total host bookings found:', hostBookings.length);
         }
 
-        // Compute host stats
+        // Fetch reviews
+        const reviewsRes = await apiCall(`/api/reviews?authorId=${userId}`, { session: req.session }).catch(() => ({ data: { reviews: [] } }));
+        const reviews = reviewsRes.data?.reviews || [];
+
+        console.log('[Dashboard] Guest bookings:', guestBookings.length, 'Host bookings:', hostBookings.length);
+
+        // Compute host stats (revenue from bookings on YOUR listings)
         const activeListings = listings.filter(l => l.isAvailable !== false).length;
         const inactiveListings = listings.length - activeListings;
-        const totalRevenue = guestBookings
+        const totalRevenue = hostBookings
             .filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'completed')
             .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+        const activeHostBookings = hostBookings.filter(b => b.bookingStatus === 'confirmed').length;
 
-        // Compute guest stats
+        // Compute guest stats (your travel bookings)
         const activeGuestBookings = guestBookings.filter(b => b.bookingStatus === 'confirmed').length;
+        const completedGuestBookings = guestBookings.filter(b => b.bookingStatus === 'completed').length;
+        const totalSpent = guestBookings
+            .filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'completed')
+            .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+        
+        // Count unique places visited (completed bookings)
+        const uniquePlaces = new Set(
+            guestBookings
+                .filter(b => b.bookingStatus === 'completed')
+                .map(b => b.listing?.location || b.listingLocation)
+        ).size;
 
         // Recent bookings (last 5)
         const recentGuestBookings = guestBookings.slice(0, 5).map(b => ({
@@ -68,18 +99,29 @@ router.get('/dashboard', isLoggedIn, async (req, res) => {
             checkOut: new Date(b.checkOut)
         }));
 
+        const recentHostBookings = hostBookings.slice(0, 5).map(b => ({
+            ...b,
+            checkIn: new Date(b.checkIn),
+            checkOut: new Date(b.checkOut)
+        }));
+
         res.render('dashboard/index.ejs', {
+            // Host stats
             totalListings: listings.length,
             activeListings,
             inactiveListings,
             totalRevenue,
-            hostBookingsCount: 0,
-            activeHostBookings: 0,
+            hostBookingsCount: hostBookings.length,
+            activeHostBookings,
+            totalReviews: reviews.length,
+            recentHostBookings,
+            // Guest stats
             totalGuestBookings: guestBookings.length,
             activeGuestBookings,
-            totalReviews: reviews.length,
-            recentGuestBookings,
-            recentHostBookings: []
+            completedGuestBookings,
+            totalSpent,
+            uniquePlaces,
+            recentGuestBookings
         });
     } catch (err) {
         console.error('[Dashboard] Error:', err);

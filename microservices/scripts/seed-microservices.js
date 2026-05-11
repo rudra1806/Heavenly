@@ -10,7 +10,8 @@
  * - Booking Service: Creates sample bookings
  */
 
-require('dotenv').config({ path: '../.env' });
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const initData = require('./data.js');
@@ -77,8 +78,8 @@ async function seedAuthService() {
     // Create admin user
     const hashedAdminPassword = await bcrypt.hash(ADMIN_CREDENTIALS.password, 10);
     const admin = await User.create({
-        username: ADMIN_CREDENTIALS.username,
-        email: ADMIN_CREDENTIALS.email,
+        username: ADMIN_CREDENTIALS.username.toLowerCase(),
+        email: ADMIN_CREDENTIALS.email.toLowerCase(),
         password: hashedAdminPassword,
         role: 'admin'
     });
@@ -90,6 +91,8 @@ async function seedAuthService() {
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         const user = await User.create({
             ...userData,
+            username: userData.username.toLowerCase(),
+            email: userData.email.toLowerCase(),
             password: hashedPassword
         });
         createdUsers.push(user);
