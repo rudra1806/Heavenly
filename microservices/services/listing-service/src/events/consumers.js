@@ -33,8 +33,23 @@ async function setupConsumers(consumeEvent, publishEvent) {
                 return;
             }
 
-            // Publish listing.deleted for each listing (so reviews/bookings/search can clean up)
+            // Delete images from Cloudinary for each listing (prevent orphaned images)
+            const MEDIA_SERVICE_URL = process.env.MEDIA_SERVICE_URL || 'http://localhost:3005';
+            const serviceClient = require('../utils/serviceClient.js');
+            
             for (const listing of listings) {
+                // Delete image from Cloudinary if not default
+                if (listing.image.filename && listing.image.filename !== 'default.jpg') {
+                    try {
+                        await serviceClient.delete(`${MEDIA_SERVICE_URL}/media/${listing.image.filename}`);
+                        console.log(`[Listing Events] Deleted image: ${listing.image.filename}`);
+                    } catch (imgErr) {
+                        console.warn(`[Listing Events] Failed to delete image ${listing.image.filename}:`, imgErr.message);
+                        // Continue with listing deletion even if image deletion fails
+                    }
+                }
+
+                // Publish listing.deleted for each listing (so reviews/bookings/search can clean up)
                 if (publishEvent) {
                     await publishEvent('listing.deleted', {
                         listingId: listing._id.toString(),

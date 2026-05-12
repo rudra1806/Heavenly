@@ -92,13 +92,6 @@
                                             <i class="fa-solid fa-credit-card"></i> Pay Now
                                         </a>
                                     <% } %>
-                                    <% if (booking.bookingStatus === 'cancelled') { %>
-                                        <form action="/bookings/<%= booking._id %>?_method=DELETE" method="POST" style="display: inline;" onsubmit="return confirm('Remove this booking from your history?');">
-                                            <button type="submit" class="dash-btn-sm dash-btn-muted">
-                                                <i class="fa-solid fa-trash"></i> Remove
-                                            </button>
-                                        </form>
-                                    <% } %>
                                 </div>
                             </div>
                         </div>

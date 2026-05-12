@@ -34,8 +34,9 @@ function transformBooking(booking) {
             location: booking.listingLocation || '',
             country: ''
         },
-        // Ensure guest username is available
-        guestUsername: booking.guestUsername || 'Guest'
+        // Ensure guest username and email are available
+        guestUsername: booking.guestUsername || 'Guest',
+        guestEmail: booking.guestEmail || booking.userEmail || 'N/A'
     };
 }
 
@@ -269,7 +270,10 @@ router.get('/dashboard/listings/:id/bookings', isLoggedIn, async (req, res) => {
                 ...transformed,
                 checkIn: new Date(transformed.checkIn),
                 checkOut: new Date(transformed.checkOut),
-                user: transformed.user || { username: transformed.userUsername || transformed.guestUsername || 'Guest', email: transformed.userEmail || '' }
+                user: transformed.user || { 
+                    username: transformed.userUsername || transformed.guestUsername || 'Guest', 
+                    email: transformed.guestEmail || transformed.userEmail || 'N/A' 
+                }
             };
         });
 
@@ -367,6 +371,22 @@ router.post('/dashboard/listings/:id/bookings/:bookingId/cancel', isLoggedIn, as
         req.flash('error', err.message || 'Failed to cancel booking.');
     }
     res.redirect(`/dashboard/listings/${req.params.id}/bookings`);
+});
+
+// POST /dashboard/host-bookings/:bookingId/cancel — cancel guest booking from host-bookings view
+router.post('/dashboard/host-bookings/:bookingId/cancel', isLoggedIn, async (req, res) => {
+    try {
+        // Invalidate cache since booking data changed
+        dashCache.invalidateUser(req.session.user?.id);
+        await apiCall(`/api/bookings/${req.params.bookingId}/cancel`, {
+            method: 'POST',
+            session: req.session
+        });
+        req.flash('success', 'Booking cancelled successfully.');
+    } catch (err) {
+        req.flash('error', err.message || 'Failed to cancel booking.');
+    }
+    res.redirect('/dashboard/host-bookings');
 });
 
 module.exports = router;

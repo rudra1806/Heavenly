@@ -49,7 +49,7 @@ async function getBookings(req, res) {
 
         // Hide soft-deleted bookings from regular users
         // Admins can see all bookings
-        if (userRole !== 'admin' && userId) {
+        if (userRole !== 'admin') {
             filter.$or = [
                 { isHidden: { $ne: true } },
                 { isHidden: { $exists: false } }
@@ -108,6 +108,7 @@ async function createBooking(req, res) {
     try {
         const userId = req.headers['x-user-id'] || req.user?.id;
         const guestUsername = req.headers['x-user-username'] || req.user?.username || '';
+        const guestEmail = req.headers['x-user-email'] || req.user?.email || '';
 
         if (!userId) {
             return res.status(401).json({ success: false, error: 'Authentication required.' });
@@ -194,6 +195,7 @@ async function createBooking(req, res) {
             listingImage: listing?.image?.url || '',
             listingLocation: listing?.location || '',
             guestUsername,
+            guestEmail,
             checkIn: checkInDate,
             checkOut: checkOutDate,
             guests,

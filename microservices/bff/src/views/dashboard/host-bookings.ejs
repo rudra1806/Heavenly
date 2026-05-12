@@ -108,12 +108,14 @@
                             <tr>
                                 <th>Listing</th>
                                 <th>Guest</th>
+                                <th>Email</th>
                                 <th>Check-in</th>
                                 <th>Check-out</th>
                                 <th>Guests</th>
                                 <th>Total Price</th>
                                 <th>Payment</th>
                                 <th>Status</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -123,7 +125,7 @@
                                         <div class="dash-listing-cell">
                                             <img src="<%= booking.listing.image.url %>" alt="<%= booking.listing.title %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 0.75rem;">
                                             <div>
-                                                <strong><%= booking.listing.title %></strong>
+                                                <strong><a href="/listings/<%= booking.listing._id %>" style="color: inherit; text-decoration: none;"><%= booking.listing.title %></a></strong>
                                                 <br><small style="color: var(--text-muted);"><%= booking.listing.location %></small>
                                             </div>
                                         </div>
@@ -136,6 +138,7 @@
                                             <strong><%= booking.guestUsername || 'Guest' %></strong>
                                         </div>
                                     </td>
+                                    <td><%= booking.guestEmail || 'N/A' %></td>
                                     <td><%= booking.checkIn.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
                                     <td><%= booking.checkOut.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
                                     <td><%= booking.guests %></td>
@@ -159,6 +162,17 @@
                                             <%= booking.bookingStatus %>
                                         </span>
                                     </td>
+                                    <td>
+                                        <% if (booking.bookingStatus === 'confirmed') { %>
+                                            <form action="/dashboard/host-bookings/<%= booking._id %>/cancel" method="POST" style="display: inline;" onsubmit="return confirm('Cancel this guest\'s booking? They will be notified.');">
+                                                <button type="submit" class="dash-btn-sm dash-btn-danger">
+                                                    <i class="fa-solid fa-xmark"></i> Cancel
+                                                </button>
+                                            </form>
+                                        <% } else { %>
+                                            <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                        <% } %>
+                                    </td>
                                 </tr>
                             <% }); %>
                         </tbody>
@@ -173,7 +187,7 @@
                                 <div class="dash-listing-cell">
                                     <img src="<%= booking.listing.image.url %>" alt="<%= booking.listing.title %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 0.75rem;">
                                     <div>
-                                        <strong><%= booking.listing.title %></strong>
+                                        <strong><a href="/listings/<%= booking.listing._id %>" style="color: inherit; text-decoration: none;"><%= booking.listing.title %></a></strong>
                                         <br><small style="color: var(--text-muted);"><%= booking.listing.location %></small>
                                     </div>
                                 </div>
@@ -182,7 +196,10 @@
                             <div class="dash-guest-card-body">
                                 <div class="dash-guest-card-row">
                                     <span><i class="fa-solid fa-user"></i> Guest</span>
-                                    <strong><%= booking.guestUsername || 'Guest' %></strong>
+                                    <div>
+                                        <strong><%= booking.guestUsername || 'Guest' %></strong>
+                                        <br><small style="color: var(--text-muted);"><%= booking.guestEmail || 'N/A' %></small>
+                                    </div>
                                 </div>
                                 <div class="dash-guest-card-row">
                                     <span><i class="fa-solid fa-calendar-check"></i> Check-in</span>
@@ -216,6 +233,15 @@
                                     </span>
                                 </div>
                             </div>
+                            <% if (booking.bookingStatus === 'confirmed') { %>
+                                <div class="dash-guest-card-footer">
+                                    <form action="/dashboard/host-bookings/<%= booking._id %>/cancel" method="POST" onsubmit="return confirm('Cancel this guest\'s booking? They will be notified.');">
+                                        <button type="submit" class="dash-btn-sm dash-btn-danger" style="width: 100%;">
+                                            <i class="fa-solid fa-xmark"></i> Cancel Booking
+                                        </button>
+                                    </form>
+                                </div>
+                            <% } %>
                         </div>
                     <% }); %>
                 </div>

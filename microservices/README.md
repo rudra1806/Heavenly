@@ -606,14 +606,17 @@ sequenceDiagram
 
 **Implementation Highlights**:
 - **Batch Queries**: Supports `listingIds` (comma-separated) for fetching bookings across multiple listings in a single MongoDB `$in` query — eliminates N+1 API call patterns
+- **Guest Email Storage**: Stores `guestEmail` field for host communication and record-keeping
 - Overlap Detection: Checks existing bookings where `checkIn < newCheckOut AND checkOut > newCheckIn`
 - Listing Validation: HTTP call to Listing Service (exists, available, guest limit, no self-booking)
 - **Razorpay Integration**: Real payment processing with order creation, signature verification, and automatic refunds
 - **Dual Mode**: Automatically falls back to simulation mode if Razorpay credentials not configured
 - **Platform Fee Model**: Automatically calculates 15% platform fee and 85% host earnings per booking
-- Denormalized Data: Stores `listingTitle`, `listingImage`, `listingLocation`, `guestUsername`
-- Soft Delete: Users can hide cancelled bookings (`isHidden` flag), admins can hard delete
+- Denormalized Data: Stores `listingTitle`, `listingImage`, `listingLocation`, `guestUsername`, `guestEmail`
+- **Admin-Only Deletion**: Only admins can permanently delete bookings (guests/hosts can only cancel)
+- **Cascade Deletion**: When user/listing deleted, all related bookings are hard-deleted
 - Event Publishing: `booking.created`, `booking.payment.completed`, `booking.cancelled`
+- Event Consumption: `listing.deleted` → hard-delete all bookings, `user.deleted` → hard-delete user's bookings
 
 **Payment Flow (Razorpay Mode)**:
 
@@ -788,6 +791,75 @@ sequenceDiagram
 - `dashboard/host-reviews.ejs` — Reviews received on user's listings
 - `dashboard/listing-bookings.ejs` — Bookings for a specific listing
 - `includes/dashboard-sidebar.ejs` — Reusable sidebar navigation partial
+
+---
+
+## 🗑️ Cascade Deletion System
+
+The platform implements a robust event-driven cascade deletion system to maintain data integrity when entities are deleted.
+
+### User Deletion Flow (Admin Only)
+
+When an admin deletes a user, the following cascade operations occur automatically:
+
+```
+User Deleted (Auth Service)
+    ↓ Publishes: user.deleted event
+    ↓
+├─→ Listing Service
+│   ├─ Finds all user's listings
+│   ├─ Deletes each image from Cloudinary
+│   ├─ Publishes listing.deleted for each
+│   └─ Bulk deletes all listings
+│
+├─→ Review Service
+│   └─ Deletes all reviews authored by user
+│
+└─→ Booking Service
+    └─ Hard-deletes all bookings made by user
+```
+
+**Result**: Complete data removal with zero orphaned records
+
+### Listing Deletion Flow
+
+When a listing is deleted (by owner or admin):
+
+```
+Listing Deleted (Listing Service)
+    ↓ Publishes: listing.deleted event
+    ↓
+├─→ Review Service
+│   └─ Deletes all reviews for the listing
+│
+├─→ Booking Service
+│   └─ Hard-deletes all bookings for the listing
+│
+└─→ Search Service
+    └─ Removes listing from search index
+```
+
+**Image Cleanup**: Cloudinary images are deleted before the listing document is removed
+
+### Key Features
+
+- ✅ **Zero Orphaned Data**: All related data is properly cleaned up
+- ✅ **Cloudinary Cleanup**: Images are deleted from cloud storage during cascade operations
+- ✅ **Hard Deletion**: Bookings and reviews are permanently removed (not soft-deleted)
+- ✅ **Event-Driven**: Uses RabbitMQ for reliable async cascade operations
+- ✅ **Admin-Only**: Only administrators can permanently delete users and bookings
+- ✅ **Audit Trail**: All deletion events are logged for monitoring
+
+### Deletion Permissions
+
+| Entity | Guest | Host | Admin |
+|--------|-------|------|-------|
+| **User** | ❌ | ❌ | ✅ Hard delete + cascade |
+| **Listing** | ❌ | ✅ Delete own | ✅ Delete any |
+| **Booking** | ❌ Cancel only | ❌ Cancel only | ✅ Hard delete |
+| **Review** | ❌ | ✅ Delete own | ✅ Delete any |
+
+**Note**: Guests and hosts can cancel bookings, but only admins can permanently delete them from the database.
 
 ---
 

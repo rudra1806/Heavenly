@@ -30,6 +30,7 @@ const bookingSchema = new Schema({
     listingLocation: { type: String, default: '' },
     ownerUsername: { type: String, default: '' },
     guestUsername: { type: String, default: '' },
+    guestEmail: { type: String, default: '' },
 
     // Booking dates
     checkIn: {

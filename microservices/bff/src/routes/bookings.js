@@ -221,6 +221,10 @@ router.post('/bookings/:id/verify-payment', isLoggedIn, async (req, res) => {
 // POST /bookings/:id/cancel — cancel booking
 router.post('/bookings/:id/cancel', isLoggedIn, async (req, res) => {
     try {
+        // Invalidate cache since booking data changed
+        const dashCache = require('../utils/dashboardCache.js');
+        dashCache.invalidateUser(req.session.user?.id);
+        
         await apiCall(`/api/bookings/${req.params.id}/cancel`, {
             method: 'POST',
             session: req.session
@@ -230,21 +234,6 @@ router.post('/bookings/:id/cancel', isLoggedIn, async (req, res) => {
     } catch (err) {
         req.flash('error', err.message || 'Failed to cancel booking.');
         res.redirect(`/bookings/${req.params.id}`);
-    }
-});
-
-// DELETE /bookings/:id — remove cancelled booking from history
-router.delete('/bookings/:id', isLoggedIn, async (req, res) => {
-    try {
-        await apiCall(`/api/bookings/${req.params.id}`, {
-            method: 'DELETE',
-            session: req.session
-        });
-        req.flash('success', 'Booking removed from history.');
-        res.redirect('/dashboard/bookings');
-    } catch (err) {
-        req.flash('error', err.message || 'Failed to remove booking.');
-        res.redirect('/dashboard/bookings');
     }
 });
 
