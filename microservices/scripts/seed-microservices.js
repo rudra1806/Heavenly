@@ -149,6 +149,87 @@ async function seedListingService(ownerId) {
     return createdListings;
 }
 
+async function seedReviewService() {
+    console.log('\n⭐ Seeding Review Service...');
+    
+    const reviewConn = await mongoose.createConnection(REVIEW_DB).asPromise();
+    
+    // Define Review schema
+    const ReviewSchema = new mongoose.Schema({
+        listingId: String,
+        userId: String,
+        username: String,
+        rating: Number,
+        comment: String,
+        createdAt: { type: Date, default: Date.now }
+    });
+    
+    const Review = reviewConn.model('Review', ReviewSchema);
+    
+    // Clear existing reviews
+    await Review.deleteMany({});
+    console.log('   ✓ Cleared existing reviews');
+    
+    await reviewConn.close();
+}
+
+async function seedBookingService() {
+    console.log('\n📅 Seeding Booking Service...');
+    
+    const bookingConn = await mongoose.createConnection(BOOKING_DB).asPromise();
+    
+    // Define Booking schema
+    const BookingSchema = new mongoose.Schema({
+        listingId: String,
+        userId: String,
+        userEmail: String,
+        checkIn: Date,
+        checkOut: Date,
+        guests: Number,
+        totalPrice: Number,
+        status: { type: String, enum: ['pending', 'confirmed', 'cancelled'], default: 'pending' },
+        createdAt: { type: Date, default: Date.now }
+    });
+    
+    const Booking = bookingConn.model('Booking', BookingSchema);
+    
+    // Clear existing bookings
+    await Booking.deleteMany({});
+    console.log('   ✓ Cleared existing bookings');
+    
+    await bookingConn.close();
+}
+
+async function seedSearchService() {
+    console.log('\n🔍 Seeding Search Service...');
+    
+    const searchConn = await mongoose.createConnection(process.env.SEARCH_MONGO_URL || 'mongodb://localhost:27017/heavenly_search').asPromise();
+    
+    // Define SearchIndex schema
+    const SearchIndexSchema = new mongoose.Schema({
+        listingId: String,
+        title: String,
+        description: String,
+        location: String,
+        country: String,
+        price: Number,
+        coordinates: [Number],
+        image: {
+            url: String,
+            filename: String
+        },
+        createdAt: { type: Date, default: Date.now }
+    });
+    
+    const SearchIndex = searchConn.model('SearchIndex', SearchIndexSchema);
+    
+    // Clear existing search index
+    await SearchIndex.deleteMany({});
+    console.log('   ✓ Cleared existing search index');
+    
+    await searchConn.close();
+}
+
 async function main() {
     try {
         const rabbitUser = process.env.RABBITMQ_USER || 'heavenly';
@@ -156,6 +237,12 @@ async function main() {
         const defaultRabbitUrl = `amqp://${rabbitUser}:${rabbitPass}@localhost:5672`;
         await connectRabbitMQ(process.env.RABBITMQ_URL || defaultRabbitUrl);
 
+        // Clear all services first
+        console.log('🗑️  Clearing all existing data...\n');
+        await seedReviewService();
+        await seedBookingService();
+        await seedSearchService();
+        
         // Seed auth service first to get user IDs
         const { admin, users } = await seedAuthService();
         
