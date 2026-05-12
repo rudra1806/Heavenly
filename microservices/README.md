@@ -92,32 +92,49 @@ Heavenly is a property rental platform built with microservices, evolved from a 
 
 When we need an immediate response:
 
-```
-Booking Service ──HTTP GET──▶ Listing Service
-                              "Verify listing availability"
-                              ◀── { available: true, price: 2500 }
-
-Listing Service ──HTTP POST──▶ Media Service
-                               "Upload property image"
-                               ◀── { url: "https://...", filename: "..." }
-
-Listing Service ──HTTP GET──▶ Search Service
-                              "Geocode address"
-                              ◀── { coordinates: [-118.78, 34.03] }
+```mermaid
+sequenceDiagram
+    participant BS as Booking Service
+    participant LS as Listing Service
+    participant MS as Media Service
+    participant SS as Search Service
+    
+    BS->>LS: GET /listings/:id
+    Note over BS,LS: Verify listing availability
+    LS-->>BS: { available: true, price: 2500 }
+    
+    LS->>MS: POST /media/upload
+    Note over LS,MS: Upload property image
+    MS-->>LS: { url: "https://...", filename: "..." }
+    
+    LS->>SS: GET /geocode?location=address
+    Note over LS,SS: Geocode address
+    SS-->>LS: { coordinates: [-118.78, 34.03] }
 ```
 
 #### Asynchronous Communication (RabbitMQ Events)
 
 For cascade operations and eventual consistency:
 
-```
-Auth Service ──publishes──▶ "user.deleted" { userId: "abc123" }
-                               │
-              ┌────────────────┼────────────────┐
-              ▼                ▼                ▼
-        Listing Service  Review Service  Booking Service
-        "Delete user's   "Delete user's  "Cancel user's
-         listings"        reviews"        bookings"
+```mermaid
+sequenceDiagram
+    participant AS as Auth Service
+    participant RMQ as RabbitMQ
+    participant LS as Listing Service
+    participant RS as Review Service
+    participant BS as Booking Service
+    
+    AS->>RMQ: Publish "user.deleted"
+    Note over AS,RMQ: { userId: "abc123" }
+    
+    RMQ->>LS: Consume event
+    Note over LS: Delete user's listings
+    
+    RMQ->>RS: Consume event
+    Note over RS: Delete user's reviews
+    
+    RMQ->>BS: Consume event
+    Note over BS: Cancel user's bookings
 ```
 
 **Event Exchange**: `heavenly.events` (Topic Exchange)  
@@ -144,7 +161,7 @@ Auth Service ──publishes──▶ "user.deleted" { userId: "abc123" }
 | **Auth Service** | 3001 | `heavenly_auth` | User identity, authentication, JWT lifecycle | ✅ Complete |
 | **Listing Service** | 3002 | `heavenly_listings` | Property CRUD, availability, ownership | ✅ Complete |
 | **Review Service** | 3003 | `heavenly_reviews` | Ratings & reviews for listings | ✅ Complete |
-| **Booking Service** | 3004 | `heavenly_bookings` | Reservations, payments, date validation | ✅ Complete |
+| **Booking Service** | 3004 | `heavenly_bookings` | Reservations, Razorpay payments, date validation | ✅ Complete |
 | **Media Service** | 3005 | — | Image uploads via Cloudinary | ✅ Complete |
 | **Search Service** | 3006 | — | Full-text search, geocoding (Redis cached) | ✅ Complete |
 | **Admin Service** | 3007 | — | Cross-service aggregation, admin operations | ✅ Complete |
@@ -166,6 +183,7 @@ Auth Service ──publishes──▶ "user.deleted" { userId: "abc123" }
 | **Authentication** | JWT + bcrypt | — | Stateless token-based auth |
 | **Validation** | Joi | 18 | Request schema validation |
 | **File Storage** | Cloudinary | — | Image CDN and storage |
+| **Payment Gateway** | Razorpay | 2.9 | Payment processing with test/live modes |
 | **Geocoding** | Nominatim (OSM) | — | Free address-to-coordinates API |
 | **Orchestration** | Docker Compose | — | Multi-container development |
 | **Templating** | EJS + ejs-mate | 4 | Server-side HTML rendering |
@@ -179,7 +197,7 @@ Auth Service ──publishes──▶ "user.deleted" { userId: "abc123" }
   "auth-service": ["bcrypt", "mongoose", "redis", "amqplib"],
   "listing-service": ["mongoose", "amqplib", "multer"],
   "review-service": ["mongoose", "amqplib"],
-  "booking-service": ["mongoose", "amqplib"],
+  "booking-service": ["mongoose", "amqplib", "razorpay"],
   "media-service": ["multer", "multer-storage-cloudinary", "cloudinary"],
   "search-service": ["redis", "amqplib"],
   "admin-service": [],
@@ -261,6 +279,7 @@ microservices/
 - **Docker** 20+ and **Docker Compose** 2+
 - **Node.js** 20+ (for local development)
 - **Cloudinary Account** (free tier works)
+- **Razorpay Account** (optional, for real payments - free test mode available)
 
 ### Installation
 
@@ -301,11 +320,56 @@ CLOUD_API_SECRET=your_cloudinary_api_secret
 RABBITMQ_USER=heavenly
 RABBITMQ_PASS=heavenly123
 
+# Razorpay (Booking Service) - Optional
+RAZORPAY_KEY_ID=rzp_test_your_key_id
+RAZORPAY_KEY_SECRET=your_key_secret
+
 # Admin Seed (optional)
 ADMIN_USERNAME=admin
 ADMIN_EMAIL=admin@heavenly.com
 ADMIN_PASSWORD=admin123
 ```
+
+**Note:** Razorpay credentials are optional. Without them, the system uses simulation mode for testing.
+
+### Razorpay Payment Setup (Optional)
+
+The booking service supports real payment processing via Razorpay. Without configuration, it automatically falls back to simulation mode.
+
+**1. Get Razorpay Credentials:**
+- Sign up at https://dashboard.razorpay.com (free test mode)
+- Navigate to Settings → API Keys
+- Generate Test Mode keys
+
+**2. Add to `.env`:**
+```env
+RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID
+RAZORPAY_KEY_SECRET=YOUR_KEY_SECRET
+```
+
+**3. Restart Booking Service:**
+```bash
+docker-compose up -d booking-service
+```
+
+**4. Verify:**
+```bash
+docker-compose logs booking-service | grep Razorpay
+# Should show: [Razorpay] Initialized successfully
+```
+
+**Test Cards (Test Mode):**
+- Indian Domestic: `4100 2800 0000 1007`
+- International: `4111 1111 1111 1111` (enable in dashboard)
+- UPI: `success@razorpay`
+- CVV: `123`, Expiry: Any future date
+
+**Features:**
+- ✅ Real-time payment processing
+- ✅ Automatic signature verification
+- ✅ Refund processing on cancellation
+- ✅ Multiple payment methods (cards, UPI, netbanking, wallets)
+- ✅ Automatic fallback to simulation mode
 
 ### Seeding Data
 
@@ -471,7 +535,7 @@ make redis           # Connect to Redis CLI
 
 ### 5. Booking Service (:3004)
 
-**Role**: Reservations and payments
+**Role**: Reservations and Razorpay payment processing
 
 **Database**: `heavenly_bookings`
 
@@ -482,16 +546,122 @@ make redis           # Connect to Redis CLI
 | `/bookings` | GET | Public | List bookings (filter by `userId`, `listingId`) |
 | `/bookings/:id` | GET | Public | Single booking |
 | `/bookings` | POST | Required | Create booking (validates listing, checks overlap) |
-| `/bookings/:id/payment` | POST | Required | Process simulated payment |
-| `/bookings/:id/cancel` | POST | Owner/Admin | Cancel booking + refund |
+| `/bookings/:id/payment` | POST | Required | Create Razorpay order or process simulated payment |
+| `/bookings/:id/verify-payment` | POST | Required | Verify Razorpay payment signature |
+| `/bookings/:id/cancel` | POST | Owner/Admin | Cancel booking + process refund |
 | `/bookings/:id` | DELETE | Admin | Hard delete booking |
+
+**Booking Creation Flow**:
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant BFF as BFF Service
+    participant GW as API Gateway
+    participant BS as Booking Service
+    participant LS as Listing Service
+    participant DB as MongoDB
+    participant RMQ as RabbitMQ
+    
+    U->>BFF: Submit booking form
+    BFF->>GW: POST /api/bookings
+    GW->>BS: Forward request (with JWT)
+    
+    BS->>LS: GET /listings/:id
+    Note over BS,LS: Validate listing exists & available
+    LS-->>BS: Listing details
+    
+    BS->>BS: Check guest count ≤ maxGuests
+    BS->>BS: Verify user ≠ owner
+    
+    BS->>DB: Query overlapping bookings
+    Note over BS,DB: checkIn < newCheckOut<br/>AND checkOut > newCheckIn
+    DB-->>BS: No conflicts
+    
+    BS->>DB: Create booking (status: pending)
+    BS->>RMQ: Publish "booking.created"
+    
+    BS-->>GW: Booking created
+    GW-->>BFF: Success response
+    BFF-->>U: Redirect to payment page
+```
 
 **Implementation Highlights**:
 - Overlap Detection: Checks existing bookings where `checkIn < newCheckOut AND checkOut > newCheckIn`
 - Listing Validation: HTTP call to Listing Service (exists, available, guest limit, no self-booking)
-- Payment Simulation: Generates `SIM_<timestamp>_<random>` transaction IDs (ready for Razorpay/Stripe)
+- **Razorpay Integration**: Real payment processing with order creation, signature verification, and automatic refunds
+- **Dual Mode**: Automatically falls back to simulation mode if Razorpay credentials not configured
 - Denormalized Data: Stores `listingTitle`, `listingImage`, `listingLocation`, `guestUsername`
 - Event Publishing: `booking.created`, `booking.payment.completed`, `booking.cancelled`
+
+**Payment Flow (Razorpay Mode)**:
+
+```mermaid
+sequenceDiagram
+    participant U as User/Browser
+    participant BFF as BFF Service
+    participant GW as API Gateway
+    participant BS as Booking Service
+    participant RZP as Razorpay API
+    participant RZP_UI as Razorpay Checkout
+    
+    U->>BFF: Click "Pay" button
+    BFF->>GW: POST /api/bookings/:id/payment
+    GW->>BS: Forward request (with JWT)
+    
+    BS->>RZP: Create Order
+    Note over BS,RZP: amount, currency, receipt
+    RZP-->>BS: { orderId, amount, currency }
+    
+    BS-->>GW: Order details + keyId
+    GW-->>BFF: Order response
+    BFF-->>U: Open Razorpay modal
+    
+    U->>RZP_UI: Enter card details
+    RZP_UI->>RZP: Process payment
+    RZP-->>RZP_UI: Payment success
+    RZP_UI-->>U: { payment_id, order_id, signature }
+    
+    U->>BFF: Verify payment
+    BFF->>GW: POST /api/bookings/:id/verify-payment
+    GW->>BS: Forward verification request
+    
+    BS->>BS: Verify signature (HMAC SHA256)
+    Note over BS: order_id|payment_id + secret
+    
+    BS->>BS: Update booking status to "confirmed"
+    BS-->>GW: Payment verified
+    GW-->>BFF: Success response
+    BFF-->>U: Show success + confetti 🎉
+```
+
+**Refund Flow**:
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant BFF as BFF Service
+    participant GW as API Gateway
+    participant BS as Booking Service
+    participant RZP as Razorpay API
+    
+    U->>BFF: Cancel booking
+    BFF->>GW: POST /api/bookings/:id/cancel
+    GW->>BS: Forward cancel request
+    
+    alt Payment via Razorpay
+        BS->>RZP: Create Refund
+        Note over BS,RZP: payment_id, amount
+        RZP-->>BS: { refund_id, status }
+        BS->>BS: Store refund_id
+    end
+    
+    BS->>BS: Update status to "cancelled"
+    BS->>BS: Update payment.status to "refunded"
+    BS-->>GW: Cancellation confirmed
+    GW-->>BFF: Success response
+    BFF-->>U: Booking cancelled + refund initiated
+```
 
 ---
 
@@ -679,32 +849,41 @@ const listing = await get('http://listing-service:3002/listings/123');
 
 ### Event Flow Example: User Deletion
 
-```
-1. Admin clicks "Delete User" in BFF
-   ↓
-2. BFF → API Gateway → Admin Service
-   ↓
-3. Admin Service → Auth Service (DELETE /auth/users/:id)
-   ↓
-4. Auth Service:
-   - Deletes user from database
-   - Publishes "user.deleted" event to RabbitMQ
-   ↓
-5. RabbitMQ routes event to 3 queues:
-   - listing-service.user-deleted
-   - review-service.user-deleted
-   - booking-service.user-deleted
-   ↓
-6. Listing Service:
-   - Deletes user's listings
-   - Publishes "listing.deleted" for each
-   ↓
-7. Review Service:
-   - Deletes user's reviews
-   ↓
-8. Booking Service:
-   - Cancels user's bookings
-   - Marks payments as refunded
+```mermaid
+sequenceDiagram
+    participant Admin as Admin (BFF)
+    participant GW as API Gateway
+    participant AS as Admin Service
+    participant Auth as Auth Service
+    participant RMQ as RabbitMQ
+    participant LS as Listing Service
+    participant RS as Review Service
+    participant BS as Booking Service
+    
+    Admin->>GW: DELETE /admin/users/:id
+    GW->>AS: Forward request
+    AS->>Auth: DELETE /auth/users/:id
+    
+    Auth->>Auth: Delete user from DB
+    Auth->>RMQ: Publish "user.deleted"
+    Note over Auth,RMQ: { userId: "abc123" }
+    
+    Auth-->>AS: User deleted
+    AS-->>GW: Success
+    GW-->>Admin: User deleted
+    
+    par Parallel Event Processing
+        RMQ->>LS: Route to listing-service.user-deleted
+        LS->>LS: Delete user's listings
+        LS->>RMQ: Publish "listing.deleted" (for each)
+        
+        RMQ->>RS: Route to review-service.user-deleted
+        RS->>RS: Delete user's reviews
+        
+        RMQ->>BS: Route to booking-service.user-deleted
+        BS->>BS: Cancel user's bookings
+        BS->>BS: Mark payments as refunded
+    end
 ```
 
 ### Event Catalog
@@ -788,8 +967,13 @@ bookings {
   totalPrice: Number,
   bookingStatus: String,
   payment: {
-    status: String,
-    method: String,
+    status: String,              // 'pending' | 'completed' | 'refunded' | 'failed'
+    method: String,              // 'simulated' | 'razorpay' | 'stripe'
+    transactionId: String,       // Razorpay payment_id or simulated ID
+    razorpayOrderId: String,     // Razorpay order_id
+    refundId: String,            // Razorpay refund_id (if cancelled)
+    paidAt: Date
+  }
     transactionId: String,
     paidAt: Date
   },
@@ -1056,11 +1240,17 @@ make restart-<service-name>
 **Why**: Simplicity, demonstrates the pattern, good enough for MVP  
 **Trade-off**: Won't scale for large datasets, no persistence
 
-### 8. Simulated Payments
+### 8. Razorpay Payment Integration
 
-**What we did**: Simulated payment flow instead of real integration  
-**Why**: Demonstrates the pattern, ready for Razorpay/Stripe  
-**Trade-off**: Not ready for production (but easy to swap)
+**What we did**: Integrated Razorpay payment gateway with automatic fallback to simulation mode  
+**Why**: Production-ready payment processing with real transaction handling  
+**Features**:
+- Order creation and signature verification
+- Automatic refund processing on cancellation
+- Dual mode operation (Razorpay or simulation)
+- Secure server-side payment verification
+
+See [Razorpay Quick Start Guide](RAZORPAY_QUICK_START.md) for setup instructions.
 
 ---
 
@@ -1093,7 +1283,7 @@ make restart-<service-name>
 6. **CQRS Pattern**: Separate read/write models for high-traffic services
 7. **Saga Pattern**: Handle distributed transactions better
 8. **Circuit Breaker**: Resilience4j or Hystrix for fault tolerance
-9. **Real Payment Integration**: Razorpay or Stripe
+9. **Webhooks**: Razorpay webhooks for real-time payment notifications
 10. **Elasticsearch**: Replace in-memory search index
 
 ---

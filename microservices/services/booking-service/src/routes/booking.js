@@ -1,12 +1,13 @@
 /**
  * Booking Service routes.
  * 
- * GET    /bookings            — List bookings (filter by userId, listingId)
- * GET    /bookings/:id        — Single booking
- * POST   /bookings            — Create booking (auth required)
- * POST   /bookings/:id/payment — Process payment (auth required)
- * POST   /bookings/:id/cancel  — Cancel booking (auth required)
- * DELETE /bookings/:id        — Hard delete (admin only)
+ * GET    /bookings                    — List bookings (filter by userId, listingId)
+ * GET    /bookings/:id                — Single booking
+ * POST   /bookings                    — Create booking (auth required)
+ * POST   /bookings/:id/payment        — Create Razorpay order (auth required)
+ * POST   /bookings/:id/verify-payment — Verify Razorpay payment (auth required)
+ * POST   /bookings/:id/cancel         — Cancel booking (auth required)
+ * DELETE /bookings/:id                — Hard delete (admin only)
  */
 
 const express = require('express');
@@ -28,6 +29,7 @@ router.get('/bookings/:id', bookingController.getBooking);
 // Protected
 router.post('/bookings', authMiddleware, validateBooking, bookingController.createBooking);
 router.post('/bookings/:id/payment', authMiddleware, bookingController.processPayment);
+router.post('/bookings/:id/verify-payment', authMiddleware, bookingController.verifyPayment);
 router.post('/bookings/:id/cancel', authMiddleware, bookingController.cancelBooking);
 
 // Delete booking - users can soft-delete their own cancelled bookings, admins can hard-delete any

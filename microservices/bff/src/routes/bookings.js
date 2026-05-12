@@ -155,10 +155,26 @@ router.post('/bookings/:id/payment', isLoggedIn, async (req, res) => {
             session: req.session
         });
         
+        // Check if Razorpay order was created
+        if (result.data?.orderId) {
+            // Return Razorpay order details for frontend
+            return res.json({
+                success: true,
+                razorpay: true,
+                orderId: result.data.orderId,
+                amount: result.data.amount,
+                currency: result.data.currency,
+                keyId: result.data.keyId,
+                bookingId: req.params.id
+            });
+        }
+        
+        // Fallback: simulated payment completed
         // Return JSON for AJAX requests
         if (req.headers['content-type'] === 'application/json' || req.xhr || req.headers.accept?.includes('application/json')) {
             return res.json({
                 success: true,
+                razorpay: false,
                 paymentId: result.data?.booking?.payment?.transactionId,
                 bookingId: req.params.id
             });
@@ -177,6 +193,28 @@ router.post('/bookings/:id/payment', isLoggedIn, async (req, res) => {
         
         req.flash('error', err.message || 'Payment failed.');
         res.redirect(`/bookings/${req.params.id}/payment`);
+    }
+});
+
+// POST /bookings/:id/verify-payment — verify Razorpay payment
+router.post('/bookings/:id/verify-payment', isLoggedIn, async (req, res) => {
+    try {
+        const result = await apiCall(`/api/bookings/${req.params.id}/verify-payment`, {
+            method: 'POST',
+            body: req.body,
+            session: req.session
+        });
+        
+        res.json({
+            success: true,
+            paymentId: result.data?.booking?.payment?.transactionId,
+            bookingId: req.params.id
+        });
+    } catch (err) {
+        res.status(400).json({
+            success: false,
+            error: err.message || 'Payment verification failed.'
+        });
     }
 });
 

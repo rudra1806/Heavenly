@@ -20,6 +20,7 @@ const cors = require('cors');
 const bookingRoutes = require('./routes/booking.js');
 const bookingController = require('./controllers/booking.js');
 const { setupConsumers } = require('./events/consumers.js');
+const { initializeRazorpay } = require('./utils/razorpay.js');
 
 let connectRabbitMQ, publishEvent, consumeEvent, serviceClient;
 try {
@@ -73,6 +74,9 @@ async function startService() {
     try {
         await mongoose.connect(MONGO_URL);
         console.log('[Booking Service] Connected to MongoDB');
+
+        // Initialize Razorpay
+        initializeRazorpay();
 
         let mqConnected = false;
         if (process.env.RABBITMQ_URL) {

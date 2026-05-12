@@ -73,7 +73,7 @@ const bookingSchema = new Schema({
         default: false
     },
 
-    // Simulated payment fields (ready for Razorpay/Stripe integration)
+    // Payment fields (Razorpay/Stripe integration)
     payment: {
         status: {
             type: String,
@@ -86,6 +86,8 @@ const bookingSchema = new Schema({
             default: 'simulated'
         },
         transactionId: { type: String, default: null },
+        razorpayOrderId: { type: String, default: null },
+        refundId: { type: String, default: null },
         paidAt: { type: Date, default: null }
     }
 }, {

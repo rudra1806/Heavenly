@@ -167,6 +167,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-heavenly}:${RABBITMQ_PASS:-heavenly123}@rabbitmq:5672
       - LISTING_SERVICE_URL=http://listing-service:3002
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET}
     depends_on:
       mongodb:
         condition: service_healthy

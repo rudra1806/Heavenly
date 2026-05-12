@@ -80,8 +80,7 @@
                     <div class="payment-notice info">
                         <i class="fa-solid fa-circle-info"></i>
                         <div>
-                            <strong>Simulated Payment</strong> — This is a demo environment. No real transaction will
-                            occur. Razorpay integration coming soon.
+                            <strong>Secure Payment</strong> — Your payment is processed securely through Razorpay. If Razorpay is not configured, the system will use simulation mode for testing.
                         </div>
                     </div>
 
@@ -96,7 +95,7 @@
                         </div>
                         <div class="security-badge">
                             <i class="fa-solid fa-credit-card"></i>
-                            Razorpay Ready
+                            Razorpay Enabled
                         </div>
                     </div>
 
@@ -136,6 +135,7 @@
         </div>
     </div>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         async function processPayment() {
             const payButton = document.getElementById('payButton');
@@ -151,7 +151,7 @@
             processingState.classList.add('visible');
 
             try {
-                // Send payment request
+                // Send payment request to create Razorpay order
                 const response = await fetch('/bookings/<%= booking._id %>/payment', {
                     method: 'POST',
                     headers: {
@@ -161,10 +161,89 @@
 
                 const data = await response.json();
 
-                // Simulate a small delay for realistic feel
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                if (!data.success) {
+                    throw new Error(data.error || 'Payment initiation failed');
+                }
 
-                if (data.success) {
+                // Check if Razorpay is enabled
+                if (data.razorpay && data.orderId) {
+                    // Initialize Razorpay checkout
+                    const options = {
+                        key: data.keyId,
+                        amount: data.amount,
+                        currency: data.currency,
+                        name: 'Heavenly',
+                        description: 'Booking Payment',
+                        order_id: data.orderId,
+                        handler: async function (razorpayResponse) {
+                            // Payment successful, verify on backend
+                            try {
+                                const verifyResponse = await fetch('/bookings/<%= booking._id %>/verify-payment', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        razorpay_order_id: razorpayResponse.razorpay_order_id,
+                                        razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                                        razorpay_signature: razorpayResponse.razorpay_signature
+                                    })
+                                });
+
+                                const verifyData = await verifyResponse.json();
+
+                                if (verifyData.success) {
+                                    // Show success
+                                    processingState.classList.remove('visible');
+                                    successState.classList.add('visible');
+
+                                    // Set payment ID
+                                    document.getElementById('paymentIdDisplay').textContent = 'Payment ID: ' + verifyData.paymentId;
+                                    document.getElementById('viewBookingLink').href = '/bookings/' + verifyData.bookingId;
+
+                                    // Show confetti
+                                    createConfetti();
+                                } else {
+                                    throw new Error(verifyData.error || 'Payment verification failed');
+                                }
+                            } catch (verifyErr) {
+                                alert('Payment verification failed: ' + verifyErr.message);
+                                window.location.reload();
+                            }
+                        },
+                        prefill: {
+                            name: '<%= locals.currentUser?.username || "" %>',
+                            email: '<%= locals.currentUser?.email || "" %>'
+                        },
+                        theme: {
+                            color: '#C2A86D'
+                        },
+                        modal: {
+                            ondismiss: function() {
+                                // User closed the payment modal
+                                processingState.classList.remove('visible');
+                                defaultState.style.display = 'block';
+                                payButton.disabled = false;
+                            }
+                        }
+                    };
+
+                    const razorpay = new Razorpay(options);
+                    
+                    razorpay.on('payment.failed', function (response) {
+                        alert('Payment failed: ' + response.error.description);
+                        processingState.classList.remove('visible');
+                        defaultState.style.display = 'block';
+                        payButton.disabled = false;
+                    });
+
+                    // Hide processing and open Razorpay modal
+                    processingState.classList.remove('visible');
+                    razorpay.open();
+                } else {
+                    // Simulated payment completed
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
                     // Show success
                     processingState.classList.remove('visible');
                     successState.classList.add('visible');
@@ -177,12 +256,12 @@
                     createConfetti();
                 }
             } catch (error) {
-                // Fallback: submit as a regular form
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '/bookings/<%= booking._id %>/payment';
-                document.body.appendChild(form);
-                form.submit();
+                console.error('Payment error:', error);
+                alert('Payment failed: ' + error.message);
+                // Reset to default state
+                processingState.classList.remove('visible');
+                defaultState.style.display = 'block';
+                payButton.disabled = false;
             }
         }
 
