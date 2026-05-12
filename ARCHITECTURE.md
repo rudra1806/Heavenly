@@ -21,7 +21,7 @@
 
 ## 📋 Overview
 
-Heavenly is a property rental platform built with microservices, evolved from a monolithic Express.js application. It demonstrates distributed systems patterns like service decomposition, event-driven communication, API gateway pattern, and database-per-service architecture.
+Heavenly is a property rental platform built with microservices architecture. It demonstrates distributed systems patterns like service decomposition, event-driven communication, API gateway pattern, and database-per-service architecture.
 
 ### 🎯 What We're Building
 
@@ -212,7 +212,7 @@ sequenceDiagram
 ## 📁 Project Structure
 
 ```
-microservices/
+Heavenly/
 ├── docker-compose.yml           # 🐳 Orchestrates 12 containers
 ├── docker-compose.prod.yml      # 🚀 Production configuration
 ├── .env.example                 # 🔐 Environment variables template
@@ -268,7 +268,7 @@ microservices/
     ├── package.json
     ├── data.js                  # Sample data
     ├── seed-microservices.js    # Database seeding
-    ├── migrate.js               # Monolith → microservices migration
+    ├── migrate.js               # Data migration
     ├── smoke-test.js            # E2E testing
     ├── backup-data.sh           # MongoDB backup
     └── restore-data.sh          # MongoDB restore
@@ -290,7 +290,7 @@ microservices/
 ```bash
 # Clone the repository
 git clone https://github.com/rudra1806/Heavenly.git
-cd Heavenly/microservices
+cd Heavenly
 
 # Configure environment variables
 cp .env.example .env
@@ -305,7 +305,7 @@ docker-compose up --build
 
 ### Configuration
 
-Create a `.env` file in the `microservices/` directory:
+Create a `.env` file in the project root directory:
 
 ```env
 # JWT Configuration
@@ -1206,10 +1206,10 @@ make volumes
 
 ```bash
 # Use production compose file
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # Scale specific services
-docker-compose -f docker-compose.prod.yml up -d --scale listing-service=3
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --scale listing-service=3
 ```
 
 ### Kubernetes Deployment Example

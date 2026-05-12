@@ -88,6 +88,7 @@ services:
       - ./services/auth-service:/app/services/auth-service
       - ./shared:/app/shared
       - /app/services/auth-service/node_modules
+      - /app/shared/node_modules
 
   listing-service:
     build:
@@ -121,6 +122,7 @@ services:
       - ./services/listing-service:/app/services/listing-service
       - ./shared:/app/shared
       - /app/services/listing-service/node_modules
+      - /app/shared/node_modules
 
   review-service:
     build:
@@ -152,6 +154,7 @@ services:
       - ./services/review-service:/app/services/review-service
       - ./shared:/app/shared
       - /app/services/review-service/node_modules
+      - /app/shared/node_modules
 
   booking-service:
     build:
@@ -186,6 +189,7 @@ services:
       - ./services/booking-service:/app/services/booking-service
       - ./shared:/app/shared
       - /app/services/booking-service/node_modules
+      - /app/shared/node_modules
 
   media-service:
     build:
@@ -214,6 +218,7 @@ services:
       - ./services/media-service:/app/services/media-service
       - ./shared:/app/shared
       - /app/services/media-service/node_modules
+      - /app/shared/node_modules
 
   search-service:
     build:
@@ -248,6 +253,7 @@ services:
       - ./services/search-service:/app/services/search-service
       - ./shared:/app/shared
       - /app/services/search-service/node_modules
+      - /app/shared/node_modules
 
   admin-service:
     build:
@@ -285,6 +291,7 @@ services:
       - ./services/admin-service:/app/services/admin-service
       - ./shared:/app/shared
       - /app/services/admin-service/node_modules
+      - /app/shared/node_modules
 
   # =====================
   # API Gateway
@@ -338,6 +345,7 @@ services:
       - ./gateway:/app/gateway
       - ./shared:/app/shared
       - /app/gateway/node_modules
+      - /app/shared/node_modules
 
   # =====================
   # BFF (Frontend)
@@ -363,6 +371,7 @@ services:
       - ./bff:/app/bff
       - ./shared:/app/shared
       - /app/bff/node_modules
+      - /app/shared/node_modules
 
 volumes:
   mongodb_data:
