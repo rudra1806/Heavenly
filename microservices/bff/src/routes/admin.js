@@ -61,7 +61,8 @@ router.get('/admin/dashboard', isLoggedIn, isAdmin, async (req, res) => {
             paidBookings: stats.paidBookings || 0,
             pendingPayments: stats.pendingPayments || 0,
             refundedPayments: stats.refundedPayments || 0,
-            totalRevenue: stats.totalRevenue || 0,
+            platformRevenue: stats.platformRevenue || 0,  // 15% platform fee
+            totalRevenue: stats.totalRevenue || 0,  // Total transaction volume
             totalGuests: stats.totalGuests || 0,
             // Recent activity
             recentUsers: recent.users || [],

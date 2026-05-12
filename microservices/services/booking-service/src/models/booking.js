@@ -59,6 +59,18 @@ const bookingSchema = new Schema({
         required: true,
         min: 0
     },
+    // Platform fee (15% of total price)
+    platformFee: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    // Host earnings (85% of total price)
+    hostEarnings: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
 
     // Booking status lifecycle
     status: {

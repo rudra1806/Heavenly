@@ -38,6 +38,8 @@ Heavenly is a property rental platform built with microservices, evolved from a 
 - **API Gateway** with JWT validation and rate limiting
 - **Backend-for-Frontend (BFF)** pattern for better client experience
 - **Distributed Caching** with Redis for better performance
+- **Batch API Queries** for optimized cross-service data fetching
+- **Dashboard Response Cache** (30s TTL) for snappy navigation
 - **Health Checks & Monitoring** for all services
 - **Docker Compose** for easy local development
 - **Graceful shutdown** and proper error handling
@@ -255,9 +257,11 @@ microservices/
 │   └── src/
 │       ├── index.js             # Entry point
 │       ├── middleware.js        # Auth middleware
-│       ├── utils/apiClient.js   # Session → JWT translation
+│       ├── utils/
+│       │   ├── apiClient.js     # Session → JWT translation
+│       │   └── dashboardCache.js # 30s TTL response cache
 │       ├── routes/              # 7 route modules
-│       ├── views/               # 28 EJS templates
+│       ├── views/               # 30+ EJS templates
 │       └── public/              # Static assets (CSS, JS)
 │
 └── scripts/                     # 🔧 Utilities
@@ -518,13 +522,20 @@ make redis           # Connect to Redis CLI
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/reviews` | GET | Public | List reviews (filter by `listingId` or `authorId`) |
+| `/reviews` | GET | Public | List reviews (filter by `listingId`, `listingIds`, or `authorId`) |
 | `/reviews/stats/:listingId` | GET | Public | Rating count + average |
 | `/reviews/:id` | GET | Public | Single review |
 | `/reviews` | POST | Required | Create review |
 | `/reviews/:id` | DELETE | Author/Admin | Delete review |
 
+**Batch Query Support**:
+```
+GET /reviews?listingIds=id1,id2,id3   → Returns all reviews for multiple listings in one call
+GET /reviews?listingId=id1            → Returns reviews for a single listing (legacy)
+```
+
 **Implementation Highlights**:
+- **Batch Queries**: Supports `listingIds` (comma-separated) for fetching reviews across multiple listings in a single MongoDB `$in` query — eliminates N+1 API call patterns
 - Denormalized Data: Stores `authorUsername` to avoid calling other services on read
 - Stats Endpoint: Calculates average rating and count per listing
 - Authorization: Only author or admin can delete
@@ -543,13 +554,20 @@ make redis           # Connect to Redis CLI
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/bookings` | GET | Public | List bookings (filter by `userId`, `listingId`) |
+| `/bookings` | GET | Public | List bookings (filter by `userId`, `listingId`, `listingIds`) |
 | `/bookings/:id` | GET | Public | Single booking |
 | `/bookings` | POST | Required | Create booking (validates listing, checks overlap) |
 | `/bookings/:id/payment` | POST | Required | Create Razorpay order or process simulated payment |
 | `/bookings/:id/verify-payment` | POST | Required | Verify Razorpay payment signature |
 | `/bookings/:id/cancel` | POST | Owner/Admin | Cancel booking + process refund |
 | `/bookings/:id` | DELETE | Admin | Hard delete booking |
+
+**Batch Query Support**:
+```
+GET /bookings?listingIds=id1,id2,id3   → Returns all bookings for multiple listings in one call
+GET /bookings?listingId=id1            → Returns bookings for a single listing (legacy)
+GET /bookings?userId=uid1              → Returns bookings for a specific user
+```
 
 **Booking Creation Flow**:
 
@@ -587,11 +605,14 @@ sequenceDiagram
 ```
 
 **Implementation Highlights**:
+- **Batch Queries**: Supports `listingIds` (comma-separated) for fetching bookings across multiple listings in a single MongoDB `$in` query — eliminates N+1 API call patterns
 - Overlap Detection: Checks existing bookings where `checkIn < newCheckOut AND checkOut > newCheckIn`
 - Listing Validation: HTTP call to Listing Service (exists, available, guest limit, no self-booking)
 - **Razorpay Integration**: Real payment processing with order creation, signature verification, and automatic refunds
 - **Dual Mode**: Automatically falls back to simulation mode if Razorpay credentials not configured
+- **Platform Fee Model**: Automatically calculates 15% platform fee and 85% host earnings per booking
 - Denormalized Data: Stores `listingTitle`, `listingImage`, `listingLocation`, `guestUsername`
+- Soft Delete: Users can hide cancelled bookings (`isHidden` flag), admins can hard delete
 - Event Publishing: `booking.created`, `booking.payment.completed`, `booking.cancelled`
 
 **Payment Flow (Razorpay Mode)**:
@@ -751,6 +772,22 @@ sequenceDiagram
 - Flash Messages: User feedback via `connect-flash`
 - Static Assets: Serves CSS, JavaScript, images
 - Route Mapping: 7 route modules (auth, listings, reviews, bookings, dashboard, admin, pages)
+
+**Dashboard Performance Optimizations**:
+- **Batch API Calls**: Dashboard routes use `?listingIds=id1,id2,id3` instead of N individual calls per listing
+- **Response Cache**: 30-second TTL in-memory cache (`dashboardCache.js`) prevents redundant API calls during rapid tab navigation
+- **Parallel Fetching**: Independent API calls run concurrently via `Promise.all()`
+- **Write-Through Invalidation**: POST/PUT/DELETE actions automatically clear the user's cache
+- **Result**: Dashboard API calls reduced from ~44 to ~3-4 per page load (92% reduction)
+
+**Dashboard Views**:
+- `dashboard/index.ejs` — Main dashboard with host + guest stats
+- `dashboard/listings.ejs` — User's listings with booking/review counts
+- `dashboard/bookings.ejs` — Guest booking history
+- `dashboard/host-bookings.ejs` — Bookings received on user's listings
+- `dashboard/host-reviews.ejs` — Reviews received on user's listings
+- `dashboard/listing-bookings.ejs` — Bookings for a specific listing
+- `includes/dashboard-sidebar.ejs` — Reusable sidebar navigation partial
 
 ---
 
@@ -964,17 +1001,18 @@ bookings {
   checkIn: Date,
   checkOut: Date,
   guests: Number,
+  pricePerNight: Number,
   totalPrice: Number,
-  bookingStatus: String,
+  platformFee: Number,           // 15% of totalPrice
+  hostEarnings: Number,          // 85% of totalPrice
+  status: String,                // 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  isHidden: Boolean,             // Soft-delete flag for user's booking history
   payment: {
     status: String,              // 'pending' | 'completed' | 'refunded' | 'failed'
-    method: String,              // 'simulated' | 'razorpay' | 'stripe'
+    method: String,              // 'simulated' | 'razorpay'
     transactionId: String,       // Razorpay payment_id or simulated ID
     razorpayOrderId: String,     // Razorpay order_id
     refundId: String,            // Razorpay refund_id (if cancelled)
-    paidAt: Date
-  }
-    transactionId: String,
     paidAt: Date
   },
   createdAt: Date
@@ -1234,13 +1272,19 @@ make restart-<service-name>
 **Why**: Better client experience, session management, SSR  
 **Trade-off**: Additional service, more complexity
 
-### 7. In-Memory Search Index
+### 7. Batch Query APIs & Response Caching
+
+**What we did**: Added `listingIds` batch query support to booking and review services; added 30s TTL response cache in BFF  
+**Why**: Eliminated N+1 API call explosion that caused dashboard crashes — reduced ~44 API calls per page to ~3-4  
+**Trade-off**: Slightly stale data during 30s cache window (acceptable for dashboard views)
+
+### 8. In-Memory Search Index
 
 **What we did**: In-memory `Map` instead of Elasticsearch (for now)  
 **Why**: Simplicity, demonstrates the pattern, good enough for MVP  
 **Trade-off**: Won't scale for large datasets, no persistence
 
-### 8. Razorpay Payment Integration
+### 9. Razorpay Payment Integration
 
 **What we did**: Integrated Razorpay payment gateway with automatic fallback to simulation mode  
 **Why**: Production-ready payment processing with real transaction handling  

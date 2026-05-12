@@ -1,0 +1,24 @@
+<aside class="dash-sidebar">
+    <nav class="dash-nav">
+        <a href="/dashboard" class="dash-nav-item <%= locals.activeDash === 'overview' ? 'active' : '' %>">
+            <i class="fa-solid fa-gauge-high"></i>
+            <span>Overview</span>
+        </a>
+        <a href="/dashboard/bookings" class="dash-nav-item <%= locals.activeDash === 'bookings' ? 'active' : '' %>">
+            <i class="fa-solid fa-suitcase-rolling"></i>
+            <span>My Bookings</span>
+        </a>
+        <a href="/dashboard/listings" class="dash-nav-item <%= locals.activeDash === 'listings' ? 'active' : '' %>">
+            <i class="fa-solid fa-building"></i>
+            <span>My Listings</span>
+        </a>
+        <a href="/dashboard/host-bookings" class="dash-nav-item <%= locals.activeDash === 'host-bookings' ? 'active' : '' %>">
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Bookings Received</span>
+        </a>
+        <a href="/dashboard/host-reviews" class="dash-nav-item <%= locals.activeDash === 'host-reviews' ? 'active' : '' %>">
+            <i class="fa-solid fa-star"></i>
+            <span>Reviews Received</span>
+        </a>
+    </nav>
+</aside>

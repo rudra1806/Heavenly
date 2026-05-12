@@ -17,7 +17,14 @@ function setPublishEvent(fn) {
 async function getReviews(req, res) {
     try {
         const filter = {};
-        if (req.query.listingId) filter.listingId = req.query.listingId;
+        // Support batch query: ?listingIds=id1,id2,id3 (preferred for bulk)
+        // Falls back to single: ?listingId=id1
+        if (req.query.listingIds) {
+            const ids = req.query.listingIds.split(',').map(id => id.trim()).filter(Boolean);
+            filter.listingId = { $in: ids };
+        } else if (req.query.listingId) {
+            filter.listingId = req.query.listingId;
+        }
         if (req.query.authorId) filter.authorId = req.query.authorId;
 
         const reviews = await Review.find(filter).sort({ createdAt: -1 });

@@ -30,28 +30,8 @@
     <!-- Sidebar + Content Layout -->
     <div class="dash-layout">
         <!-- Sidebar Navigation -->
-        <aside class="dash-sidebar">
-            <nav class="dash-nav">
-                <a href="/dashboard" class="dash-nav-item active">
-                    <i class="fa-solid fa-gauge-high"></i>
-                    <span>Overview</span>
-                </a>
-                <a href="/dashboard/bookings" class="dash-nav-item">
-                    <i class="fa-solid fa-suitcase-rolling"></i>
-                    <span>My Bookings</span>
-                    <% if (totalGuestBookings > 0) { %>
-                        <span class="dash-nav-badge"><%= totalGuestBookings %></span>
-                    <% } %>
-                </a>
-                <a href="/dashboard/listings" class="dash-nav-item">
-                    <i class="fa-solid fa-building"></i>
-                    <span>My Listings</span>
-                    <% if (totalListings > 0) { %>
-                        <span class="dash-nav-badge"><%= totalListings %></span>
-                    <% } %>
-                </a>
-            </nav>
-        </aside>
+        <% locals.activeDash = 'overview'; %>
+        <%- include('../includes/dashboard-sidebar') %>
 
         <!-- Main Content -->
         <div class="dash-content">
@@ -188,7 +168,8 @@
                         </div>
                         <div class="dash-stat-info">
                             <h3 class="dash-stat-number">₹<%= totalRevenue.toLocaleString("en-IN") %></h3>
-                            <p class="dash-stat-label">Total Revenue</p>
+                            <p class="dash-stat-label">Your Earnings</p>
+                            <small style="color: var(--text-muted);">After 15% platform fee</small>
                         </div>
                     </div>
 
@@ -203,6 +184,9 @@
                                 <small style="color: #2d8a5e;"><%= activeHostBookings %> active</small>
                             <% } %>
                         </div>
+                        <a href="/dashboard/host-bookings" class="dash-stat-link">
+                            View <i class="fa-solid fa-arrow-right"></i>
+                        </a>
                     </div>
 
                     <div class="dash-stat-card">
@@ -213,6 +197,9 @@
                             <h3 class="dash-stat-number"><%= totalReviews %></h3>
                             <p class="dash-stat-label">Reviews Received</p>
                         </div>
+                        <a href="/dashboard/host-reviews" class="dash-stat-link">
+                            View <i class="fa-solid fa-arrow-right"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -247,7 +234,14 @@
                                     </div>
                                     <div class="dash-recent-meta">
                                         <span class="dash-badge dash-badge-<%= booking.bookingStatus %>"><%= booking.bookingStatus %></span>
-                                        <span class="dash-price">₹<%= booking.totalPrice.toLocaleString("en-IN") %></span>
+                                        <div style="text-align: right;">
+                                            <span class="dash-price">₹<%= booking.totalPrice.toLocaleString("en-IN") %></span>
+                                            <% if (booking.hostEarnings !== undefined) { %>
+                                                <br><small style="color: #2d8a5e; font-size: 0.75rem;">Earn: ₹<%= booking.hostEarnings.toLocaleString("en-IN") %></small>
+                                            <% } else { %>
+                                                <br><small style="color: #2d8a5e; font-size: 0.75rem;">Earn: ₹<%= Math.round(booking.totalPrice * 0.85).toLocaleString("en-IN") %></small>
+                                            <% } %>
+                                        </div>
                                     </div>
                                 </div>
                             <% }); %>

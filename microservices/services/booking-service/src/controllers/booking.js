@@ -36,7 +36,14 @@ async function getBookings(req, res) {
         
         const filter = {};
         if (req.query.userId) filter.userId = req.query.userId;
-        if (req.query.listingId) filter.listingId = req.query.listingId;
+        // Support batch query: ?listingIds=id1,id2,id3 (preferred for bulk)
+        // Falls back to single: ?listingId=id1
+        if (req.query.listingIds) {
+            const ids = req.query.listingIds.split(',').map(id => id.trim()).filter(Boolean);
+            filter.listingId = { $in: ids };
+        } else if (req.query.listingId) {
+            filter.listingId = req.query.listingId;
+        }
 
         console.log('[Booking] getBookings - filter:', JSON.stringify(filter));
 
@@ -174,6 +181,10 @@ async function createBooking(req, res) {
         const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
         const pricePerNight = listing?.price || 0;
         const totalPrice = pricePerNight * nights;
+        
+        // Calculate platform fee (15%) and host earnings (85%)
+        const platformFee = Math.round(totalPrice * 0.15);
+        const hostEarnings = totalPrice - platformFee;
 
         // 4. Create booking
         const booking = new Booking({
@@ -188,6 +199,8 @@ async function createBooking(req, res) {
             guests,
             pricePerNight,
             totalPrice,
+            platformFee,
+            hostEarnings,
             status: 'pending',
             payment: { status: 'pending', method: 'simulated' }
         });

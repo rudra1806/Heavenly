@@ -156,21 +156,6 @@
     text-align: center;
 }
 
-.dash-nav-badge {
-    margin-left: auto;
-    background: var(--surface);
-    color: var(--text-dark);
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.15rem 0.5rem;
-    border-radius: 20px;
-}
-
-.dash-nav-item.active .dash-nav-badge {
-    background: rgba(255, 255, 255, 0.2);
-    color: var(--bg-main);
-}
-
 /* ===== Main Content ===== */
 .dash-content {
     min-width: 0;

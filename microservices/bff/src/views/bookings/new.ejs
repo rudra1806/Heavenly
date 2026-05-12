@@ -88,14 +88,14 @@
                         </span> × <span id="nights">0</span> nights</span>
                     <span>₹ <span id="subtotal">0</span></span>
                 </div>
-                <div class="price-item">
-                    <span>Service fee (10%)</span>
-                    <span>₹ <span id="serviceFee">0</span></span>
-                </div>
                 <div class="price-total">
                     <strong>Total</strong>
                     <strong>₹ <span id="totalPrice">0</span></strong>
                 </div>
+                <small style="color: var(--bk-text-muted); font-size: 0.8rem; margin-top: 0.5rem; display: block;">
+                    <i class="fa-solid fa-circle-info" style="color: var(--bk-gold);"></i>
+                    No additional fees. This is the final price you'll pay.
+                </small>
             </div>
 
             <button type="submit" class="btn-book">
@@ -118,12 +118,10 @@
             if (checkIn && checkOut && checkOut > checkIn) {
                 const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
                 const subtotal = nights * pricePerNight;
-                const serviceFee = Math.round(subtotal * 0.10);
-                const total = subtotal + serviceFee;
+                const total = subtotal;
 
                 document.getElementById('nights').textContent = nights;
                 document.getElementById('subtotal').textContent = subtotal.toLocaleString("en-IN");
-                document.getElementById('serviceFee').textContent = serviceFee.toLocaleString("en-IN");
                 document.getElementById('totalPrice').textContent = total.toLocaleString("en-IN");
                 priceBreakdown.style.display = 'block';
             } else {

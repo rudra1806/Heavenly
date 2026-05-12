@@ -86,7 +86,16 @@ async function getDashboard(req, res) {
         const pendingPayments = bookings.filter(b => b.payment?.status === 'pending').length;
         const refundedPayments = bookings.filter(b => b.payment?.status === 'refunded').length;
 
-        // Revenue calculation
+        // Revenue calculation - Platform revenue (15% fee from completed bookings)
+        const platformRevenue = bookings
+            .filter(b => b.payment?.status === 'completed')
+            .reduce((sum, b) => {
+                // Use platformFee if available (new bookings), otherwise calculate 15% (old bookings)
+                const fee = b.platformFee !== undefined ? b.platformFee : Math.round((b.totalPrice || 0) * 0.15);
+                return sum + fee;
+            }, 0);
+        
+        // Total transaction volume (what guests paid)
         const totalRevenue = bookings
             .filter(b => b.payment?.status === 'completed')
             .reduce((sum, b) => sum + (b.totalPrice || 0), 0);
@@ -117,6 +126,7 @@ async function getDashboard(req, res) {
                     paidBookings,
                     pendingPayments,
                     refundedPayments,
+                    platformRevenue,
                     totalRevenue,
                     totalGuests
                 },

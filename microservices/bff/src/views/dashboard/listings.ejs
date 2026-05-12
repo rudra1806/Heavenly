@@ -24,22 +24,8 @@
     <!-- Sidebar + Content Layout -->
     <div class="dash-layout">
         <!-- Sidebar Navigation -->
-        <aside class="dash-sidebar">
-            <nav class="dash-nav">
-                <a href="/dashboard" class="dash-nav-item">
-                    <i class="fa-solid fa-gauge-high"></i>
-                    <span>Overview</span>
-                </a>
-                <a href="/dashboard/bookings" class="dash-nav-item">
-                    <i class="fa-solid fa-suitcase-rolling"></i>
-                    <span>My Bookings</span>
-                </a>
-                <a href="/dashboard/listings" class="dash-nav-item active">
-                    <i class="fa-solid fa-building"></i>
-                    <span>My Listings</span>
-                </a>
-            </nav>
-        </aside>
+        <% locals.activeDash = 'listings'; %>
+        <%- include('../includes/dashboard-sidebar') %>
 
         <!-- Main Content -->
         <div class="dash-content">

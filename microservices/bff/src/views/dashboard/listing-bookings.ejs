@@ -27,22 +27,8 @@
     <!-- Sidebar + Content Layout -->
     <div class="dash-layout">
         <!-- Sidebar Navigation -->
-        <aside class="dash-sidebar">
-            <nav class="dash-nav">
-                <a href="/dashboard" class="dash-nav-item">
-                    <i class="fa-solid fa-gauge-high"></i>
-                    <span>Overview</span>
-                </a>
-                <a href="/dashboard/bookings" class="dash-nav-item">
-                    <i class="fa-solid fa-suitcase-rolling"></i>
-                    <span>My Bookings</span>
-                </a>
-                <a href="/dashboard/listings" class="dash-nav-item active">
-                    <i class="fa-solid fa-building"></i>
-                    <span>My Listings</span>
-                </a>
-            </nav>
-        </aside>
+        <% locals.activeDash = 'listings'; %>
+        <%- include('../includes/dashboard-sidebar') %>
 
         <!-- Main Content -->
         <div class="dash-content">
@@ -104,7 +90,14 @@
                                     <td><%= booking.checkIn.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
                                     <td><%= booking.checkOut.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
                                     <td><%= booking.guests %></td>
-                                    <td>₹<%= booking.totalPrice.toLocaleString("en-IN") %></td>
+                                    <td>
+                                        ₹<%= booking.totalPrice.toLocaleString("en-IN") %>
+                                        <% if (booking.hostEarnings !== undefined) { %>
+                                            <br><small style="color: #2d8a5e;">You earn: ₹<%= booking.hostEarnings.toLocaleString("en-IN") %></small>
+                                        <% } else { %>
+                                            <br><small style="color: #2d8a5e;">You earn: ₹<%= Math.round(booking.totalPrice * 0.85).toLocaleString("en-IN") %></small>
+                                        <% } %>
+                                    </td>
                                     <td>
                                         <span class="dash-badge dash-badge-<%= booking.paymentStatus %>">
                                             <%= booking.paymentStatus === 'completed' ? 'paid' : booking.paymentStatus %>
@@ -165,7 +158,14 @@
                                 </div>
                                 <div class="dash-guest-card-row">
                                     <span><i class="fa-solid fa-indian-rupee-sign"></i> Total</span>
-                                    <strong>₹<%= booking.totalPrice.toLocaleString("en-IN") %></strong>
+                                    <div>
+                                        <strong>₹<%= booking.totalPrice.toLocaleString("en-IN") %></strong>
+                                        <% if (booking.hostEarnings !== undefined) { %>
+                                            <br><small style="color: #2d8a5e;">You earn: ₹<%= booking.hostEarnings.toLocaleString("en-IN") %></small>
+                                        <% } else { %>
+                                            <br><small style="color: #2d8a5e;">You earn: ₹<%= Math.round(booking.totalPrice * 0.85).toLocaleString("en-IN") %></small>
+                                        <% } %>
+                                    </div>
                                 </div>
                                 <div class="dash-guest-card-row">
                                     <span><i class="fa-solid fa-credit-card"></i> Payment</span>
