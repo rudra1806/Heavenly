@@ -40,45 +40,9 @@ Heavenly is a full-featured property rental platform built with microservices ar
 
 ## 🏗️ Architecture
 
-### High-Level System Design
+Heavenly is composed of 8 independent microservices, an API Gateway, and a Backend-for-Frontend (BFF). It uses RabbitMQ for event-driven asynchronous communication and MongoDB for per-service data storage.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Client (Browser)                             │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │ HTTP/HTML
-                             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                    BFF Service (:8080)                               │
-│         Express + EJS Templates + Session Management                 │
-│         Renders HTML, translates session → JWT for API calls         │
-└────────────────────────────┬────────────────────────────────────────┘
-                             │ HTTP/JSON + JWT
-                             ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     API Gateway (:3000)                              │
-│         JWT Validation · Rate Limiting · Request Routing             │
-│              Centralized entry point for all services                │
-└───┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬───────────────┘
-    │      │      │      │      │      │      │      │
-    ▼      ▼      ▼      ▼      ▼      ▼      ▼      ▼
- ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐
- │ Auth ││ List ││Review││ Book ││Media ││Search││Admin │
- │:3001 ││:3002 ││:3003 ││:3004 ││:3005 ││:3006 ││:3007 │
- └──┬───┘└──┬───┘└──┬───┘└──┬───┘└──┬───┘└──┬───┘└──────┘
-    │       │       │       │       │       │
-    ▼       ▼       ▼       ▼       ▼       ▼
- ┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐┌──────┐
- │ Auth ││ List ││Review││ Book ││Cloud-││ Redis │
- │  DB  ││  DB  ││  DB  ││  DB  ││inary ││ Cache │
- └──────┘└──────┘└──────┘└──────┘└──────┘└──────┘
-
-              ┌────────────────────────┐
-              │   RabbitMQ (:5672)     │
-              │   Event Bus (Async)    │
-              │   Topic Exchange       │
-              └────────────────────────┘
-```
+👉 **For the complete system design, sequence diagrams, and service deep-dives, please read the [Architecture Guide](./ARCHITECTURE.md).**
 
 ---
 
@@ -344,26 +308,9 @@ Heavenly/
 
 ## 🔄 Communication Patterns
 
-### Synchronous (HTTP/REST)
-- BFF → API Gateway → Services
-- Inter-service calls for immediate responses
-- Used for: Authentication, data fetching, validation
+The system utilizes both synchronous REST APIs (via the API Gateway) and asynchronous event-driven communication (via RabbitMQ) for cascade operations like user deletion.
 
-### Asynchronous (RabbitMQ Events)
-- Event-driven cascade operations
-- Eventual consistency model
-- Used for: User deletion, listing deletion, notifications
-
-### Event Catalog
-
-| Event | Publisher | Consumers | Purpose |
-|-------|-----------|-----------|---------|
-| `user.deleted` | Auth Service | Listing, Review, Booking | Cascade delete user data |
-| `listing.created` | Listing Service | Search | Add to search index |
-| `listing.updated` | Listing Service | Search | Update search index |
-| `listing.deleted` | Listing Service | Review, Booking, Search | Cascade delete + remove from index |
-| `booking.created` | Booking Service | — | Future: Notification service |
-| `booking.payment.completed` | Booking Service | — | Future: Analytics service |
+👉 **See the [Architecture Guide](./ARCHITECTURE.md#communication-patterns) for detailed sequence diagrams and the full Event Catalog.**
 
 ---
 
@@ -439,26 +386,9 @@ docker-compose logs --tail=100 booking-service
 
 ## 🚀 Deployment
 
-### Production Considerations
+The project is fully containerized and production-ready.
 
-1. **Environment Variables**: Use secrets management (AWS Secrets Manager, HashiCorp Vault)
-2. **Database**: Use managed MongoDB (MongoDB Atlas, AWS DocumentDB)
-3. **Message Broker**: Use managed RabbitMQ (CloudAMQP, AWS MQ)
-4. **Cache**: Use managed Redis (AWS ElastiCache, Redis Cloud)
-5. **Container Orchestration**: Kubernetes or AWS ECS
-6. **Load Balancing**: AWS ALB, NGINX, or Traefik
-7. **Monitoring**: Prometheus + Grafana, Datadog, or New Relic
-8. **Logging**: ELK Stack, Splunk, or CloudWatch
-
-### Docker Compose Production
-
-```bash
-# Use production compose file
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# Scale specific services
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d --scale listing-service=3
-```
+👉 **See the [Architecture Guide](./ARCHITECTURE.md#deployment) for production considerations, secrets management, and Kubernetes deployment examples.**
 
 ---
 
