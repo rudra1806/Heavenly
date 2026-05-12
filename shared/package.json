@@ -1,0 +1,12 @@
+{
+  "name": "@heavenly/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities for Heavenly microservices",
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "jsonwebtoken": "^9.0.2",
+    "redis": "^4.7.0"
+  }
+}

@@ -1,0 +1,251 @@
+<% layout('/layouts/boilerplate') -%>
+
+<div class="dash-panel">
+    <!-- Dashboard Header -->
+    <div class="dash-header">
+        <div class="dash-header-content">
+            <div class="dash-title-group">
+                <a href="/dashboard" class="dash-back-link">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1 class="dash-title">Bookings Received</h1>
+                    <p class="dash-subtitle">All bookings on your listings</p>
+                </div>
+            </div>
+            <div class="dash-quick-actions">
+                <a href="/dashboard" class="dash-quick-btn">
+                    <i class="fa-solid fa-gauge-high"></i> Dashboard
+                </a>
+                <a href="/dashboard/listings" class="dash-quick-btn">
+                    <i class="fa-solid fa-building"></i> My Listings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar + Content Layout -->
+    <div class="dash-layout">
+        <!-- Sidebar Navigation -->
+        <% locals.activeDash = 'host-bookings'; %>
+        <%- include('../includes/dashboard-sidebar') %>
+
+        <!-- Main Content -->
+        <div class="dash-content">
+            <% if (bookings.length === 0) { %>
+                <div class="dash-empty-state-lg">
+                    <div class="dash-empty-icon">
+                        <i class="fa-solid fa-calendar-xmark"></i>
+                    </div>
+                    <h3>No bookings received yet</h3>
+                    <p>When guests book your listings, they will appear here.</p>
+                    <a href="/dashboard/listings" class="dash-quick-btn dash-quick-btn-primary" style="margin-top: 1rem;">
+                        <i class="fa-solid fa-building"></i> View My Listings
+                    </a>
+                </div>
+            <% } else { %>
+                <!-- Summary Stats -->
+                <div class="dash-stats" style="margin-bottom: 2rem;">
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(86, 84, 73, 0.1); color: var(--secondary);">
+                            <i class="fa-solid fa-calendar-check"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <h3 class="dash-stat-number"><%= bookings.length %></h3>
+                            <p class="dash-stat-label">Total Bookings</p>
+                        </div>
+                    </div>
+
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(45, 138, 94, 0.1); color: #2d8a5e;">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <h3 class="dash-stat-number"><%= bookings.filter(b => b.bookingStatus === 'confirmed').length %></h3>
+                            <p class="dash-stat-label">Active Bookings</p>
+                        </div>
+                    </div>
+
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(194, 168, 109, 0.15); color: #C2A86D;">
+                            <i class="fa-solid fa-indian-rupee-sign"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <% 
+                                const totalEarnings = bookings
+                                    .filter(b => b.bookingStatus === 'confirmed' || b.bookingStatus === 'completed')
+                                    .reduce((sum, b) => {
+                                        const earnings = b.hostEarnings !== undefined ? b.hostEarnings : Math.round(b.totalPrice * 0.85);
+                                        return sum + earnings;
+                                    }, 0);
+                            %>
+                            <h3 class="dash-stat-number">₹<%= totalEarnings.toLocaleString("en-IN") %></h3>
+                            <p class="dash-stat-label">Total Earnings</p>
+                            <small style="color: var(--text-muted);">After 15% platform fee</small>
+                        </div>
+                    </div>
+
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(86, 84, 73, 0.1); color: var(--secondary);">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <% 
+                                const totalGuests = bookings
+                                    .filter(b => b.bookingStatus !== 'cancelled')
+                                    .reduce((sum, b) => sum + (b.guests || 0), 0);
+                            %>
+                            <h3 class="dash-stat-number"><%= totalGuests %></h3>
+                            <p class="dash-stat-label">Total Guests</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bookings Table -->
+                <div class="dash-table-wrapper">
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Listing</th>
+                                <th>Guest</th>
+                                <th>Email</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Guests</th>
+                                <th>Total Price</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% bookings.forEach(booking => { %>
+                                <tr class="<%= booking.bookingStatus === 'cancelled' ? 'dash-row-cancelled' : '' %>">
+                                    <td>
+                                        <div class="dash-listing-cell">
+                                            <img src="<%= booking.listing.image.url %>" alt="<%= booking.listing.title %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 0.75rem;">
+                                            <div>
+                                                <strong><a href="/listings/<%= booking.listing._id %>" style="color: inherit; text-decoration: none;"><%= booking.listing.title %></a></strong>
+                                                <br><small style="color: var(--text-muted);"><%= booking.listing.location %></small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="dash-guest-info">
+                                            <div class="dash-guest-avatar">
+                                                <%= (booking.guestUsername || 'G').charAt(0).toUpperCase() %>
+                                            </div>
+                                            <strong><%= booking.guestUsername || 'Guest' %></strong>
+                                        </div>
+                                    </td>
+                                    <td><%= booking.guestEmail || 'N/A' %></td>
+                                    <td><%= booking.checkIn.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
+                                    <td><%= booking.checkOut.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></td>
+                                    <td><%= booking.guests %></td>
+                                    <td>
+                                        ₹<%= booking.totalPrice.toLocaleString("en-IN") %>
+                                        <% if (booking.bookingStatus === 'confirmed' || booking.bookingStatus === 'completed') { %>
+                                            <% if (booking.hostEarnings !== undefined) { %>
+                                                <br><small style="color: #2d8a5e;">You earn: ₹<%= booking.hostEarnings.toLocaleString("en-IN") %></small>
+                                            <% } else { %>
+                                                <br><small style="color: #2d8a5e;">You earn: ₹<%= Math.round(booking.totalPrice * 0.85).toLocaleString("en-IN") %></small>
+                                            <% } %>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <span class="dash-badge dash-badge-<%= booking.paymentStatus %>">
+                                            <%= booking.paymentStatus === 'completed' ? 'paid' : booking.paymentStatus %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="dash-badge dash-badge-<%= booking.bookingStatus %>">
+                                            <%= booking.bookingStatus %>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <% if (booking.bookingStatus === 'confirmed') { %>
+                                            <form action="/dashboard/host-bookings/<%= booking._id %>/cancel" method="POST" style="display: inline;" onsubmit="return confirm('Cancel this guest\'s booking? They will be notified.');">
+                                                <button type="submit" class="dash-btn-sm dash-btn-danger">
+                                                    <i class="fa-solid fa-xmark"></i> Cancel
+                                                </button>
+                                            </form>
+                                        <% } else { %>
+                                            <span style="color: var(--text-muted); font-size: 0.8rem;">—</span>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                            <% }); %>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile view: Card layout for small screens -->
+                <div class="dash-booking-cards-mobile">
+                    <% bookings.forEach(booking => { %>
+                        <div class="dash-guest-card <%= booking.bookingStatus === 'cancelled' ? 'dash-guest-card-cancelled' : '' %>">
+                            <div class="dash-guest-card-header">
+                                <div class="dash-listing-cell">
+                                    <img src="<%= booking.listing.image.url %>" alt="<%= booking.listing.title %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 0.75rem;">
+                                    <div>
+                                        <strong><a href="/listings/<%= booking.listing._id %>" style="color: inherit; text-decoration: none;"><%= booking.listing.title %></a></strong>
+                                        <br><small style="color: var(--text-muted);"><%= booking.listing.location %></small>
+                                    </div>
+                                </div>
+                                <span class="dash-badge dash-badge-<%= booking.bookingStatus %>"><%= booking.bookingStatus %></span>
+                            </div>
+                            <div class="dash-guest-card-body">
+                                <div class="dash-guest-card-row">
+                                    <span><i class="fa-solid fa-user"></i> Guest</span>
+                                    <div>
+                                        <strong><%= booking.guestUsername || 'Guest' %></strong>
+                                        <br><small style="color: var(--text-muted);"><%= booking.guestEmail || 'N/A' %></small>
+                                    </div>
+                                </div>
+                                <div class="dash-guest-card-row">
+                                    <span><i class="fa-solid fa-calendar-check"></i> Check-in</span>
+                                    <strong><%= booking.checkIn.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></strong>
+                                </div>
+                                <div class="dash-guest-card-row">
+                                    <span><i class="fa-solid fa-calendar-xmark"></i> Check-out</span>
+                                    <strong><%= booking.checkOut.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %></strong>
+                                </div>
+                                <div class="dash-guest-card-row">
+                                    <span><i class="fa-solid fa-users"></i> Guests</span>
+                                    <strong><%= booking.guests %></strong>
+                                </div>
+                                <div class="dash-guest-card-row">
+                                    <span><i class="fa-solid fa-indian-rupee-sign"></i> Total</span>
+                                    <div>
+                                        <strong>₹<%= booking.totalPrice.toLocaleString("en-IN") %></strong>
+                                        <% if (booking.bookingStatus === 'confirmed' || booking.bookingStatus === 'completed') { %>
+                                            <% if (booking.hostEarnings !== undefined) { %>
+                                                <br><small style="color: #2d8a5e;">You earn: ₹<%= booking.hostEarnings.toLocaleString("en-IN") %></small>
+                                            <% } else { %>
+                                                <br><small style="color: #2d8a5e;">You earn: ₹<%= Math.round(booking.totalPrice * 0.85).toLocaleString("en-IN") %></small>
+                                            <% } %>
+                                        <% } %>
+                                    </div>
+                                </div>
+                                <div class="dash-guest-card-row">
+                                    <span><i class="fa-solid fa-credit-card"></i> Payment</span>
+                                    <span class="dash-badge dash-badge-<%= booking.paymentStatus %>">
+                                        <%= booking.paymentStatus === 'completed' ? 'paid' : booking.paymentStatus %>
+                                    </span>
+                                </div>
+                            </div>
+                            <% if (booking.bookingStatus === 'confirmed') { %>
+                                <div class="dash-guest-card-footer">
+                                    <form action="/dashboard/host-bookings/<%= booking._id %>/cancel" method="POST" onsubmit="return confirm('Cancel this guest\'s booking? They will be notified.');">
+                                        <button type="submit" class="dash-btn-sm dash-btn-danger" style="width: 100%;">
+                                            <i class="fa-solid fa-xmark"></i> Cancel Booking
+                                        </button>
+                                    </form>
+                                </div>
+                            <% } %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>

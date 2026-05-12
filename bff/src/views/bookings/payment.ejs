@@ -1,0 +1,289 @@
+<% layout('/layouts/boilerplate') -%>
+
+    <div class="payment-container">
+        <!-- Progress Stepper -->
+        <div class="booking-stepper">
+            <div class="step completed">
+                <div class="step-number"><i class="fa-solid fa-check" style="font-size: 0.7rem;"></i></div>
+                <span class="step-label">Details</span>
+            </div>
+            <div class="step-line completed"></div>
+            <div class="step active">
+                <div class="step-number">2</div>
+                <span class="step-label">Payment</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <span class="step-label">Confirmed</span>
+            </div>
+        </div>
+
+        <h2>Complete Your Payment</h2>
+
+        <div class="payment-layout">
+            <!-- Left Panel: Booking Details -->
+            <div class="payment-details-panel">
+                <h3><i class="fa-solid fa-receipt"></i> Booking Summary</h3>
+
+                <div class="payment-property-card">
+                    <img src="<%= booking.listing.image.url %>" alt="<%= booking.listing.title %>">
+                    <div class="payment-property-info">
+                        <h4>
+                            <%= booking.listing.title %>
+                        </h4>
+                        <p><i class="fa-solid fa-location-dot"></i>
+                            <%= booking.listing.location %>, <%= booking.listing.country %>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-calendar-check"></i> Check-in</span>
+                    <strong>
+                        <%= booking.checkIn.toLocaleDateString('en-IN', { weekday: 'short' , month: 'short' ,
+                            day: 'numeric' }) %>
+                    </strong>
+                </div>
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-calendar-xmark"></i> Check-out</span>
+                    <strong>
+                        <%= booking.checkOut.toLocaleDateString('en-IN', { weekday: 'short' , month: 'short' ,
+                            day: 'numeric' }) %>
+                    </strong>
+                </div>
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-users"></i> Guests</span>
+                    <strong>
+                        <%= booking.guests %>
+                            <%= booking.guests===1 ? 'Guest' : 'Guests' %>
+                    </strong>
+                </div>
+                <div class="detail-row">
+                    <span><i class="fa-solid fa-moon"></i> Duration</span>
+                    <strong>
+                        <%= Math.ceil((booking.checkOut - booking.checkIn) / (1000 * 60 * 60 * 24)) %> Nights
+                    </strong>
+                </div>
+                <div class="detail-row total">
+                    <span>Total Amount</span>
+                    <strong>₹ <%= booking.totalPrice.toLocaleString("en-IN") %></strong>
+                </div>
+            </div>
+
+            <!-- Right Panel: Payment Action -->
+            <div class="payment-action-panel">
+                <!-- Default state: Pay button -->
+                <div id="paymentDefault">
+                    <h3><i class="fa-solid fa-shield-halved"></i> Secure Payment</h3>
+
+                    <div class="payment-notice info">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <div>
+                            <strong>Secure Payment</strong> — Your payment is processed securely through Razorpay. If Razorpay is not configured, the system will use simulation mode for testing.
+                        </div>
+                    </div>
+
+                    <div class="security-badges">
+                        <div class="security-badge">
+                            <i class="fa-solid fa-lock"></i>
+                            256-bit SSL
+                        </div>
+                        <div class="security-badge">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Secure Checkout
+                        </div>
+                        <div class="security-badge">
+                            <i class="fa-solid fa-credit-card"></i>
+                            Razorpay Enabled
+                        </div>
+                    </div>
+
+                    <button type="button" id="payButton" class="btn-pay" onclick="processPayment()">
+                        <span class="btn-shimmer"></span>
+                        <i class="fa-solid fa-lock"></i>
+                        Pay ₹ <%= booking.totalPrice.toLocaleString("en-IN") %>
+                    </button>
+
+                    <p class="payment-footer-text">
+                        <i class="fa-solid fa-shield-check"></i>
+                        Your payment information is encrypted and secure
+                    </p>
+                </div>
+
+                <!-- Processing state -->
+                <div id="paymentProcessing" class="payment-processing">
+                    <div class="processing-spinner"></div>
+                    <h4>Processing Payment...</h4>
+                    <p>Please wait while we confirm your transaction</p>
+                </div>
+
+                <!-- Success state -->
+                <div id="paymentSuccess" class="payment-success">
+                    <div class="success-icon-wrapper">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h4>Payment Successful!</h4>
+                    <p>Your booking has been confirmed</p>
+                    <div class="payment-id" id="paymentIdDisplay"></div>
+                    <a href="#" id="viewBookingLink" class="btn-view-booking">
+                        <i class="fa-solid fa-arrow-right"></i>
+                        View Booking
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        async function processPayment() {
+            const payButton = document.getElementById('payButton');
+            const defaultState = document.getElementById('paymentDefault');
+            const processingState = document.getElementById('paymentProcessing');
+            const successState = document.getElementById('paymentSuccess');
+
+            // Disable button
+            payButton.disabled = true;
+
+            // Show processing
+            defaultState.style.display = 'none';
+            processingState.classList.add('visible');
+
+            try {
+                // Send payment request to create Razorpay order
+                const response = await fetch('/bookings/<%= booking._id %>/payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Payment initiation failed');
+                }
+
+                // Check if Razorpay is enabled
+                if (data.razorpay && data.orderId) {
+                    // Initialize Razorpay checkout
+                    const options = {
+                        key: data.keyId,
+                        amount: data.amount,
+                        currency: data.currency,
+                        name: 'Heavenly',
+                        description: 'Booking Payment',
+                        order_id: data.orderId,
+                        handler: async function (razorpayResponse) {
+                            // Payment successful, verify on backend
+                            try {
+                                const verifyResponse = await fetch('/bookings/<%= booking._id %>/verify-payment', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        razorpay_order_id: razorpayResponse.razorpay_order_id,
+                                        razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                                        razorpay_signature: razorpayResponse.razorpay_signature
+                                    })
+                                });
+
+                                const verifyData = await verifyResponse.json();
+
+                                if (verifyData.success) {
+                                    // Show success
+                                    processingState.classList.remove('visible');
+                                    successState.classList.add('visible');
+
+                                    // Set payment ID
+                                    document.getElementById('paymentIdDisplay').textContent = 'Payment ID: ' + verifyData.paymentId;
+                                    document.getElementById('viewBookingLink').href = '/bookings/' + verifyData.bookingId;
+
+                                    // Show confetti
+                                    createConfetti();
+                                } else {
+                                    throw new Error(verifyData.error || 'Payment verification failed');
+                                }
+                            } catch (verifyErr) {
+                                alert('Payment verification failed: ' + verifyErr.message);
+                                window.location.reload();
+                            }
+                        },
+                        prefill: {
+                            name: '<%= locals.currentUser?.username || "" %>',
+                            email: '<%= locals.currentUser?.email || "" %>'
+                        },
+                        theme: {
+                            color: '#C2A86D'
+                        },
+                        modal: {
+                            ondismiss: function() {
+                                // User closed the payment modal
+                                processingState.classList.remove('visible');
+                                defaultState.style.display = 'block';
+                                payButton.disabled = false;
+                            }
+                        }
+                    };
+
+                    const razorpay = new Razorpay(options);
+                    
+                    razorpay.on('payment.failed', function (response) {
+                        alert('Payment failed: ' + response.error.description);
+                        processingState.classList.remove('visible');
+                        defaultState.style.display = 'block';
+                        payButton.disabled = false;
+                    });
+
+                    // Hide processing and open Razorpay modal
+                    processingState.classList.remove('visible');
+                    razorpay.open();
+                } else {
+                    // Simulated payment completed
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    // Show success
+                    processingState.classList.remove('visible');
+                    successState.classList.add('visible');
+
+                    // Set payment ID
+                    document.getElementById('paymentIdDisplay').textContent = 'Payment ID: ' + data.paymentId;
+                    document.getElementById('viewBookingLink').href = '/bookings/' + data.bookingId;
+
+                    // Show confetti
+                    createConfetti();
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                alert('Payment failed: ' + error.message);
+                // Reset to default state
+                processingState.classList.remove('visible');
+                defaultState.style.display = 'block';
+                payButton.disabled = false;
+            }
+        }
+
+        function createConfetti() {
+            const container = document.createElement('div');
+            container.className = 'confetti-container';
+            document.body.appendChild(container);
+
+            const colors = ['#C2A86D', '#D4B87A', '#565449', '#2d8a5e', '#E5C98B', '#8B7D5B'];
+
+            for (let i = 0; i < 75; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + '%';
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDelay = Math.random() * 2 + 's';
+                piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+                piece.style.width = (6 + Math.random() * 8) + 'px';
+                piece.style.height = (6 + Math.random() * 8) + 'px';
+                container.appendChild(piece);
+            }
+
+            setTimeout(() => container.remove(), 5000);
+        }
+    </script>

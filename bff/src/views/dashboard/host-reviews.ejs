@@ -1,0 +1,223 @@
+<% layout('/layouts/boilerplate') -%>
+
+<div class="dash-panel">
+    <!-- Dashboard Header -->
+    <div class="dash-header">
+        <div class="dash-header-content">
+            <div class="dash-title-group">
+                <a href="/dashboard" class="dash-back-link">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1 class="dash-title">Reviews Received</h1>
+                    <p class="dash-subtitle">All reviews on your listings</p>
+                </div>
+            </div>
+            <div class="dash-quick-actions">
+                <a href="/dashboard" class="dash-quick-btn">
+                    <i class="fa-solid fa-gauge-high"></i> Dashboard
+                </a>
+                <a href="/dashboard/listings" class="dash-quick-btn">
+                    <i class="fa-solid fa-building"></i> My Listings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar + Content Layout -->
+    <div class="dash-layout">
+        <!-- Sidebar Navigation -->
+        <% locals.activeDash = 'host-reviews'; %>
+        <%- include('../includes/dashboard-sidebar') %>
+
+        <!-- Main Content -->
+        <div class="dash-content">
+            <% if (reviews.length === 0) { %>
+                <div class="dash-empty-state-lg">
+                    <div class="dash-empty-icon">
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+                    <h3>No reviews yet</h3>
+                    <p>When guests leave reviews on your listings, they will appear here.</p>
+                    <a href="/dashboard/listings" class="dash-quick-btn dash-quick-btn-primary" style="margin-top: 1rem;">
+                        <i class="fa-solid fa-building"></i> View My Listings
+                    </a>
+                </div>
+            <% } else { %>
+                <!-- Summary Stats -->
+                <div class="dash-stats" style="margin-bottom: 2rem;">
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(86, 84, 73, 0.1); color: var(--secondary);">
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <h3 class="dash-stat-number"><%= reviews.length %></h3>
+                            <p class="dash-stat-label">Total Reviews</p>
+                        </div>
+                    </div>
+
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(194, 168, 109, 0.15); color: #C2A86D;">
+                            <i class="fa-solid fa-star-half-stroke"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <% 
+                                const avgRating = reviews.length > 0 
+                                    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+                                    : 0;
+                            %>
+                            <h3 class="dash-stat-number"><%= avgRating %> <i class="fa-solid fa-star" style="font-size: 1rem; color: #C2A86D;"></i></h3>
+                            <p class="dash-stat-label">Average Rating</p>
+                        </div>
+                    </div>
+
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(45, 138, 94, 0.1); color: #2d8a5e;">
+                            <i class="fa-solid fa-thumbs-up"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <% const fiveStarReviews = reviews.filter(r => r.rating === 5).length; %>
+                            <h3 class="dash-stat-number"><%= fiveStarReviews %></h3>
+                            <p class="dash-stat-label">5-Star Reviews</p>
+                        </div>
+                    </div>
+
+                    <div class="dash-stat-card">
+                        <div class="dash-stat-icon" style="background: rgba(86, 84, 73, 0.1); color: var(--secondary);">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+                        <div class="dash-stat-info">
+                            <% 
+                                const uniqueListings = new Set(reviews.map(r => r.listingId)).size;
+                            %>
+                            <h3 class="dash-stat-number"><%= uniqueListings %></h3>
+                            <p class="dash-stat-label">Listings Reviewed</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reviews List -->
+                <div class="dash-reviews-list">
+                    <% reviews.forEach(review => { %>
+                        <div class="dash-review-card">
+                            <div class="dash-review-header">
+                                <div class="dash-listing-cell">
+                                    <img src="<%= review.listing.image.url %>" alt="<%= review.listing.title %>" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 1rem;">
+                                    <div>
+                                        <strong style="font-size: 1.1rem;"><%= review.listing.title %></strong>
+                                        <br><small style="color: var(--text-muted);"><i class="fa-solid fa-location-dot"></i> <%= review.listing.location %></small>
+                                    </div>
+                                </div>
+                                <div class="dash-review-rating">
+                                    <% for (let i = 0; i < 5; i++) { %>
+                                        <% if (i < review.rating) { %>
+                                            <i class="fa-solid fa-star" style="color: #C2A86D;"></i>
+                                        <% } else { %>
+                                            <i class="fa-regular fa-star" style="color: #ddd;"></i>
+                                        <% } %>
+                                    <% } %>
+                                    <span style="margin-left: 0.5rem; font-weight: 600; color: var(--secondary);"><%= review.rating %>/5</span>
+                                </div>
+                            </div>
+                            
+                            <div class="dash-review-body">
+                                <p style="color: var(--text); line-height: 1.6; margin: 0;">
+                                    "<%= review.comment %>"
+                                </p>
+                            </div>
+
+                            <div class="dash-review-footer">
+                                <div class="dash-review-author">
+                                    <div class="dash-guest-avatar" style="width: 32px; height: 32px; font-size: 0.9rem;">
+                                        <%= (review.authorUsername || 'G').charAt(0).toUpperCase() %>
+                                    </div>
+                                    <span style="font-weight: 500; color: var(--secondary);">
+                                        <%= review.authorUsername || 'Guest' %>
+                                    </span>
+                                </div>
+                                <small style="color: var(--text-muted);">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <%= review.createdAt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }) %>
+                                </small>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<style>
+.dash-reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.dash-review-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+}
+
+.dash-review-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+}
+
+.dash-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.dash-review-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.dash-review-body {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.dash-review-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dash-review-author {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dash-listing-cell {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .dash-review-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .dash-review-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
+</style>

@@ -1,0 +1,28 @@
+# =============================================
+# Heavenly Microservices — Docker Build Ignore
+# =============================================
+
+# Node modules — CRITICAL: prevents macOS native binaries
+# (e.g., bcrypt arm64) from overwriting Alpine-compiled ones
+**/node_modules
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (not needed inside containers)
+docker-compose*.yml
+.dockerignore
+
+# Scripts (run on host, not in service containers)
+scripts/

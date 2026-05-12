@@ -1,0 +1,101 @@
+<% layout('/layouts/boilerplate') -%>
+
+<div class="dash-panel">
+    <!-- Dashboard Header -->
+    <div class="dash-header">
+        <div class="dash-header-content">
+            <div class="dash-title-group">
+                <a href="/dashboard" class="dash-back-link">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
+                <div>
+                    <h1 class="dash-title">My Listings</h1>
+                    <p class="dash-subtitle">Manage your properties</p>
+                </div>
+            </div>
+            <div class="dash-quick-actions">
+                <a href="/listings/new" class="dash-quick-btn dash-quick-btn-primary">
+                    <i class="fa-solid fa-plus"></i> Create New Listing
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar + Content Layout -->
+    <div class="dash-layout">
+        <!-- Sidebar Navigation -->
+        <% locals.activeDash = 'listings'; %>
+        <%- include('../includes/dashboard-sidebar') %>
+
+        <!-- Main Content -->
+        <div class="dash-content">
+            <% if (listingData.length === 0) { %>
+                <div class="dash-empty-state-lg">
+                    <div class="dash-empty-icon">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+                    <h3>No listings yet</h3>
+                    <p>Start hosting by creating your first property listing!</p>
+                    <a href="/listings/new" class="dash-btn-primary">
+                        <i class="fa-solid fa-plus"></i> Create Listing
+                    </a>
+                </div>
+            <% } else { %>
+                <div class="dash-listings-grid">
+                    <% listingData.forEach(({ listing, bookingCount, reviewCount }) => { %>
+                        <div class="dash-listing-card <%= !listing.isAvailable ? 'dash-listing-inactive' : '' %>">
+                            <div class="dash-listing-img">
+                                <img src="<%= listing.image.url %>" alt="<%= listing.title %>">
+                                <% if (!listing.isAvailable) { %>
+                                    <div class="dash-unavailable-overlay">
+                                        <span>Unavailable</span>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <div class="dash-listing-body">
+                                <div class="dash-listing-top">
+                                    <h4>
+                                        <a href="/listings/<%= listing._id %>"><%= listing.title %></a>
+                                    </h4>
+                                    <div class="dash-listing-status">
+                                        <form action="/dashboard/listings/<%= listing._id %>/toggle-availability" method="POST">
+                                            <button type="submit" class="dash-toggle-btn <%= listing.isAvailable ? 'dash-toggle-active' : 'dash-toggle-inactive' %>" title="<%= listing.isAvailable ? 'Mark Unavailable' : 'Mark Available' %>">
+                                                <span class="dash-toggle-track">
+                                                    <span class="dash-toggle-thumb"></span>
+                                                </span>
+                                                <span class="dash-toggle-label"><%= listing.isAvailable ? 'Active' : 'Inactive' %></span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <p class="dash-listing-location">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <%= listing.location %>, <%= listing.country %>
+                                </p>
+                                <div class="dash-listing-stats">
+                                    <span><i class="fa-solid fa-indian-rupee-sign"></i> <%= listing.price.toLocaleString("en-IN") %>/night</span>
+                                    <span><i class="fa-solid fa-users"></i> Max <%= listing.maxGuests || 4 %> guests</span>
+                                    <span><i class="fa-solid fa-star"></i> <%= reviewCount %> reviews</span>
+                                    <span><i class="fa-solid fa-calendar-check"></i> <%= bookingCount %> bookings</span>
+                                </div>
+                                <div class="dash-listing-actions">
+                                    <a href="/dashboard/listings/<%= listing._id %>/bookings" class="dash-btn-sm dash-btn-outline">
+                                        <i class="fa-solid fa-users"></i> Guest Bookings
+                                    </a>
+                                    <a href="/listings/<%= listing._id %>/edit" class="dash-btn-sm dash-btn-outline">
+                                        <i class="fa-solid fa-pen"></i> Edit
+                                    </a>
+                                    <form action="/listings/<%= listing._id %>?_method=DELETE" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this listing? This action cannot be undone.');">
+                                        <button type="submit" class="dash-btn-sm dash-btn-danger">
+                                            <i class="fa-solid fa-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
