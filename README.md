@@ -417,7 +417,7 @@ No Kubernetes, Helm, Terraform, Pulumi, or CI/CD configuration was found during 
 
 ## 📚 Documentation
 
-The generated docs are kept in [`docs/`](docs/):
+The project docs are kept in [`docs/`](docs/):
 
 | Topic | File |
 |-------|------|

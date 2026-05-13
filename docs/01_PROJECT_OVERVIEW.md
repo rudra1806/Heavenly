@@ -6,7 +6,6 @@ Heavenly is a server-rendered listing and booking application built from several
 
 Evidence: `bff/src/views/`, `gateway/src/proxy.js`, `services/*/src/routes/*.js`, `services/*/src/models/*.js`, and `docker-compose.yml`.
 
-✅ CHECKPOINT: 1.1 — What This System Does complete. Proceeding to 1.2 — Business Purpose.
 
 ### 1.2 — Business Purpose
 
@@ -23,7 +22,6 @@ Users evidenced in the repository:
 
 Without this system, the repository's implemented workflows for listing management, booking creation, payment handling, reviews, media upload, search/geocoding, and admin aggregation would not have an application surface or service layer.
 
-✅ CHECKPOINT: 1.2 — Business Purpose complete. Proceeding to 1.3 — Core Features.
 
 ### 1.3 — Core Features
 
@@ -44,7 +42,6 @@ Without this system, the repository's implemented workflows for listing manageme
 | Admin aggregation APIs and pages | `services/admin-service/src/routes/admin.js`, `services/admin-service/src/controllers/admin.js`, `bff/src/routes/admin.js`, `bff/src/views/admin/` |
 | Migration, seed, backup, restore, and smoke-test scripts | `scripts/migrate.js`, `scripts/seed-microservices.js`, `scripts/backup-data.sh`, `scripts/restore-data.sh`, `scripts/smoke-test.js`, `Makefile` |
 
-✅ CHECKPOINT: 1.3 — Core Features complete. Proceeding to 1.4 — Tech Stack Table.
 
 ### 1.4 — Tech Stack Table
 
@@ -71,7 +68,6 @@ Without this system, the repository's implemented workflows for listing manageme
 | Rate limiting | express-rate-limit | `^7.5.0` | Gateway-level request limiting |
 | Local orchestration | Docker Compose | Compose files present | Runs infrastructure and service containers locally |
 
-✅ CHECKPOINT: 1.4 — Tech Stack Table complete. Proceeding to 1.5 — High-Level Architecture Diagram.
 
 ### 1.5 — High-Level Architecture Diagram
 
@@ -107,7 +103,6 @@ graph TD
 
 Evidence: `docker-compose.yml`, `gateway/src/proxy.js`, `bff/src/index.js`, `services/*/src/index.js`, `services/media-service/src/controllers/media.js`, `services/booking-service/src/utils/razorpay.js`, `services/search-service/src/controllers/search.js`, and `shared/events/broker.js`.
 
-✅ CHECKPOINT: 1.5 — High-Level Architecture Diagram complete. Proceeding to 1.6 — What This Project Does NOT Include.
 
 ### 1.6 — What This Project Does NOT Include
 
@@ -129,4 +124,3 @@ This project does not currently include:
 | Formal test suite | No `*.spec.*`, `*.test.*`, `tests/`, or framework test config found; only `scripts/smoke-test.js` was found |
 | Formal workspace tooling | No root `package.json`, npm workspaces, `turbo.json`, pnpm workspace, or yarn workspace config found |
 
-✅ CHECKPOINT: 1.6 — What This Project Does NOT Include complete. Proceeding to stop as instructed.

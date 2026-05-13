@@ -1,20 +1,3 @@
-SECTION: Troubleshooting
-FILE: 14_TROUBLESHOOTING.md
-COVERS:
-- MongoDB startup and healthcheck failures.
-- Redis degraded-mode warnings in Auth and Search services.
-- RabbitMQ connection, publish, and consume failures.
-- JWT/authentication errors tied to Gateway and shared middleware.
-- Cloudinary and Razorpay configuration failures.
-- Migration, seed, and smoke-test failures from real scripts.
-- Port conflicts for fixed local ports.
-- Module resolution failure found in Listing Service event consumer code.
-SKIPS:
-- PostgreSQL/MySQL troubleshooting skipped because Phase 0 found no relational database.
-- Kubernetes, Helm, and CI/CD troubleshooting skipped because Phase 0 found none.
-- GraphQL and WebSocket troubleshooting skipped because Phase 0 found neither feature.
-- Formal unit-test troubleshooting skipped because Phase 0 found no formal test suite.
-
 ## Section 14 — Troubleshooting
 
 ### 14.1 — Startup And Infrastructure Errors
@@ -110,7 +93,6 @@ If another local process owns the port, stop that process or change the relevant
 
 Verify fixed: `docker-compose ps` shows the expected port bindings and `curl http://localhost:3000/health` succeeds.
 
-✅ CHECKPOINT: 14.1 — Startup And Infrastructure Errors complete. Proceeding to 14.2 — Authentication And Configuration Errors.
 
 ### 14.2 — Authentication And Configuration Errors
 
@@ -236,7 +218,6 @@ Set real `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` in `.env`.
 
 Verify fixed: Booking payment flow no longer logs `[Booking] Razorpay order creation failed:` from `services/booking-service/src/controllers/booking.js:286-300`.
 
-✅ CHECKPOINT: 14.2 — Authentication And Configuration Errors complete. Proceeding to 14.3 — Script And Migration Errors.
 
 ### 14.3 — Script And Migration Errors
 
@@ -315,7 +296,6 @@ cd scripts && npm run smoke-test
 
 Verify fixed: script prints `All smoke tests passed!` from `scripts/smoke-test.js:152-154`.
 
-✅ CHECKPOINT: 14.3 — Script And Migration Errors complete. Proceeding to 14.4 — Module And Event Handler Errors.
 
 ### 14.4 — Module And Event Handler Errors
 
@@ -371,4 +351,3 @@ docker-compose restart listing-service review-service booking-service search-ser
 
 Verify fixed: service logs show `[RabbitMQ] Consuming: <queueName> ← <routingKey>` from `shared/events/broker.js:279`.
 
-✅ CHECKPOINT: 14.4 — Module And Event Handler Errors complete. Proceeding to stop as instructed.

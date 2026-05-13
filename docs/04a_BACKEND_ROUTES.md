@@ -1,19 +1,3 @@
-SECTION: Backend Documentation — Routes, Controllers, DTOs, Validation
-FILE: 04a_BACKEND_ROUTES.md
-COVERS:
-- REST API style confirmed by Express route files in `services/*/src/routes/*.js`.
-- Gateway `/api/*` proxy prefixes from `gateway/src/proxy.js`.
-- 40 service endpoints across Auth, Listing, Review, Booking, Media, Search, and Admin services.
-- Controller handler functions and observed response envelopes from `services/*/src/controllers/*.js`.
-- Joi validators for listing, booking, and review request bodies.
-- Route-level auth guards visible in service route files.
-SKIPS:
-- GraphQL resolvers skipped because no GraphQL package, schema, or resolver files were found.
-- gRPC services skipped because no gRPC package or `.proto` files were found.
-- WebSocket handlers skipped because no `ws` or `socket.io` package was found.
-- Email routes skipped because no email library or email route was found.
-- Middleware stack, service layer internals, queues/events, file upload internals, external integrations, and dependency graph are deferred to `04b_BACKEND_SERVICES.md`.
-
 ## Section 4a — Backend Routes
 
 ### 4.1 — API Architecture Overview
@@ -69,7 +53,6 @@ Auth model in route files:
 | Booking create/payment/cancel/delete | `services/booking-service/src/routes/booking.js` uses `authMiddleware` |
 | Admin service routes | `services/admin-service/src/routes/admin.js` applies `router.use(authMiddleware)` and `router.use(authMiddleware.requireAdmin)` |
 
-✅ CHECKPOINT: 4.1 — API Architecture Overview complete. Proceeding to 4.2 — Complete Endpoint Reference.
 
 ### 4.2 — Complete Endpoint Reference
 
@@ -111,7 +94,6 @@ Example response:
 }
 ```
 
-✅ CHECKPOINT: Auth resource complete. Proceeding to Listing resource.
 
 #### Listing Resource
 
@@ -162,7 +144,6 @@ Example response:
 }
 ```
 
-✅ CHECKPOINT: Listing resource complete. Proceeding to Review resource.
 
 #### Review Resource
 
@@ -205,7 +186,6 @@ Example response:
 }
 ```
 
-✅ CHECKPOINT: Review resource complete. Proceeding to Booking resource.
 
 #### Booking Resource
 
@@ -251,7 +231,6 @@ Example response:
 }
 ```
 
-✅ CHECKPOINT: Booking resource complete. Proceeding to Media resource.
 
 #### Media Resource
 
@@ -283,7 +262,6 @@ Example response:
 }
 ```
 
-✅ CHECKPOINT: Media resource complete. Proceeding to Search resource.
 
 #### Search Resource
 
@@ -314,7 +292,6 @@ Example response:
 }
 ```
 
-✅ CHECKPOINT: Search resource complete. Proceeding to Admin resource.
 
 #### Admin Resource
 
@@ -360,7 +337,6 @@ Example response:
 }
 ```
 
-✅ CHECKPOINT: Admin resource complete. Proceeding to 4.3 — DTOs and Validation.
 
 ### 4.3 — DTOs and Validation
 
@@ -395,4 +371,3 @@ Routes without Joi validator middleware:
 | Search/geocode | `services/search-service/src/controllers/search.js` checks `location`; search filters parsed inline | Inline checks only |
 | Admin routes | `services/admin-service/src/routes/admin.js` has no validators | Delegates to services and controller logic |
 
-✅ CHECKPOINT: 4.3 — DTOs and Validation complete. Proceeding to stop as instructed.

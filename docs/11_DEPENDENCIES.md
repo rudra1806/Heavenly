@@ -1,15 +1,3 @@
-SECTION: Dependencies
-FILE: 11_DEPENDENCIES.md
-COVERS:
-- Production dependencies from `package.json` files in `gateway/`, `bff/`, `shared/`, `scripts/`, and `services/*/`.
-- Major production packages confirmed by Phase 0 and actual imports.
-- Outdated major-version flags from `npm outdated --omit=dev`.
-- Known production vulnerability flags from `npm audit --omit=dev`.
-SKIPS:
-- Dev dependencies skipped.
-- Transitive dependency inventory skipped except where `npm audit --omit=dev` reported vulnerabilities.
-- Root workspace dependency documentation skipped because Phase 0 found no root `package.json` or workspace configuration.
-
 ## Section 11 - Dependencies
 
 ### 11.1 - Production Dependency Inventory
@@ -47,7 +35,6 @@ npm outdated --omit=dev --json
 
 These were run per package directory on 2026-05-13.
 
-✅ CHECKPOINT: 11.1 - Production Dependency Inventory complete. Proceeding to 11.2 - Vulnerability Findings.
 
 ### 11.2 - Vulnerability Findings
 
@@ -73,7 +60,6 @@ Production vulnerabilities found:
 | High | `services/media-service/` | `cloudinary@1.41.3` | Yes | Cloudinary Node SDK arbitrary argument injection through parameters including ampersand, `GHSA-g4mf-96x5-5m2c`. | `services/media-service/package.json:13`; lock evidence `services/media-service/package-lock.json:221` | Upgrade reported to `cloudinary@2.10.0` with semver-major change. |
 | High | `services/media-service/` | `multer-storage-cloudinary@4.0.0` via `cloudinary` | Yes | Audit marks `multer-storage-cloudinary` affected through vulnerable `cloudinary`. | `services/media-service/package.json:15`; lock evidence `services/media-service/package-lock.json:748`, `services/media-service/package-lock.json:905` | Audit reports a semver-major fix path involving `multer-storage-cloudinary@2.2.1`; review compatibility before changing. |
 
-✅ CHECKPOINT: 11.2 - Vulnerability Findings complete. Proceeding to 11.3 - Major Outdated Packages.
 
 ### 11.3 - Major Outdated Packages
 
@@ -92,4 +78,3 @@ Only packages with a newer major version are listed here.
 
 Packages that `npm outdated` listed but that are not major-version behind are not flagged here.
 
-✅ CHECKPOINT: 11.3 - Major Outdated Packages complete. Proceeding to stop as instructed.

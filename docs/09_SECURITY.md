@@ -1,20 +1,3 @@
-SECTION: Security Analysis
-FILE: 09_SECURITY.md
-COVERS:
-- JWT authentication in Auth Service, Gateway, shared middleware, and BFF session guards.
-- Admin role authorization in Gateway, shared middleware, Admin Service, BFF admin routes, and Booking Service ownership/admin checks.
-- Password hashing with bcrypt in the Auth Service user model and seed script.
-- Joi validation for listing, booking, and review create routes; Mongoose validation for user fields.
-- CORS configuration in the Gateway and services.
-- Gateway rate limiting with `express-rate-limit`.
-- Secrets and credential handling from `.env.example`, `.env`, `.gitignore`, Docker Compose, and `process.env.*` references.
-- File upload security observations from Media Service Cloudinary/Multer configuration.
-SKIPS:
-- API security headers subsection skipped because no `helmet` or explicit security-header middleware was found.
-- OAuth strategy skipped because Phase 0 found JWT authentication only.
-- API-key authentication skipped because Phase 0 found JWT authentication only.
-- HTTPS enforcement marked absent in the checklist because no app-level HTTPS redirect or HSTS configuration was found.
-
 ## Section 9 — Security Analysis
 
 ### 9.1 — Authentication Strategy
@@ -38,7 +21,6 @@ Noted gaps:
 | No startup validation for `JWT_SECRET` / `JWT_REFRESH_SECRET`. | Secrets are read from `process.env` in `services/auth-service/src/utils/jwt.js:16-17`; shared middleware handles missing `JWT_SECRET` at request time in `shared/middleware/authMiddleware.js:28-34`. | Misconfiguration can surface during auth requests instead of at boot. |
 | Auth Service internal user lookup route is not protected at the service route layer. | `router.get('/auth/users/:id', authController.getUserById)` has no `authMiddleware` in `services/auth-service/src/routes/auth.js:43`. | This may be intentional for internal service calls, but service-level access depends on network/gateway boundaries. |
 
-✅ CHECKPOINT: 9.1 — Authentication Strategy complete. Proceeding to 9.2 — Password Handling.
 
 ### 9.2 — Password Handling
 
@@ -61,7 +43,6 @@ Noted gaps:
 | `.env.example` includes development admin password value. | `.env.example:28-30` | This is acceptable for an example file only if real deployments override it. |
 | Seed script logs generated/admin password values to console. | `scripts/seed-microservices.js:274-281` | Seed output may expose development credentials in terminal logs. |
 
-✅ CHECKPOINT: 9.2 — Password Handling complete. Proceeding to 9.3 — Input Validation.
 
 ### 9.3 — Input Validation
 
@@ -86,15 +67,12 @@ Routes found without Joi middleware or equivalent route-level schema validation:
 | `POST /bookings/:id/cancel` | Protected cancellation route has no Joi middleware. | `services/booking-service/src/routes/booking.js:33` |
 | `DELETE /media/:filename` | Delete route has no schema middleware; controller rejects missing/default filename only. | `services/media-service/src/routes/media.js:16`, `services/media-service/src/controllers/media.js:73-82` |
 
-✅ CHECKPOINT: 9.3 — Input Validation complete. Proceeding to 9.4 — API Security Headers.
 
 ### 9.4 — API Security Headers
 
-> ⬜ NOT PRESENT — API Security Headers
+> **Not present:** API Security Headers
 > Evidence: No `helmet` package, `app.use(helmet(...))`, `Strict-Transport-Security`, `Content-Security-Policy`, or security-header middleware found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 9.4 — API Security Headers complete. Proceeding to 9.5 — CORS Configuration.
 
 ### 9.5 — CORS Configuration
 
@@ -118,7 +96,6 @@ Noted gaps:
 | Gateway defaults to wildcard origin while also setting `credentials: true`. | `gateway/src/index.js:31-34` | A deployment without `CORS_ORIGIN` has broad browser access policy at the gateway layer. |
 | Services use `cors()` defaults. | Service index files listed above | Services allow default CORS behavior if exposed directly instead of only behind the gateway. |
 
-✅ CHECKPOINT: 9.5 — CORS Configuration complete. Proceeding to 9.6 — Rate Limiting.
 
 ### 9.6 — Rate Limiting
 
@@ -135,7 +112,6 @@ Noted gap:
 |---|---|---|
 | The stricter `authRateLimiter` is exported but not mounted on `/api/auth`. | `gateway/src/middleware/rateLimiter.js:51-65`; `gateway/src/index.js:41-64`; `gateway/src/proxy.js:31-36` | Auth routes receive the global 500/15m limit, not the intended 20/15m brute-force limit described in the limiter file comments. |
 
-✅ CHECKPOINT: 9.6 — Rate Limiting complete. Proceeding to 9.7 — Secrets and Credentials.
 
 ### 9.7 — Secrets and Credentials
 
@@ -159,7 +135,6 @@ Hardcoded/default credential observations:
 | Docker Compose RabbitMQ password fallback is `heavenly123`. | `docker-compose.yml:42-43` | Deployment without `RABBITMQ_PASS` uses a predictable broker password. |
 | Seed script includes sample user passwords and logs generated credentials. | `scripts/seed-microservices.js:39-45`, `scripts/seed-microservices.js:274-281` | Development seed logs can expose credentials. |
 
-✅ CHECKPOINT: 9.7 — Secrets and Credentials complete. Proceeding to 9.8 — Security Checklist.
 
 ### 9.8 — Security Checklist
 
@@ -174,6 +149,5 @@ Hardcoded/default credential observations:
 | Security headers with Helmet | ❌ | Not found | Add `helmet` or equivalent security-header middleware. |
 | Non-root Docker user | ❌ | Not found | Add `USER` instructions to `gateway/Dockerfile`, `bff/Dockerfile`, and `services/*/Dockerfile`. |
 | Dependencies audited | ❌ | Not found | Add a documented audit command or CI/dependency scanning step. |
-| SQL injection prevention | ⬜ N/A | Phase 0 found no relational database, SQL query layer, Prisma, TypeORM, or Sequelize; MongoDB/Mongoose is used instead. | — |
+| SQL injection prevention | ⬜ N/A | Repository scan found no relational database, SQL query layer, Prisma, TypeORM, or Sequelize; MongoDB/Mongoose is used instead. | — |
 
-✅ CHECKPOINT: 9.8 — Security Checklist complete. Proceeding to stop as instructed.

@@ -1,18 +1,3 @@
-SECTION: Setup Guide
-FILE: 12_SETUP_GUIDE.md
-COVERS:
-- Prerequisites for the confirmed Node.js, Docker Compose, MongoDB, Redis, RabbitMQ, and npm-based service setup.
-- Local setup with Docker Compose using `docker-compose.yml`.
-- Local setup without Docker using per-package `npm install` and service `npm start` scripts.
-- Environment setup from `.env.example`.
-- Real migration, seed, and smoke-test commands from `scripts/package.json`, `Makefile`, and script files.
-- Actual service ports from `docker-compose.yml`.
-SKIPS:
-- Kubernetes setup skipped because Phase 0 found no `k8s/`, `helm/`, or manifest folder.
-- CI setup skipped because Phase 0 found no CI/CD config.
-- Frontend SPA build steps skipped because the frontend is an Express/EJS BFF, not a separate SPA package.
-- Formal test-running steps skipped because Phase 0 found no formal test suite.
-
 ## Section 12 — Setup Guide
 
 ### 12.1 — Prerequisites
@@ -46,7 +31,6 @@ Confirmed local ports:
 | RabbitMQ AMQP | `5672` | `docker-compose.yml:38-39` |
 | RabbitMQ Management UI | `15672` | `docker-compose.yml:39-40` |
 
-✅ CHECKPOINT: 12.1 — Prerequisites complete. Proceeding to 12.2 — Local Setup Without Docker.
 
 ### 12.2 — Local Setup Without Docker
 
@@ -161,7 +145,6 @@ cd scripts && npm run smoke-test
 
 The smoke script defaults to Gateway `http://localhost:3000` and BFF `http://localhost:8080` in `scripts/smoke-test.js:18-20`.
 
-✅ CHECKPOINT: 12.2 — Local Setup Without Docker complete. Proceeding to 12.3 — Local Setup With Docker.
 
 ### 12.3 — Local Setup With Docker
 
@@ -247,15 +230,12 @@ cd scripts && npm run smoke-test
 | `make mongo` | Opens `mongosh` in `heavenly-mongodb`. | `Makefile` `mongo` target |
 | `make redis` | Opens `redis-cli` in `heavenly-redis`. | `Makefile` `redis` target |
 
-✅ CHECKPOINT: 12.3 — Local Setup With Docker complete. Proceeding to 12.4 — Running Tests.
 
 ### 12.4 — Running Tests
 
-> ⬜ NOT PRESENT — Running Tests
+> **Not present:** Running Tests
 > Evidence: No `*.spec.*`, `*.test.*`, `tests/`, or framework test config found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 12.4 — Running Tests complete. Proceeding to 12.5 — Common First-Run Problems.
 
 ### 12.5 — Common First-Run Problems
 
@@ -269,4 +249,3 @@ cd scripts && npm run smoke-test
 | Port already in use | Compose maps fixed ports `3000-3007`, `8080`, `27017`, `6379`, `5672`, and `15672`. | Stop the process using the conflicting port or change the Compose mapping. | `docker-compose up -d` completes and `docker-compose ps` shows ports bound. |
 | Platform-fee migration connects to wrong DB | The script defaults to `mongodb://localhost:27017/heavenly_bookings` unless `MONGODB_URI` is set. | Set `MONGODB_URI` before running the script if your booking DB URL differs. | Script logs `Connected successfully.` and migration summary. |
 
-✅ CHECKPOINT: 12.5 — Common First-Run Problems complete. Proceeding to stop as instructed.

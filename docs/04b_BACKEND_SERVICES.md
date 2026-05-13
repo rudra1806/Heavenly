@@ -1,18 +1,3 @@
-SECTION: Backend Documentation — Services, Middleware, Events, Errors, Integrations
-FILE: 04b_BACKEND_SERVICES.md
-COVERS:
-- Gateway and service middleware confirmed in `gateway/src/index.js`, `gateway/src/middleware/*`, service `src/index.js` files, and `shared/middleware/authMiddleware.js`.
-- Controller-owned service logic in `services/*/src/controllers/*.js`.
-- Shared HTTP client, shared RabbitMQ broker, shared auth middleware, and shared AppError utility.
-- Error handling patterns in gateway and service entry points.
-- RabbitMQ event consumers and publishers found in services and `shared/events/broker.js`.
-- Media upload handling through Multer + Cloudinary.
-- External integrations: internal service HTTP calls, Cloudinary, Razorpay, Nominatim/OpenStreetMap.
-SKIPS:
-- Separate service-class layer skipped because no `services/*/src/services/` folders or service class files were found.
-- Dependency Injection framework graph skipped because no NestJS, InversifyJS, tsyringe, Spring, or equivalent DI framework was found.
-- GraphQL, gRPC, WebSocket, and email handling skipped because no supporting packages or source files were found.
-
 ## Section 4b — Backend Services
 
 ### 4.4 — Middleware Stack
@@ -67,7 +52,6 @@ app.use('/api/admin', jwtValidation.required, jwtValidation.requireAdmin);
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 4.4 — Middleware Stack complete. Proceeding to 4.5 — Services Layer.
 
 ### 4.5 — Services Layer
 
@@ -129,7 +113,6 @@ const [usersRes, listingsRes, reviewsRes, bookingsRes] = await Promise.all([
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 4.5 — Services Layer complete. Proceeding to 4.6 — Error Handling.
 
 ### 4.6 — Error Handling
 
@@ -177,7 +160,6 @@ Controller-level validation examples:
 
 No custom exception classes beyond `shared/errors/AppError.js` were found.
 
-✅ CHECKPOINT: 4.6 — Error Handling complete. Proceeding to 4.7 — Message Queue / Background Jobs.
 
 ### 4.7 — Message Queue / Background Jobs
 
@@ -228,7 +210,6 @@ channel.consume(queueName, async (msg) => {
 
 Finding: `services/listing-service/src/events/consumers.js` calls `require('../utils/serviceClient.js')`, but no `services/listing-service/src/utils/` folder was found. The shared client exists at `shared/utils/serviceClient.js`; this import path is likely broken if that cascade image-delete branch executes.
 
-✅ CHECKPOINT: 4.7 — Message Queue / Background Jobs complete. Proceeding to 4.8 — File Upload Handling.
 
 ### 4.8 — File Upload Handling
 
@@ -271,7 +252,6 @@ Delete behavior:
 |---|---|---|
 | `DELETE /media/:filename` | Gateway requires auth on `/api/media`; service route has no local auth middleware | Rejects missing filename and `default.jpg`; calls `cloudinary.uploader.destroy(filename)` |
 
-✅ CHECKPOINT: 4.8 — File Upload Handling complete. Proceeding to 4.9 — External API Integrations.
 
 ### 4.9 — External API Integrations
 
@@ -310,12 +290,9 @@ const response = await fetch(url, {
 });
 ```
 
-✅ CHECKPOINT: 4.9 — External API Integrations complete. Proceeding to 4.10 — Dependency Injection Graph.
 
 ### 4.10 — Dependency Injection Graph
 
-> ⬜ NOT PRESENT — Dependency Injection Framework
+> **Not present:** Dependency Injection Framework
 > Evidence: No NestJS / InversifyJS / tsyringe / Spring package or DI container setup found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 4.10 — Dependency Injection Graph complete. Proceeding to stop as instructed.

@@ -1,17 +1,3 @@
-SECTION: DevOps and Infrastructure
-FILE: 07_DEVOPS_INFRASTRUCTURE.md
-COVERS:
-- Dockerfiles for the gateway, BFF, and each service under `services/*/Dockerfile`.
-- Local Docker Compose stack from `docker-compose.yml`.
-- Production Compose override from `docker-compose.prod.yml`.
-- Infrastructure services: MongoDB, Redis, and RabbitMQ.
-- Compose healthchecks, bind mounts, named volumes, bridge network, restart policies, and resource limits.
-- Environment separation evidenced by development Compose defaults and the production Compose override.
-SKIPS:
-- Kubernetes and Helm are skipped because no `k8s/`, `helm/`, or `manifests/` folder was found.
-- CI/CD is skipped because no workflow or pipeline config was found.
-- Cloud infrastructure-as-code is skipped because no Terraform, CDK, Pulumi, SAM, or Serverless config was found.
-
 ## Section 7 — DevOps and Infrastructure
 
 ### 7.1 — Docker Setup
@@ -55,7 +41,6 @@ Issues found:
 | No non-root user is configured in any Dockerfile. | No `USER` instruction in `gateway/Dockerfile`, `bff/Dockerfile`, or `services/*/Dockerfile` | Containers run with the base image default user. |
 | Healthchecks are not in Dockerfiles. | No `HEALTHCHECK` instruction in Dockerfiles; Compose healthchecks are defined instead in `docker-compose.yml` | Health monitoring depends on Compose configuration rather than image metadata. |
 
-✅ CHECKPOINT: 7.1 — Docker Setup complete. Proceeding to 7.2 — Docker Compose.
 
 ### 7.2 — Docker Compose
 
@@ -110,31 +95,24 @@ Notes:
 | Production RabbitMQ ports | RabbitMQ exposes only `5672:5672` in the production override; the file comments that management UI port `15672` is not exposed in production. | `docker-compose.prod.yml:36-40` |
 | Production bind mounts | Production override sets app service `volumes: []`. | `docker-compose.prod.yml:50-150` |
 
-✅ CHECKPOINT: 7.2 — Docker Compose complete. Proceeding to 7.3 — CI/CD Pipeline.
 
 ### 7.3 — CI/CD Pipeline
 
-> ⬜ NOT PRESENT — CI/CD Pipeline
+> **Not present:** CI/CD Pipeline
 > Evidence: No `.github/workflows/`, `.gitlab-ci.yml`, Jenkinsfile, `.circleci/`, or `bitbucket-pipelines.yml` found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 7.3 — CI/CD Pipeline complete. Proceeding to 7.4 — Kubernetes / Helm.
 
 ### 7.4 — Kubernetes / Helm
 
-> ⬜ NOT PRESENT — Kubernetes / Helm
+> **Not present:** Kubernetes / Helm
 > Evidence: No `k8s/`, `helm/`, or `manifests/` folder found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 7.4 — Kubernetes / Helm complete. Proceeding to 7.5 — Cloud Infrastructure.
 
 ### 7.5 — Cloud Infrastructure
 
-> ⬜ NOT PRESENT — Cloud Infrastructure
+> **Not present:** Cloud Infrastructure
 > Evidence: No Terraform, CDK, Pulumi, SAM, or `serverless.yml` config found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 7.5 — Cloud Infrastructure complete. Proceeding to 7.6 — Environment Separation.
 
 ### 7.6 — Environment Separation
 
@@ -145,6 +123,5 @@ Environment separation found:
 | Development | `docker-compose.yml` sets `NODE_ENV=development` for app services and bind-mounts source folders. | Source directories are mounted into containers; ports for all services and infrastructure are exposed locally. |
 | Production Compose override | `docker-compose.prod.yml` sets `NODE_ENV=production`, removes app bind mounts with `volumes: []`, adds `restart: unless-stopped`, and sets resource limits. | Containers use copied image contents instead of bind mounts; RabbitMQ management UI port is not exposed by the override. |
 
-No separate `.env.production`, `.env.development`, Kubernetes namespace, cloud account, or CI environment matrix was found in Phase 0 or the infrastructure file scan.
+No separate `.env.production`, `.env.development`, Kubernetes namespace, cloud account, or CI environment matrix was found in the repository scan or the infrastructure file scan.
 
-✅ CHECKPOINT: 7.6 — Environment Separation complete. Proceeding to stop as instructed.

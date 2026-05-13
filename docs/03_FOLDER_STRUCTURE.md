@@ -1,17 +1,3 @@
-SECTION: Folder And File Structure
-FILE: 03_FOLDER_STRUCTURE.md
-COVERS:
-- Root files and top-level folders from Phase 0: `docs/`, `shared/`, `scripts/`, `bff/`, `gateway/`, and `services/`.
-- Existing source subfolders under `bff/`, `gateway/`, `shared/`, and each service package.
-- Configuration files confirmed in Phase 0.
-- Import/dependency direction derived from actual `require(...)` statements.
-SKIPS:
-- Root `src/` documentation skipped because no root `src/` folder exists.
-- Root `frontend/` documentation skipped because no separate SPA frontend folder exists.
-- Test folder documentation skipped because no `tests/`, `test/`, `__tests__/`, `*.test.*`, or `*.spec.*` files were found.
-- Workspace tooling documentation skipped because no root `package.json`, npm workspaces, `turbo.json`, pnpm workspace, or yarn workspace config was found.
-- Kubernetes/CI folders skipped because no `k8s/`, `helm/`, `.github/workflows/`, or CI config folder was found.
-
 ## Section 3 — Folder And File Structure
 
 ### 3.1 — Annotated Root Directory
@@ -74,20 +60,18 @@ project-root/
     └── search-service/           # Search and geocoding service
 ```
 
-✅ CHECKPOINT: 3.1 — Annotated Root Directory complete. Proceeding to 3.2 — Source Directory Deep Dive.
 
 ### 3.2 — Source Directory Deep Dive
 
 `docs/`
 
-- Purpose: Stores generated project documentation.
+- Purpose: Stores project documentation.
 - Owns: Evidence-backed documentation files from reconnaissance through improvement recommendations.
 - Does NOT own: Runtime source, service code, scripts, or configuration.
 - Key files: `docs/INDEX.md`, `docs/00_PHASE0_RECONNAISSANCE.md`, `docs/01_PROJECT_OVERVIEW.md`, `docs/02_ARCHITECTURE.md`.
 - Connects to: No runtime imports found from application code.
 - Pattern used: Documentation-only folder.
 
-✅ CHECKPOINT: docs/ complete. Proceeding to shared/.
 
 `shared/`
 
@@ -104,7 +88,6 @@ project-root/
 - Connects to: Imported by service entry points, service route files, and `scripts/seed-microservices.js`.
 - Pattern used: Shared package exported through `shared/index.js`.
 
-✅ CHECKPOINT: shared/ complete. Proceeding to scripts/.
 
 `scripts/`
 
@@ -124,7 +107,6 @@ project-root/
 - Connects to: Imports `../shared` in `scripts/seed-microservices.js`; imports local `./data.js`; connects to MongoDB through Mongoose.
 - Pattern used: Operational scripts package, separate from service packages.
 
-✅ CHECKPOINT: scripts/ complete. Proceeding to bff/.
 
 `bff/`
 
@@ -158,7 +140,6 @@ Existing BFF source subfolders:
 | `bff/src/public/css/` | CSS files grouped by page/area |
 | `bff/src/public/js/` | Client-side JavaScript for maps and form validation |
 
-✅ CHECKPOINT: bff/ complete. Proceeding to gateway/.
 
 `gateway/`
 
@@ -180,7 +161,6 @@ Existing gateway source subfolders:
 |---|---|
 | `gateway/src/middleware/` | Gateway-only JWT validation, rate limiting, and error handling |
 
-✅ CHECKPOINT: gateway/ complete. Proceeding to services/.
 
 `services/`
 
@@ -269,7 +249,6 @@ Existing gateway source subfolders:
   - `src/controllers/admin.js`: dashboard/user/listing/review/booking aggregation actions.
 - Connects to: `shared` service client and Auth, Listing, Review, Booking service URLs.
 
-✅ CHECKPOINT: services/ complete. Proceeding to 3.3 — Configuration Files.
 
 ### 3.3 — Configuration Files
 
@@ -278,8 +257,8 @@ Existing gateway source subfolders:
 | `.env` | Local environment file exists | Values intentionally not reproduced |
 | `.env.example` | Env var template | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `SESSION_SECRET`, `CLOUD_NAME`, `CLOUD_API_KEY`, `CLOUD_API_SECRET`, `RABBITMQ_USER`, `RABBITMQ_PASS`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` |
 | `.dockerignore` | Docker build ignore rules | Excludes `**/node_modules`, `.git`, IDE files, OS files, Docker Compose files, and `scripts/` |
-| `.gitignore` | Git ignore rules | File exists; contents not expanded in Phase 0 |
-| `.gitattributes` | Git attributes | File exists; contents not expanded in Phase 0 |
+| `.gitignore` | Git ignore rules | File exists; contents not expanded in this document |
+| `.gitattributes` | Git attributes | File exists; contents not expanded in this document |
 | `docker-compose.yml` | Local multi-service stack | Defines `mongodb`, `redis`, `rabbitmq`, seven backend services, `gateway`, `bff`, volumes, and `heavenly-network` |
 | `docker-compose.prod.yml` | Production Compose override | Sets `NODE_ENV=production`, removes bind mounts, adds restart policies and resource limits |
 | `Makefile` | Development and operations commands | `up`, `up-build`, `up-d`, `down`, `restart`, service-specific restarts, logs, backup, restore, seed, clean, rebuild, ps, volumes, mongo, redis, status |
@@ -297,9 +276,8 @@ Existing gateway source subfolders:
 | `services/*/package-lock.json` | Per-service dependency lockfiles | Locks each service dependency tree |
 | `services/*/Dockerfile` | Per-service image builds | `node:20-alpine`, installs `shared` and service package, exposes service port |
 
-Not found in Phase 0: root `package.json`, `tsconfig.json`, `jest.config.*`, `.github/workflows/`, `.gitlab-ci.yml`, `k8s/`, `helm/`, Terraform/CDK/Pulumi/SAM/serverless config.
+Not found in the repository scan: root `package.json`, `tsconfig.json`, `jest.config.*`, `.github/workflows/`, `.gitlab-ci.yml`, `k8s/`, `helm/`, Terraform/CDK/Pulumi/SAM/serverless config.
 
-✅ CHECKPOINT: 3.3 — Configuration Files complete. Proceeding to 3.4 — Import/Dependency Direction.
 
 ### 3.4 — Import/Dependency Direction
 
@@ -370,5 +348,3 @@ Notable findings:
 | Broken local import candidate in Listing Service | `services/listing-service/src/events/consumers.js` requires `../utils/serviceClient.js`, but no `services/listing-service/src/utils/` folder exists | This path would fail if that event handler executes; likely should reference `shared/utils/serviceClient.js` or use injected `serviceClient` |
 
 No circular imports were identified from the scanned `require(...)` statements. The only concrete import issue found is the missing `services/listing-service/src/utils/serviceClient.js` path.
-
-✅ CHECKPOINT: 3.4 — Import/Dependency Direction complete. Proceeding to stop as instructed.

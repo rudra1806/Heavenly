@@ -1,19 +1,3 @@
-SECTION: Frontend Documentation
-FILE: 05_FRONTEND.md
-COVERS:
-- Server-rendered frontend found under `bff/`.
-- Express + EJS + ejs-mate rendering from `bff/src/index.js` and `bff/package.json`.
-- Browser routes under `bff/src/routes/*.js`.
-- EJS views under `bff/src/views/`.
-- Static CSS/JS assets under `bff/src/public/`.
-- Session-based browser authentication backed by JWT API calls through `bff/src/utils/apiClient.js`.
-- Dashboard in-memory cache in `bff/src/utils/dashboardCache.js`.
-SKIPS:
-- Separate SPA frontend skipped because no React/Vue/Angular/Svelte app or `frontend/` folder was found.
-- Client-side router skipped because no frontend router package or browser route table was found.
-- Redux/Zustand/Context providers skipped because no such state management files or dependencies were found.
-- CSS Modules/Tailwind design-system documentation skipped because no CSS Modules or Tailwind config was found.
-
 ## Section 5 — Frontend Documentation
 
 ### 5.1 — UI Architecture
@@ -51,7 +35,6 @@ app.use('/', adminRoutes);
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 5.1 — UI Architecture complete. Proceeding to 5.2 — Routing.
 
 ### 5.2 — Routing
 
@@ -119,7 +102,6 @@ async function isLoggedIn(req, res, next) {
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 5.2 — Routing complete. Proceeding to 5.3 — State Management.
 
 ### 5.3 — State Management
 
@@ -159,7 +141,6 @@ function set(key, data, ttl = CACHE_TTL_MS) {
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 5.3 — State Management complete. Proceeding to 5.4 — API Integration Layer.
 
 ### 5.4 — API Integration Layer
 
@@ -204,7 +185,6 @@ Routes using the API layer:
 
 Direct browser `fetch` also exists in `bff/src/views/bookings/payment.ejs` for the payment page. It calls BFF routes `/bookings/:id/payment` and `/bookings/:id/verify-payment`, not the API Gateway directly.
 
-✅ CHECKPOINT: 5.4 — API Integration Layer complete. Proceeding to 5.5 — Component Catalog.
 
 ### 5.5 — Component Catalog
 
@@ -242,7 +222,6 @@ Client-side scripts:
 | Form validation | `bff/src/public/js/formvalidation.js` | Applies Bootstrap validation classes to `.needs-validation` forms |
 | Payment script | Inline in `bff/src/views/bookings/payment.ejs` | Starts payment, opens Razorpay Checkout when available, verifies payment, updates DOM success state |
 
-✅ CHECKPOINT: 5.5 — Component Catalog complete. Proceeding to 5.6 — Authentication Flow.
 
 ### 5.6 — Authentication Flow (Frontend)
 
@@ -281,7 +260,6 @@ Template auth usage:
 | `bff/src/views/listings/show.ejs` | Shows booking action for non-owner logged-in users; login prompt for anonymous users; owner/admin management actions |
 | `bff/src/routes/admin.js` | Applies `isLoggedIn, isAdmin` to all admin pages/actions |
 
-✅ CHECKPOINT: 5.6 — Authentication Flow (Frontend) complete. Proceeding to 5.7 — Styling System.
 
 ### 5.7 — Styling System
 
@@ -327,4 +305,3 @@ Layout CSS loading:
 
 No shared design system package or token file was found. Styling is organized by global CSS files and template-level class names.
 
-✅ CHECKPOINT: 5.7 — Styling System complete. Proceeding to stop as instructed.

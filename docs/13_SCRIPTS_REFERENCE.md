@@ -1,14 +1,3 @@
-SECTION: Scripts Reference
-FILE: 13_SCRIPTS_REFERENCE.md
-COVERS:
-- Every npm script found in `gateway/package.json`, `bff/package.json`, `scripts/package.json`, and `services/*/package.json`.
-- Absence of scripts in `shared/package.json`.
-- Every Makefile target found in `Makefile`.
-- Every file found directly under `scripts/`.
-SKIPS:
-- Root npm scripts skipped because Phase 0 found no root `package.json`.
-- Formal test scripts skipped because Phase 0 found no formal test suite; `scripts/smoke-test.js` is documented as a smoke check.
-
 ## Section 13 — Scripts Reference
 
 ### 13.1 — Package Scripts
@@ -41,7 +30,6 @@ SKIPS:
 
 Evidence: `gateway/package.json:7-10`, `bff/package.json:7-10`, `scripts/package.json:5-9`, `services/*/package.json:7-10`.
 
-✅ CHECKPOINT: 13.1 — Package Scripts complete. Proceeding to 13.2 — Makefile Targets.
 
 ### 13.2 — Makefile Targets
 
@@ -73,7 +61,6 @@ Evidence: `gateway/package.json:7-10`, `bff/package.json:7-10`, `scripts/package
 
 Evidence: `Makefile:3-97`.
 
-✅ CHECKPOINT: 13.2 — Makefile Targets complete. Proceeding to 13.3 — Scripts Folder Files.
 
 ### 13.3 — Scripts Folder Files
 
@@ -95,4 +82,3 @@ Evidence: `Makefile:3-97`.
 
 Evidence: `scripts/backup-data.sh:1-21`, `scripts/restore-data.sh:1-30`, `scripts/seed-data.sh:1-8`, `scripts/seed-microservices.js:1-18`, `scripts/migrate.js:20-38`, `scripts/smoke-test.js:12-20`, `scripts/update-booking-emails.js:1-17`, `scripts/data.js:1-17`.
 
-✅ CHECKPOINT: 13.3 — Scripts Folder Files complete. Proceeding to stop as instructed.

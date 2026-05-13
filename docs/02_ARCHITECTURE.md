@@ -1,20 +1,3 @@
-SECTION: Architecture Deep Dive
-FILE: 02_ARCHITECTURE.md
-COVERS:
-- Microservices-style architecture in one repository, with separate deployable packages for `gateway/`, `bff/`, and `services/*`.
-- Browser request flow through the BFF, API Gateway, and backend services.
-- Session-to-JWT flow in the BFF and JWT validation at the gateway/service layers.
-- MongoDB/Mongoose data flow for service-owned data.
-- Redis geocoding cache in the Search Service and Redis-backed token blacklist in the Auth Service.
-- RabbitMQ topic-exchange event flow through `shared/events/broker.js`.
-- Docker Compose deployment topology from `docker-compose.yml`.
-SKIPS:
-- GraphQL flow skipped because no GraphQL package, schema, or resolver files were found.
-- WebSocket flow skipped because no `ws` or `socket.io` package was found.
-- gRPC flow skipped because no gRPC package or `.proto` files were found.
-- Kubernetes architecture skipped because no `k8s/`, `helm/`, or manifest folder was found.
-- CI/CD architecture skipped because no pipeline config files were found.
-
 ## Section 2 — Architecture Deep Dive
 
 ### 2.1 — Architecture Pattern
@@ -39,7 +22,6 @@ Why it fits this project:
 - Data ownership is split by service-owned MongoDB databases in `docker-compose.yml`.
 - Cross-service cleanup and search indexing are handled by RabbitMQ consumers in service `events/consumers.js` files.
 
-✅ CHECKPOINT: 2.1 — Architecture Pattern complete. Proceeding to 2.2 — Component Interaction Diagram.
 
 ### 2.2 — Component Interaction Diagram
 
@@ -88,7 +70,6 @@ sequenceDiagram
 
 Gateway proxy mapping is defined in `gateway/src/proxy.js`: `/api/auth`, `/api/listings`, `/api/reviews`, `/api/bookings`, `/api/media`, `/api/search`, `/api/geocode`, `/api/admin`, and `/api/dashboard`.
 
-✅ CHECKPOINT: 2.2 — Component Interaction Diagram complete. Proceeding to 2.3 — Request Lifecycle.
 
 ### 2.3 — Request Lifecycle
 
@@ -131,7 +112,6 @@ router.delete('/listings/:id', authMiddleware, listingController.deleteListing);
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 2.3 — Request Lifecycle complete. Proceeding to 2.4 — Authentication Flow.
 
 ### 2.4 — Authentication Flow
 
@@ -181,7 +161,6 @@ Gateway validation modes in `gateway/src/middleware/jwtValidation.js`:
 | `optional` | Adds `req.user` when token is valid; allows anonymous access otherwise |
 | `requireAdmin` | Returns 403 when `req.user.role !== 'admin'` |
 
-✅ CHECKPOINT: 2.4 — Authentication Flow complete. Proceeding to 2.5 — Caching Strategy.
 
 ### 2.5 — Caching Strategy
 
@@ -224,7 +203,6 @@ flowchart TD
 
 Auth Service also connects to Redis when `REDIS_URL` exists and uses it in `services/auth-service/src/controllers/auth.js` to blacklist logout tokens with a 900-second TTL. No code was found that checks this blacklist during gateway token validation, so the documented confirmed behavior is token storage on logout, not full gateway-enforced revocation.
 
-✅ CHECKPOINT: 2.5 — Caching Strategy complete. Proceeding to 2.6 — Message Queue / Event Flow.
 
 ### 2.6 — Message Queue / Event Flow
 
@@ -277,7 +255,6 @@ await channel.prefetch(1);
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 2.6 — Message Queue / Event Flow complete. Proceeding to 2.7 — Data Flow.
 
 ### 2.7 — Data Flow
 
@@ -337,7 +314,6 @@ if (publishEvent) {
 // ... rest of file
 ```
 
-✅ CHECKPOINT: 2.7 — Data Flow complete. Proceeding to 2.8 — Deployment Architecture.
 
 ### 2.8 — Deployment Architecture
 
@@ -402,4 +378,3 @@ Confirmed Compose services:
 
 `docker-compose.prod.yml` exists and changes services to `NODE_ENV=production`, removes bind mounts with `volumes: []`, adds `restart: unless-stopped`, and adds resource limits. Kubernetes, Helm, CI/CD, and cloud infrastructure files were not found, so deployment documentation stops at Docker Compose.
 
-✅ CHECKPOINT: 2.8 — Deployment Architecture complete. Proceeding to stop as instructed.

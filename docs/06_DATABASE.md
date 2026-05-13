@@ -1,17 +1,3 @@
-SECTION: Database Documentation
-FILE: 06_DATABASE.md
-COVERS:
-- MongoDB database service from `docker-compose.yml`.
-- Mongoose models for users, listings, reviews, and bookings.
-- Per-service MongoDB connection strings from service `src/index.js` files and Compose environment blocks.
-- Explicit schema fields and indexes from model files.
-- Migration scripts found in `scripts/migrate.js` and `services/booking-service/scripts/migrate-platform-fee.js`.
-- Seed scripts found in `scripts/seed-microservices.js`, `scripts/seed-data.sh`, and `Makefile`.
-SKIPS:
-- Relational database documentation skipped because no PostgreSQL/MySQL service, SQL schema, Prisma, TypeORM, Sequelize, or SQL migration setup was found.
-- ER diagram skipped because models store cross-service references as strings and no Mongoose relations/ref relationships were defined.
-- Redis schema skipped because Redis is used as cache/supporting infrastructure, not as a persistent schema in this repository.
-
 ## Section 6 — Database Documentation
 
 ### 6.1 — Database Overview
@@ -32,7 +18,6 @@ SKIPS:
 | Booking Service | `MONGO_URL`, default `mongodb://localhost:27017/heavenly_bookings`; Compose `mongodb://mongodb:27017/heavenly_bookings` | `services/booking-service/src/index.js`, `docker-compose.yml` |
 | Search seed script only | `SEARCH_MONGO_URL`, default `mongodb://localhost:27017/heavenly_search` | `scripts/seed-microservices.js`; no Search Service Mongoose model found |
 
-✅ CHECKPOINT: 6.1 — Database Overview complete. Proceeding to 6.2 — Schema Reference.
 
 ### 6.2 — Schema Reference
 
@@ -132,15 +117,12 @@ Indexes found: inline indexes on `listingId` and `userId`; compound indexes `{ l
 
 Relations: `listingId` and `userId` store string IDs; no Mongoose `ref` relation defined.
 
-✅ CHECKPOINT: 6.2 — Schema Reference complete. Proceeding to 6.3 — ER Diagram.
 
 ### 6.3 — ER Diagram
 
-> ⬜ NOT PRESENT — ER Diagram
+> **Not present:** ER Diagram
 > Evidence: No Mongoose `ref` relations or relational database foreign keys found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 6.3 — ER Diagram complete. Proceeding to 6.4 — Migrations.
 
 ### 6.4 — Migrations
 
@@ -186,7 +168,6 @@ Seed command:
 make seed
 ```
 
-✅ CHECKPOINT: 6.4 — Migrations complete. Proceeding to 6.5 — Query Patterns and Performance Notes.
 
 ### 6.5 — Query Patterns and Performance Notes
 
@@ -205,4 +186,3 @@ Only evidence-backed query patterns are listed here.
 
 No MongoDB aggregation pipelines, query planner hints, or explicit database-level caching were found in model files.
 
-✅ CHECKPOINT: 6.5 — Query Patterns and Performance Notes complete. Proceeding to stop as instructed.

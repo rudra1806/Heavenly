@@ -58,7 +58,6 @@ project-root/
     └── search-service/           # Search and geocoding service
 ```
 
-✅ CHECKPOINT: P0.1 — Directory Tree complete. Proceeding to P0.2 — Tech Stack Inventory.
 
 ### P0.2 — Tech Stack Inventory
 
@@ -111,7 +110,6 @@ Files checked:
 | GraphQL | — | — | No GraphQL package/schema found | ⬜ Not present |
 | WebSocket | — | — | No `ws` or `socket.io` package found | ⬜ Not present |
 
-✅ CHECKPOINT: P0.2 — Tech Stack Inventory complete. Proceeding to P0.3 — Architecture Classification.
 
 ### P0.3 — Architecture Classification
 
@@ -125,7 +123,6 @@ Files checked:
 | Communication style | REST/HTTP via Express routes and gateway proxy; event-driven via RabbitMQ; HTTP/JSON internal service calls via `shared/utils/serviceClient.js`; no GraphQL/gRPC/WebSocket evidence found |
 | Data ownership | Separate MongoDB databases per service in Compose env values: `heavenly_auth`, `heavenly_listings`, `heavenly_reviews`, `heavenly_bookings` |
 
-✅ CHECKPOINT: P0.3 — Architecture Classification complete. Proceeding to P0.4 — Entry Points.
 
 ### P0.4 — Entry Points
 
@@ -146,7 +143,6 @@ Files checked:
 | Standalone background worker | — | ⬜ Not found; event consumers run inside service entry points |
 | SPA frontend entry | — | ⬜ Not found; frontend is server-rendered through BFF/EJS |
 
-✅ CHECKPOINT: P0.4 — Entry Points complete. Proceeding to P0.5 — External Services and Integrations.
 
 ### P0.5 — External Services and Integrations
 
@@ -161,7 +157,6 @@ Files checked:
 | AWS SDK | ⬜ No AWS SDK package found | — |
 | SendGrid/Twilio | ⬜ No SendGrid or Twilio package found | — |
 
-✅ CHECKPOINT: P0.5 — External Services and Integrations complete. Proceeding to P0.6 — Configuration File Inventory.
 
 ### P0.6 — Configuration File Inventory
 
@@ -196,7 +191,6 @@ Files checked:
 | `k8s/`, `helm/`, `manifests/` | ⬜ Not found | Kubernetes/Helm absent |
 | Terraform/CDK/Pulumi/SAM/serverless config | ⬜ Not found | Cloud infra-as-code absent |
 
-✅ CHECKPOINT: P0.6 — Configuration File Inventory complete. Proceeding to P0.7 — Feature Presence Checklist.
 
 ### P0.7 — Feature Presence Checklist
 
@@ -233,83 +227,80 @@ Files checked:
 | Seed Data | ✅ | `scripts/seed-microservices.js`, `scripts/seed-data.sh`, `Makefile` `seed` target | Sections 6, 12 |
 | Monorepo Setup | ⬜ | No root `package.json`, workspaces, `turbo.json`, pnpm workspace, or yarn workspace config found | Section 3 |
 
-✅ CHECKPOINT: P0.7 — Feature Presence Checklist complete. Proceeding to P0.8 — Section Scope Map.
 
-### P0.8 — Section Scope Map
+### P0.8 — Documentation Coverage Map
 
 Section 1 (Project Overview):
-- WRITE: system purpose based on gateway, BFF, services, MongoDB, Redis, RabbitMQ, Cloudinary, Razorpay, and EJS views.
-- WRITE: confirmed features only: listings, bookings, reviews, auth, admin, media upload, search/geocoding, payments.
-- SKIP: any claim about mobile apps, GraphQL, WebSockets, CI/CD, Kubernetes, or cloud IaC.
+- Covered: system purpose based on gateway, BFF, services, MongoDB, Redis, RabbitMQ, Cloudinary, Razorpay, and EJS views.
+- Covered: confirmed features only: listings, bookings, reviews, auth, admin, media upload, search/geocoding, payments.
+- Not covered: any claim about mobile apps, GraphQL, WebSockets, CI/CD, Kubernetes, or cloud IaC.
 
 Section 2 (Architecture):
-- WRITE: microservices-style repo, gateway proxy flow, BFF session-to-JWT flow, RabbitMQ event flow, Redis cache usage, MongoDB data flow, Docker Compose deployment.
-- SKIP: GraphQL flow, WebSocket flow, gRPC flow, Kubernetes architecture, CI/CD architecture.
+- Covered: microservices-style repo, gateway proxy flow, BFF session-to-JWT flow, RabbitMQ event flow, Redis cache usage, MongoDB data flow, Docker Compose deployment.
+- Not covered: GraphQL flow, WebSocket flow, gRPC flow, Kubernetes architecture, CI/CD architecture.
 
 Section 3 (Folder Structure):
-- WRITE: root, `gateway/`, `bff/`, `services/`, `shared/`, `scripts/`, `docs/`, and config files found in P0.1/P0.6.
-- SKIP: non-existent `src/` root folder, workspace config, `frontend/` SPA folder, `tests/` folder, `k8s/`, `helm/`, CI folders.
+- Covered: root, `gateway/`, `bff/`, `services/`, `shared/`, `scripts/`, `docs/`, and config files found in P0.1/P0.6.
+- Not covered: non-existent `src/` root folder, workspace config, `frontend/` SPA folder, `tests/` folder, `k8s/`, `helm/`, CI folders.
 
 Section 4 (Backend):
-- WRITE: REST API through gateway plus service route files.
-- WRITE: service endpoints: auth (8), listing (6), review (5), booking (7), media (2), search (2), admin (10) = 40 service endpoints.
-- WRITE: gateway proxy routes: `/api/auth`, `/api/listings`, `/api/reviews`, `/api/bookings`, `/api/media`, `/api/search`, `/api/geocode`, `/api/admin`, `/api/dashboard`.
-- WRITE: middleware: JWT validation, shared auth middleware, admin guard, rate limiter, morgan, cors, JSON parsing, error handlers.
-- WRITE: services/controllers, Joi validators, Mongoose models, RabbitMQ consumers, file upload, Cloudinary, Razorpay, Nominatim, internal service client.
-- SKIP: GraphQL resolvers, gRPC services, WebSocket handlers, email sending.
-- SPLIT: Yes — more than 20 endpoints; use `04a_BACKEND_ROUTES.md` for endpoints/controllers/validation and `04b_BACKEND_SERVICES.md` for services/middleware/events/error handling/integrations.
+- Covered: REST API through gateway plus service route files.
+- Covered: service endpoints: auth (8), listing (6), review (5), booking (7), media (2), search (2), admin (10) = 40 service endpoints.
+- Covered: gateway proxy routes: `/api/auth`, `/api/listings`, `/api/reviews`, `/api/bookings`, `/api/media`, `/api/search`, `/api/geocode`, `/api/admin`, `/api/dashboard`.
+- Covered: middleware: JWT validation, shared auth middleware, admin guard, rate limiter, morgan, cors, JSON parsing, error handlers.
+- Covered: services/controllers, Joi validators, Mongoose models, RabbitMQ consumers, file upload, Cloudinary, Razorpay, Nominatim, internal service client.
+- Not covered: GraphQL resolvers, gRPC services, WebSocket handlers, email sending.
+- Split: Yes — more than 20 endpoints; use `04a_BACKEND_ROUTES.md` for endpoints/controllers/validation and `04b_BACKEND_SERVICES.md` for services/middleware/events/error handling/integrations.
 
 Section 5 (Frontend):
-- WRITE: BFF-rendered frontend using Express, EJS, ejs-mate layouts, static CSS/JS, routes under `bff/src/routes`, views under `bff/src/views`, session-based browser auth backed by JWT API calls.
-- SKIP: React/Vue/Angular SPA architecture, client-side router, Redux/Zustand, SSR framework config such as Next.js.
+- Covered: BFF-rendered frontend using Express, EJS, ejs-mate layouts, static CSS/JS, routes under `bff/src/routes`, views under `bff/src/views`, session-based browser auth backed by JWT API calls.
+- Not covered: React/Vue/Angular SPA architecture, client-side router, Redux/Zustand, SSR framework config such as Next.js.
 
 Section 6 (Database):
-- WRITE: MongoDB/Mongoose overview, service-owned databases from Compose, models: User, Listing, Review, Booking, indexes found in schemas.
-- WRITE: migration scripts and seed scripts that exist.
-- SKIP: relational database docs, Prisma/SQL migrations, NoSQL collections that have no model file, ER diagram if relations are only string references across service databases.
+- Covered: MongoDB/Mongoose overview, service-owned databases from Compose, models: User, Listing, Review, Booking, indexes found in schemas.
+- Covered: migration scripts and seed scripts that exist.
+- Not covered: relational database docs, Prisma/SQL migrations, NoSQL collections that have no model file, ER diagram if relations are only string references across service databases.
 
 Section 7 (DevOps):
-- WRITE: Dockerfiles, Docker Compose local stack, production Compose override, infra services, healthchecks, volumes/networks.
-- SKIP: Kubernetes, Helm, CI/CD, Terraform/CDK/Pulumi/SAM/serverless cloud infrastructure.
+- Covered: Dockerfiles, Docker Compose local stack, production Compose override, infra services, healthchecks, volumes/networks.
+- Not covered: Kubernetes, Helm, CI/CD, Terraform/CDK/Pulumi/SAM/serverless cloud infrastructure.
 
 Section 8 (Environment Variables):
-- WRITE: variables from `.env.example`, `docker-compose.yml`, and `process.env.*` references.
-- WRITE: required vs optional based on whether source code fails without them or has defaults.
-- SKIP: invented variables not found in env template, Compose, or source.
+- Covered: variables from `.env.example`, `docker-compose.yml`, and `process.env.*` references.
+- Covered: required vs optional based on whether source code fails without them or has defaults.
+- Not covered: invented variables not found in env template, Compose, or source.
 
 Section 9 (Security):
-- WRITE: JWT auth, admin RBAC, bcrypt password hashing, Joi/Mongoose validation, CORS, gateway rate limiting, secret usage, file upload security observations, Docker user observation.
-- SKIP: OAuth, API-key auth, helmet security headers if not found, HTTPS enforcement if not found, WebSocket security.
+- Covered: JWT auth, admin RBAC, bcrypt password hashing, Joi/Mongoose validation, CORS, gateway rate limiting, secret usage, file upload security observations, Docker user observation.
+- Not covered: OAuth, API-key auth, helmet security headers if not found, HTTPS enforcement if not found, WebSocket security.
 
 Section 10 (Observability):
-- WRITE: Morgan request logs, console logging, `/health` endpoints, Docker Compose healthchecks.
-- SKIP: metrics/APM, distributed tracing, Sentry/Bugsnag/Rollbar error tracking.
+- Covered: Morgan request logs, console logging, `/health` endpoints, Docker Compose healthchecks.
+- Not covered: metrics/APM, distributed tracing, Sentry/Bugsnag/Rollbar error tracking.
 
 Section 11 (Dependencies):
-- WRITE: production dependencies from package manifests: Express, Mongoose, Redis, amqplib, jsonwebtoken, bcrypt, Joi, morgan, cors, multer, Cloudinary, Razorpay, EJS, express-session, http-proxy-middleware, express-rate-limit.
-- SKIP: transitive dependencies and dev-only dependencies except where script/dev workflow needs mention later.
+- Covered: production dependencies from package manifests: Express, Mongoose, Redis, amqplib, jsonwebtoken, bcrypt, Joi, morgan, cors, multer, Cloudinary, Razorpay, EJS, express-session, http-proxy-middleware, express-rate-limit.
+- Not covered: transitive dependencies and dev-only dependencies except where script/dev workflow needs mention later.
 
 Section 12 (Setup Guide):
-- WRITE: Docker Compose setup, Node/npm per-package setup if needed, env file creation from `.env.example`, migration/seed/smoke-test commands, ports from Compose.
-- SKIP: Kubernetes setup, CI setup, frontend SPA build steps, formal test-running steps because no formal test suite was found.
+- Covered: Docker Compose setup, Node/npm per-package setup if needed, env file creation from `.env.example`, migration/seed/smoke-test commands, ports from Compose.
+- Not covered: Kubernetes setup, CI setup, frontend SPA build steps, formal test-running steps because no formal test suite was found.
 
 Section 13 (Scripts Reference):
-- WRITE: package scripts from each `package.json`, Makefile targets, files under `scripts/`.
-- SKIP: nonexistent root npm scripts and nonexistent test script.
+- Covered: package scripts from each `package.json`, Makefile targets, files under `scripts/`.
+- Not covered: nonexistent root npm scripts and nonexistent test script.
 
 Section 14 (Troubleshooting):
-- WRITE: MongoDB connection issues, Redis connection issues, RabbitMQ connection issues, missing JWT/Cloudinary/Razorpay/session env vars, port conflicts, module-not-found, Compose healthcheck failures, migration/seed issues tied to actual files.
-- SKIP: PostgreSQL, Kubernetes, CI/CD, GraphQL, WebSocket, and formal unit-test troubleshooting.
+- Covered: MongoDB connection issues, Redis connection issues, RabbitMQ connection issues, missing JWT/Cloudinary/Razorpay/session env vars, port conflicts, module-not-found, Compose healthcheck failures, migration/seed issues tied to actual files.
+- Not covered: PostgreSQL, Kubernetes, CI/CD, GraphQL, WebSocket, and formal unit-test troubleshooting.
 
 Section 15 (Improvement Recommendations):
-- WRITE: evidence-backed issues only, such as absent CI/CD, absent formal tests, absent metrics/APM, absent security headers if confirmed, Compose/Docker hardening observations, and any route validation gaps found in later sections.
-- SKIP: generic performance/caching advice unless tied to actual code.
+- Covered: evidence-backed issues only, such as absent CI/CD, absent formal tests, absent metrics/APM, absent security headers if confirmed, Compose/Docker hardening observations, and any route validation gaps found in later sections.
+- Not covered: generic performance/caching advice unless tied to actual code.
 
 Section 16 (README):
-- WRITE: generated README from completed sections only.
-- SKIP: contributing section unless a `CONTRIBUTING.md` or equivalent is found later; license section unless a `LICENSE` file is found later.
+- Covered: README assembled from completed documentation sections.
+- Not covered: contributing section unless a `CONTRIBUTING.md` or equivalent is found later; license section unless a `LICENSE` file is found later.
 
 INDEX.md:
-- WRITE: after all sections, with status for each file and notes about skipped/partial areas.
-
-✅ CHECKPOINT: P0.8 — Section Scope Map complete. Proceeding to stop as instructed.
+- Covered: documentation index with status and notes for each section file.

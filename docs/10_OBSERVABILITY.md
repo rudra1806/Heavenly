@@ -1,15 +1,3 @@
-SECTION: Observability
-FILE: 10_OBSERVABILITY.md
-COVERS:
-- Morgan request logging in Gateway, BFF, and backend services.
-- Console logging for startup, proxy activity, service errors, RabbitMQ events, Redis errors, and domain operations.
-- `/health` endpoints in Gateway, BFF, and services.
-- Docker Compose healthchecks for MongoDB, Redis, RabbitMQ, Gateway, and services.
-SKIPS:
-- Metrics/APM skipped because Phase 0 found no `prom-client`, Datadog, New Relic, OpenTelemetry, or APM config.
-- Distributed tracing skipped because Phase 0 found no tracing implementation.
-- Error tracking skipped because Phase 0 found no Sentry, Bugsnag, Rollbar, or equivalent.
-
 ## Section 10 — Observability
 
 ### 10.1 — Logging
@@ -44,31 +32,24 @@ Log destination: no file, log shipping, or external sink is configured in the re
 
 No explicit field redaction or structured JSON log format was found.
 
-✅ CHECKPOINT: 10.1 — Logging complete. Proceeding to 10.2 — Metrics.
 
 ### 10.2 — Metrics
 
-> ⬜ NOT PRESENT — Metrics
+> **Not present:** Metrics
 > Evidence: No `prom-client`, Datadog, New Relic, OpenTelemetry metrics, or APM config found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 10.2 — Metrics complete. Proceeding to 10.3 — Distributed Tracing.
 
 ### 10.3 — Distributed Tracing
 
-> ⬜ NOT PRESENT — Distributed Tracing
+> **Not present:** Distributed Tracing
 > Evidence: No OpenTelemetry, Jaeger, Zipkin, Datadog tracing, New Relic tracing, or trace middleware found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 10.3 — Distributed Tracing complete. Proceeding to 10.4 — Error Tracking.
 
 ### 10.4 — Error Tracking
 
-> ⬜ NOT PRESENT — Error Tracking
+> **Not present:** Error Tracking
 > Evidence: No Sentry, Bugsnag, Rollbar, or equivalent error tracking service found in repository.
-> This section is skipped. If this feature is added later, document it here.
 
-✅ CHECKPOINT: 10.4 — Error Tracking complete. Proceeding to 10.5 — Health Checks.
 
 ### 10.5 — Health Checks
 
@@ -104,4 +85,3 @@ Docker Compose healthchecks:
 
 No Docker Compose healthcheck is defined for the BFF service in `docker-compose.yml`.
 
-✅ CHECKPOINT: 10.5 — Health Checks complete. Proceeding to stop as instructed.

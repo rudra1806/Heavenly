@@ -1,15 +1,3 @@
-SECTION: Environment Variables
-FILE: 08_ENVIRONMENT_VARIABLES.md
-COVERS:
-- Variables found in `.env.example`.
-- Variables found in `process.env.*` references across source and scripts.
-- Variables defined in `docker-compose.yml` and `docker-compose.prod.yml` environment blocks.
-- Required vs optional status based on whether the code has a fallback or explicit runtime failure path.
-SKIPS:
-- CI/CD environment variables skipped because no CI/CD config was found in Phase 0.
-- Kubernetes, Helm, and cloud infrastructure variables skipped because no corresponding infrastructure config was found.
-- Invented deployment variables skipped because they do not appear in `.env.example`, source code, scripts, or Compose files.
-
 ## Section 8 — Environment Variables
 
 ### 8.1 — Environment Variable Inventory
@@ -39,7 +27,7 @@ SKIPS:
 | `LISTING_MONGO_URL` | Optional | `mongodb://localhost:27017/heavenly_listings` in seed script; `mongodb://127.0.0.1:27017/heavenly-listings` in migration script | `mongodb://localhost:27017/heavenly_listings` | Listing database URL for seed and monolith migration scripts. | — | `scripts/seed-microservices.js`, `scripts/migrate.js` |
 | `REVIEW_MONGO_URL` | Optional | `mongodb://localhost:27017/heavenly_reviews` in seed script; `mongodb://127.0.0.1:27017/heavenly-reviews` in migration script | `mongodb://localhost:27017/heavenly_reviews` | Review database URL for seed and monolith migration scripts. | — | `scripts/seed-microservices.js`, `scripts/migrate.js` |
 | `BOOKING_MONGO_URL` | Optional | `mongodb://localhost:27017/heavenly_bookings` in seed script; `mongodb://127.0.0.1:27017/heavenly-bookings` in migration script | `mongodb://localhost:27017/heavenly_bookings` | Booking database URL for seed and monolith migration scripts. | — | `scripts/seed-microservices.js`, `scripts/migrate.js` |
-| `SEARCH_MONGO_URL` | Optional | `mongodb://localhost:27017/heavenly_search` | `mongodb://localhost:27017/heavenly_search` | Search database URL used by the seed script. No Search Service Mongoose model was found in Phase 0. | — | `scripts/seed-microservices.js` |
+| `SEARCH_MONGO_URL` | Optional | `mongodb://localhost:27017/heavenly_search` | `mongodb://localhost:27017/heavenly_search` | Search database URL used by the seed script. No Search Service Mongoose model was found in the repository scan. | — | `scripts/seed-microservices.js` |
 | `MONOLITH_MONGO_URL` | Optional | `mongodb://127.0.0.1:27017/heavenly` | `mongodb://127.0.0.1:27017/heavenly` | Source MongoDB URL for the monolith-to-microservices migration script. | — | `scripts/migrate.js` |
 | `BOOKING_DB_URL` | Optional | `mongodb://localhost:27017/heavenly_bookings` | `mongodb://localhost:27017/heavenly_bookings` | Booking DB URL for `scripts/update-booking-emails.js`. | — | `scripts/update-booking-emails.js` |
 | `AUTH_DB_URL` | Optional | `mongodb://localhost:27017/heavenly_auth` | `mongodb://localhost:27017/heavenly_auth` | Auth DB URL for `scripts/update-booking-emails.js`. | — | `scripts/update-booking-emails.js` |
@@ -87,4 +75,3 @@ SKIPS:
 | `ADMIN_EMAIL` | Optional | `admin@heavenly.com` | `admin@heavenly.com` | Email for admin user created by `scripts/seed-microservices.js`. | — | `.env.example`, `scripts/seed-microservices.js` |
 | `ADMIN_PASSWORD` | Optional | `admin123` | `replace-with-admin-password` | Password for admin user created by `scripts/seed-microservices.js`. | Sensitive password; `.env.example` contains a development value. | `.env.example`, `scripts/seed-microservices.js` |
 
-✅ CHECKPOINT: 8.1 — Environment Variable Inventory complete. Proceeding to stop as instructed.
