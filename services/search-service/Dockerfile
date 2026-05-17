@@ -7,4 +7,5 @@ RUN cd services/search-service && npm install --production
 COPY shared/ shared/
 COPY services/search-service/ services/search-service/
 EXPOSE 3006
+USER node
 CMD ["node", "services/search-service/src/index.js"]

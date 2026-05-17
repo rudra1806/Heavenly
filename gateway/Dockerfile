@@ -21,5 +21,7 @@ COPY gateway/ gateway/
 # Expose gateway port
 EXPOSE 3000
 
+USER node
+
 # Start the gateway
 CMD ["node", "gateway/src/index.js"]

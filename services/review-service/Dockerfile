@@ -7,4 +7,5 @@ RUN cd services/review-service && npm install --production
 COPY shared/ shared/
 COPY services/review-service/ services/review-service/
 EXPOSE 3003
+USER node
 CMD ["node", "services/review-service/src/index.js"]
