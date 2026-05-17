@@ -16,7 +16,17 @@ project-root/
 ├── docker-compose.yml            # Local Compose stack for MongoDB, Redis, RabbitMQ, gateway, BFF, and services
 ├── docs/                         # Generated project documentation folder
 │   ├── INDEX.md                  # Documentation index
+│   ├── KUBERNETES_GUIDE.md       # Kubernetes architecture and concepts
+│   ├── KUBERNETES_RUNBOOK.md     # Kubernetes operational procedures
+│   ├── KUBERNETES_TROUBLESHOOTING.md # Kubernetes troubleshooting guide
 │   └── 00_PHASE0_RECONNAISSANCE.md ... 15_IMPROVEMENTS.md
+├── k8s/                          # Kubernetes manifests for Minikube deployment
+│   ├── base/                     # Namespaces, ConfigMap, Secret, NetworkPolicies
+│   ├── infra/                    # MongoDB, Redis, RabbitMQ StatefulSets and Services
+│   ├── apps/                     # Backend microservice Deployments and Services
+│   ├── edge/                     # Gateway, BFF Deployments, Services, and Ingress
+│   ├── hpa/                      # HorizontalPodAutoscalers for stateless services
+│   └── monitoring/               # Helm values and Grafana dashboard ConfigMaps
 ├── shared/                       # Shared utilities used by services and scripts
 │   ├── errors/                   # Shared error class
 │   ├── events/                   # RabbitMQ broker and event name constants
@@ -66,11 +76,27 @@ project-root/
 `docs/`
 
 - Purpose: Stores project documentation.
-- Owns: Evidence-backed documentation files from reconnaissance through improvement recommendations.
+- Owns: Evidence-backed documentation files from reconnaissance through improvement recommendations, plus Kubernetes guides.
 - Does NOT own: Runtime source, service code, scripts, or configuration.
-- Key files: `docs/INDEX.md`, `docs/00_PHASE0_RECONNAISSANCE.md`, `docs/01_PROJECT_OVERVIEW.md`, `docs/02_ARCHITECTURE.md`.
+- Key files: `docs/INDEX.md`, `docs/00_PHASE0_RECONNAISSANCE.md`, `docs/01_PROJECT_OVERVIEW.md`, `docs/02_ARCHITECTURE.md`, `docs/KUBERNETES_GUIDE.md`, `docs/KUBERNETES_RUNBOOK.md`, `docs/KUBERNETES_TROUBLESHOOTING.md`.
 - Connects to: No runtime imports found from application code.
 - Pattern used: Documentation-only folder.
+
+
+`k8s/`
+
+- Purpose: Stores Kubernetes manifests for local Minikube deployment with monitoring.
+- Owns: Deployment, StatefulSet, Service, ConfigMap, Secret, Ingress, HPA, NetworkPolicy manifests, and Helm values.
+- Does NOT own: Docker Compose files, Dockerfiles, or application source code.
+- Key subdirectories:
+  - `k8s/base/`: namespace definitions, ConfigMap, Secret, NetworkPolicies.
+  - `k8s/infra/`: MongoDB, Redis, RabbitMQ StatefulSets and Services with persistent volumes.
+  - `k8s/apps/`: backend microservice Deployments and ClusterIP Services.
+  - `k8s/edge/`: gateway, BFF Deployments, Services, and NGINX Ingress.
+  - `k8s/hpa/`: HorizontalPodAutoscaler configurations for CPU-based autoscaling.
+  - `k8s/monitoring/`: Helm values for kube-prometheus-stack, loki-stack, and Grafana dashboards.
+- Connects to: Applied by `scripts/k8s-deploy.sh` and `kubectl apply` commands.
+- Pattern used: Organized Kubernetes manifest directory structure.
 
 
 `shared/`
