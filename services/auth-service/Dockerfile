@@ -19,4 +19,6 @@ COPY services/auth-service/ services/auth-service/
 
 EXPOSE 3001
 
+USER node
+
 CMD ["node", "services/auth-service/src/index.js"]

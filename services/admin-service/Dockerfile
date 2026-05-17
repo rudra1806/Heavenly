@@ -7,4 +7,5 @@ RUN cd services/admin-service && npm install --production
 COPY shared/ shared/
 COPY services/admin-service/ services/admin-service/
 EXPOSE 3007
+USER node
 CMD ["node", "services/admin-service/src/index.js"]

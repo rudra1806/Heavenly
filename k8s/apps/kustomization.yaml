@@ -1,0 +1,3 @@
+resources:
+  - stateless-services.yaml
+  - supporting-services.yaml

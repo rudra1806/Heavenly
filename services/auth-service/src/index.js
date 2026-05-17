@@ -32,12 +32,20 @@ try {
     ({ connectRabbitMQ, publishEvent, eventNames } = require('/app/shared'));
 }
 
+let setupMetrics;
+try {
+    ({ setupMetrics } = require('../../../shared/src/metrics'));
+} catch {
+    ({ setupMetrics } = require('/app/shared/src/metrics'));
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/heavenly_auth';
 
 // ===== Middleware =====
 app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+setupMetrics(app, 'auth-service');
 app.use(cors());
 app.use(express.json());
 

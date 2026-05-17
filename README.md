@@ -4,7 +4,7 @@
 
 **Property Rental Platform with Microservices Architecture**
 
-*A distributed property rental platform built with microservices, event-driven architecture, and modern design patterns*
+*A distributed property rental platform with an Express/EJS BFF, API Gateway, service-oriented backend, event-driven workflows, Docker Compose local orchestration, and Minikube Kubernetes deployment with observability.*
 
 [![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-5.2-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
@@ -12,8 +12,14 @@
 [![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://minikube.sigs.k8s.io/)
+[![Helm](https://img.shields.io/badge/Helm-Charts-0F1689?style=for-the-badge&logo=helm&logoColor=white)](https://helm.sh/)
+[![NGINX](https://img.shields.io/badge/NGINX-Ingress-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://kubernetes.github.io/ingress-nginx/)
+[![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![Grafana](https://img.shields.io/badge/Grafana-Observability-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com/)
+[![Loki](https://img.shields.io/badge/Loki-Logs-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com/oss/loki/)
 
-[Architecture](#-architecture) • [Services](#-services) • [Quick Start](#-quick-start) • [Features](#-features) • [Documentation](#-documentation)
+[Overview](#-overview) • [Architecture](#-architecture) • [Services](#-services) • [Quick Start](#-quick-start) • [Features](#-features) • [Documentation](#-documentation)
 
 </div>
 
@@ -21,28 +27,135 @@
 
 ## 📋 Overview
 
-Heavenly is a full-featured property rental platform built with microservices architecture. It demonstrates distributed systems patterns including service decomposition, event-driven communication, API gateway pattern, and database-per-service architecture.
+Heavenly is a full-featured property rental platform built from multiple Node.js/Express services. Users interact with a server-rendered BFF, while API traffic flows through a Gateway into dedicated services for authentication, listings, reviews, bookings, media, search, and admin operations.
 
 ### 🎯 Key Highlights
 
-- **8 Independent Microservices** with their own databases
-- **Event-Driven Architecture** using RabbitMQ for async communication
-- **API Gateway** with JWT validation and rate limiting
-- **Backend-for-Frontend (BFF)** pattern for optimal client experience
-- **Distributed Caching** with Redis for performance
-- **Razorpay Payment Integration** with automatic fallback to simulation mode
-- **Complete Booking System** with date validation and overlap detection
-- **Admin Dashboard** for platform management
-- **Docker Compose** for easy local development
-- **Production-Ready** with health checks and graceful shutdown
+- **7 backend service packages** plus an **API Gateway** and **Backend-for-Frontend**
+- **Server-rendered UI** using Express, EJS, and `ejs-mate`
+- **Event-driven workflows** using RabbitMQ and shared event helpers
+- **MongoDB-backed persistence** through Mongoose models
+- **Redis-backed support** for cache/token-blacklist flows where implemented
+- **Razorpay payment integration** with simulation fallback when credentials are absent
+- **Cloudinary media upload/delete** through the media service
+- **Admin dashboard** for cross-service management workflows
+- **Docker Compose stack** for local development
+- **Kubernetes stack** for Minikube with NGINX Ingress, HPA, Prometheus, Grafana, Loki, and Promtail
+- **Prometheus metrics** through `/metrics` endpoints on all app services
+- **Operational scripts** for seed, migration, smoke test, backup, and restore
 
 ---
 
 ## 🏗️ Architecture
 
-Heavenly is composed of 8 independent microservices, an API Gateway, and a Backend-for-Frontend (BFF). It uses RabbitMQ for event-driven asynchronous communication and MongoDB for per-service data storage.
+Heavenly uses a service-oriented architecture with a browser-facing BFF, a REST API Gateway, dedicated backend services, shared utilities, MongoDB, Redis, and RabbitMQ.
 
-👉 **For the complete system design, sequence diagrams, and service deep-dives, please read the [Architecture Guide](./ARCHITECTURE.md).**
+```mermaid
+graph TD
+    User["👤 User"] --> BFF["BFF: Express + EJS"]
+    BFF --> Gateway["API Gateway"]
+
+    Gateway --> Auth["Auth Service"]
+    Gateway --> Listing["Listing Service"]
+    Gateway --> Review["Review Service"]
+    Gateway --> Booking["Booking Service"]
+    Gateway --> Media["Media Service"]
+    Gateway --> Search["Search Service"]
+    Gateway --> Admin["Admin Service"]
+
+    Auth --> MongoDB[("MongoDB")]
+    Listing --> MongoDB
+    Review --> MongoDB
+    Booking --> MongoDB
+
+    Auth --> Redis["Redis"]
+    Search --> Redis
+
+    Auth --> RabbitMQ["RabbitMQ"]
+    Listing --> RabbitMQ
+    Review --> RabbitMQ
+    Booking --> RabbitMQ
+    Search --> RabbitMQ
+
+    Media --> Cloudinary["Cloudinary"]
+    Booking --> Razorpay["Razorpay"]
+```
+
+For Kubernetes, the same service graph runs in the `heavenly` namespace. MongoDB, Redis, and RabbitMQ run as StatefulSets with persistent volumes; stateless app services run as Deployments behind ClusterIP Services; NGINX Ingress routes `heavenly.local` to the BFF; Prometheus, Grafana, Loki, and Promtail run in the `monitoring` namespace.
+
+### Kubernetes Deployment Architecture
+
+```mermaid
+graph TB
+    Browser["Browser"] --> Hosts["/etc/hosts: heavenly.local"]
+    Hosts --> Ingress["NGINX Ingress Controller"]
+
+    subgraph Cluster["Minikube Cluster"]
+        subgraph Heavenly["Namespace: heavenly"]
+            BFF["BFF Deployment<br/>:8080"]
+            Gateway["Gateway Deployment<br/>:3000"]
+            Auth["Auth Service<br/>:3001"]
+            Listing["Listing Service<br/>:3002"]
+            Review["Review Service<br/>:3003"]
+            Booking["Booking Service<br/>:3004"]
+            Media["Media Service<br/>:3005"]
+            Search["Search Service<br/>:3006"]
+            Admin["Admin Service<br/>:3007"]
+
+            MongoDB[("MongoDB StatefulSet<br/>10Gi PVC")]
+            Redis[("Redis StatefulSet<br/>1Gi PVC")]
+            RabbitMQ[("RabbitMQ StatefulSet<br/>5Gi PVC")]
+
+            ConfigMap["heavenly-config<br/>ConfigMap"]
+            Secret["heavenly-secrets<br/>Secret"]
+            HPA["HPA<br/>CPU target 70%"]
+        end
+
+        subgraph Monitoring["Namespace: monitoring"]
+            Prometheus["Prometheus<br/>kube-prometheus-stack"]
+            Grafana["Grafana<br/>Dashboards"]
+            Loki["Loki<br/>Log storage"]
+            Promtail["Promtail<br/>DaemonSet"]
+        end
+    end
+
+    Ingress --> BFF
+    BFF --> Gateway
+    Gateway --> Auth
+    Gateway --> Listing
+    Gateway --> Review
+    Gateway --> Booking
+    Gateway --> Media
+    Gateway --> Search
+    Gateway --> Admin
+
+    Auth --> MongoDB
+    Listing --> MongoDB
+    Review --> MongoDB
+    Booking --> MongoDB
+    Auth --> Redis
+    Search --> Redis
+    Auth --> RabbitMQ
+    Listing --> RabbitMQ
+    Review --> RabbitMQ
+    Booking --> RabbitMQ
+    Search --> RabbitMQ
+
+    ConfigMap -.-> BFF
+    Secret -.-> BFF
+    HPA -.-> BFF
+    HPA -.-> Gateway
+    HPA -.-> Auth
+
+    Prometheus -.->|"scrapes /metrics"| BFF
+    Prometheus -.->|"scrapes /metrics"| Gateway
+    Prometheus -.->|"scrapes /metrics"| Auth
+    Promtail -.->|"ships pod logs"| Loki
+    Grafana --> Prometheus
+    Grafana --> Loki
+```
+
+👉 **For the evidence-backed deep dive, read the [Architecture Guide](docs/02_ARCHITECTURE.md).**
 
 ---
 
@@ -52,23 +165,23 @@ Heavenly is composed of 8 independent microservices, an API Gateway, and a Backe
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| **MongoDB** | 27017 | Document database (per-service DBs) |
-| **Redis** | 6379 | Caching & JWT blacklist |
-| **RabbitMQ** | 5672, 15672 | Message broker + Management UI |
+| **MongoDB** | `27017` | Document database for service data |
+| **Redis** | `6379` | Cache and token-blacklist support |
+| **RabbitMQ** | `5672`, `15672` | Message broker and management UI |
 
-### Core Microservices
+### Application Services
 
-| Service | Port | Database | Responsibility |
-|---------|------|----------|----------------|
-| **API Gateway** | 3000 | — | Request routing, JWT validation, rate limiting |
-| **Auth Service** | 3001 | `heavenly_auth` | User identity, authentication, JWT lifecycle |
-| **Listing Service** | 3002 | `heavenly_listings` | Property CRUD, availability, ownership |
-| **Review Service** | 3003 | `heavenly_reviews` | Ratings & reviews for listings |
-| **Booking Service** | 3004 | `heavenly_bookings` | Reservations, Razorpay payments, date validation |
-| **Media Service** | 3005 | — | Image uploads via Cloudinary |
-| **Search Service** | 3006 | — | Full-text search, geocoding (Redis cached) |
-| **Admin Service** | 3007 | — | Cross-service aggregation, admin operations |
-| **BFF** | 8080 | — | EJS rendering, session management |
+| Service | Port | Responsibility |
+|---------|------|----------------|
+| **BFF** | `8080` | EJS rendering, browser sessions, user-facing routes |
+| **API Gateway** | `3000` | Request routing, JWT validation, rate limiting |
+| **Auth Service** | `3001` | User identity, authentication, JWT lifecycle |
+| **Listing Service** | `3002` | Property CRUD, availability, ownership |
+| **Review Service** | `3003` | Ratings, reviews, review statistics |
+| **Booking Service** | `3004` | Reservations, payments, cancellation, refunds |
+| **Media Service** | `3005` | Image uploads and deletes through Cloudinary |
+| **Search Service** | `3006` | Listing search and geocoding |
+| **Admin Service** | `3007` | Cross-service admin aggregation |
 
 ---
 
@@ -76,32 +189,36 @@ Heavenly is composed of 8 independent microservices, an API Gateway, and a Backe
 
 ### Prerequisites
 
-- **Docker** 20+ and **Docker Compose** 2+
-- **Node.js** 20+ (for local development)
-- **Cloudinary Account** (free tier works)
-- **Razorpay Account** (optional, for real payments - free test mode available)
+- **Docker** and **Docker Compose**
+- **Node.js 20+** for local package scripts
+- **Make** for convenience commands
+- **Minikube**, **kubectl**, and **Helm** for Kubernetes deployment and monitoring
+- **Cloudinary credentials** for real media uploads
+- **Razorpay credentials** for real payment processing
 
-### Installation
+### Docker Compose Installation
 
 ```bash
 # Clone the repository
 git clone https://github.com/rudra1806/Heavenly.git
 cd Heavenly
 
-# Configure environment variables
+# Create local environment file
 cp .env.example .env
-# Edit .env with your credentials (see Configuration section)
 
-# Start all services
+# Start the full stack
 make up-build
+```
 
-# Or using docker-compose directly
+Equivalent Docker Compose command:
+
+```bash
 docker-compose up --build
 ```
 
 ### Configuration
 
-Create a `.env` file in the root directory:
+Create `.env` from `.env.example` and fill in the values needed for your local run:
 
 ```env
 # JWT Configuration
@@ -120,25 +237,28 @@ CLOUD_API_SECRET=your_cloudinary_api_secret
 RABBITMQ_USER=heavenly
 RABBITMQ_PASS=heavenly123
 
-# Razorpay (Booking Service) - Optional
-RAZORPAY_KEY_ID=rzp_test_your_key_id
-RAZORPAY_KEY_SECRET=your_key_secret
-
 # Admin Seed (optional)
 ADMIN_USERNAME=admin
 ADMIN_EMAIL=admin@heavenly.com
 ADMIN_PASSWORD=admin123
+
+# Razorpay (Booking Service)
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 ```
 
-**Note:** Razorpay credentials are optional. Without them, the system uses simulation mode for testing.
+Razorpay credentials are optional for local testing. When they are absent, booking payment flows use simulation mode.
 
-### Seeding Data
+### Seed Data
 
 ```bash
-# Seed admin user + 30 sample listings
+# Seed admin user and sample microservice data
 make seed
+```
 
-# Or manually
+Equivalent direct command:
+
+```bash
 cd scripts && node seed-microservices.js
 ```
 
@@ -146,74 +266,136 @@ cd scripts && node seed-microservices.js
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **BFF (Frontend)** | http://localhost:8080 | Main application |
+| **BFF** | http://localhost:8080 | Main browser application |
 | **API Gateway** | http://localhost:3000 | REST API entry point |
-| **RabbitMQ Management** | http://localhost:15672 | Message broker UI (heavenly/heavenly123) |
+| **RabbitMQ Management** | http://localhost:15672 | Broker management UI |
+
+### Kubernetes Quick Start
+
+The Kubernetes workflow runs the app locally on Minikube and exposes the BFF through `http://heavenly.local`.
+
+```bash
+# Create or update .env first
+cp .env.example .env
+
+# Start Minikube with the requested resources and addons
+make k8s-start
+
+# If an older Minikube profile already exists with different CPU/RAM:
+make k8s-reset
+
+# Build local images into Minikube and deploy app + monitoring
+make k8s-deploy
+```
+
+Add a hosts entry after deployment. With a normal Minikube IP:
+
+```text
+<minikube-ip> heavenly.local
+```
+
+On Docker Desktop for Mac, Minikube may ask you to run a tunnel. Keep this running in another terminal:
+
+```bash
+minikube tunnel
+```
+
+Then use:
+
+```text
+127.0.0.1 heavenly.local
+```
+
+Useful checks:
+
+```bash
+kubectl get pods -n heavenly
+kubectl get pods -n monitoring
+make k8s-status
+make k8s-verify
+```
+
+Open the app:
+
+```text
+http://heavenly.local
+```
+
+Open Grafana:
+
+```bash
+make k8s-grafana
+```
+
+Then visit `http://localhost:3000`. The username is `admin`; get the password with:
+
+```bash
+kubectl -n monitoring get secret kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+```
 
 ---
 
 ## ✨ Features
 
 ### 🏠 Property Management
-- Full CRUD with owner-only edit/delete
-- Cloud image upload via Cloudinary
-- Auto-cleanup of old images on update/delete
-- Automatic geocoding via Nominatim (OpenStreetMap)
-- Interactive maps with MapLibre GL JS
-- Property availability toggle
+
+- Listing browse/detail flows
+- Owner-aware listing create, update, and delete workflows
+- Image upload support through media handling
+- Availability and listing metadata management
+- Map rendering with MapLibre GL JS and OpenStreetMap tiles
 
 ### 📅 Booking System
-- Date validation with overlap detection
-- Guest count validation
-- Real-time price calculation
-- **Razorpay Payment Integration** with order creation and signature verification
-- **Automatic Refunds** on booking cancellation
-- **Dual Mode**: Real payments or simulation mode
-- Booking status tracking (pending, confirmed, completed, cancelled)
-- Payment status tracking (pending, completed, refunded, failed)
+
+- Booking creation and lookup
+- Date validation and overlap checks
+- Payment order and verification flows
+- Razorpay-backed payment path with simulation fallback
+- Cancellation and refund handling
+- Booking and payment status tracking
 
 ### ⭐ Reviews & Ratings
-- 1-5 star ratings
-- Author tracking with timestamps
-- Author-only delete permissions
-- Review statistics per listing
+
+- Star ratings and review text
+- Review lookup and listing-level statistics
+- Author-aware delete behavior
 
 ### 👤 Authentication & Authorization
-- JWT-based authentication (access + refresh tokens)
-- Role-based access control (user vs admin)
-- Redis-backed token blacklist for logout
-- Session management in BFF
-- Smart redirects after authentication
+
+- JWT access and refresh token utilities
+- Password hashing with bcrypt
+- Redis-backed token blacklist on logout where Redis is available
+- BFF session management
+- Admin-only route protection
 
 ### 👑 Admin Dashboard
-- Platform-wide statistics
-- User management with search
-- Listing management
-- Review management
-- Booking management with revenue tracking
-- Cascade delete operations
+
+- Platform statistics
+- User, listing, review, and booking management views
+- Cross-service aggregation through the admin service
 
 ### 🔍 Search & Discovery
-- Full-text search across listings
-- Price range filtering
-- Geocoding with Redis caching
-- Interactive cluster maps
+
+- Listing search endpoints
+- Geocoding support
+- Redis-backed geocoding cache
+- Cluster and listing maps in the BFF
 
 ---
 
 ## 🛠️ Development Commands
 
-The project includes a comprehensive Makefile for common operations:
+The project includes a Makefile for common local operations:
 
 ```bash
 # Start all services
 make up              # Foreground mode
-make up-d            # Background (detached) mode
+make up-d            # Background mode
 make up-build        # Rebuild and start
 
 # Stop services
-make down            # Stop all (keeps data)
-make clean           # ⚠️ Stop and delete all data
+make down            # Stop all services, keep volumes
+make clean           # Stop and delete volumes after confirmation
 
 # View logs
 make logs            # All services
@@ -225,64 +407,65 @@ make restart         # All services
 make restart-bff     # BFF only
 make restart-auth    # Auth service only
 
-# Database operations
+# Data operations
 make seed            # Seed initial data
 make backup          # Backup MongoDB data
-make restore BACKUP=./backups/20260511_143000  # Restore from backup
+make restore BACKUP=./backups/20260511_143000
 
 # Utilities
 make ps              # Show running containers
-make status          # Service status + volumes
-make mongo           # Connect to MongoDB shell
-make redis           # Connect to Redis CLI
+make status          # Service status and volumes
+make mongo           # Open MongoDB shell
+make redis           # Open Redis CLI
+
+# Kubernetes
+make k8s-start       # Start Minikube with ingress and metrics-server
+make k8s-reset       # Recreate Minikube with configured CPU/RAM
+make k8s-deploy      # Build images and deploy app + monitoring
+make k8s-status      # Show Kubernetes app resources
+make k8s-logs        # Tail Kubernetes logs
+make k8s-grafana     # Port-forward Grafana to localhost:3000
+make k8s-cleanup     # Remove app resources, keeping PVCs by default
 ```
+
+👉 **See the full [Scripts Reference](docs/13_SCRIPTS_REFERENCE.md) for every package script, Makefile target, and utility script.**
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 Heavenly/
-├── docker-compose.yml           # 🐳 Orchestrates 12 containers
-├── docker-compose.prod.yml      # 🚀 Production configuration
-├── .env.example                 # 🔐 Environment variables template
-├── Makefile                     # 🛠️ Development commands
-├── .dockerignore                # Docker ignore patterns
-├── .gitignore                   # Git ignore patterns
+├── docker-compose.yml           # Local multi-container stack
+├── docker-compose.prod.yml      # Production Compose variant
+├── k8s/                         # Minikube Kubernetes manifests
+│   ├── base/                    # Namespaces, ConfigMap, NetworkPolicies
+│   ├── infra/                   # MongoDB, Redis, RabbitMQ StatefulSets
+│   ├── apps/                    # Backend service Deployments
+│   ├── edge/                    # Gateway, BFF, Ingress
+│   ├── hpa/                     # HorizontalPodAutoscalers
+│   └── monitoring/              # Helm values and Grafana dashboard
+├── .env.example                 # Environment variable template
+├── Makefile                     # Development commands
+├── README.md                    # Project entry point
+├── docs/                        # Generated project documentation
+│   ├── INDEX.md
+│   ├── 00_PHASE0_RECONNAISSANCE.md
+│   └── 01_PROJECT_OVERVIEW.md ... 15_IMPROVEMENTS.md
 │
-├── shared/                      # 📦 Shared NPM Package
-│   ├── middleware/              # JWT verification
-│   ├── errors/                  # Error classes
-│   ├── events/                  # RabbitMQ client & event names
-│   └── utils/                   # HTTP client for inter-service calls
+├── shared/                      # Shared middleware, events, errors, utilities
+├── gateway/                     # API Gateway (:3000)
+├── bff/                         # Backend-for-Frontend (:8080)
+├── services/                    # Backend service packages
+│   ├── auth-service/
+│   ├── listing-service/
+│   ├── review-service/
+│   ├── booking-service/
+│   ├── media-service/
+│   ├── search-service/
+│   └── admin-service/
 │
-├── gateway/                     # 🚪 API Gateway (:3000)
-│   └── src/
-│       ├── index.js
-│       ├── proxy.js
-│       └── middleware/
-│
-├── services/
-│   ├── auth-service/            # 🔐 User Identity (:3001)
-│   ├── listing-service/         # 🏠 Property Management (:3002)
-│   ├── review-service/          # ⭐ Ratings & Reviews (:3003)
-│   ├── booking-service/         # 📅 Reservations (:3004)
-│   ├── media-service/           # 📸 Image Uploads (:3005)
-│   ├── search-service/          # 🔍 Search & Geocoding (:3006)
-│   └── admin-service/           # 👑 Admin Aggregator (:3007)
-│
-├── bff/                         # 🖥️ Backend-for-Frontend (:8080)
-│   └── src/
-│       ├── routes/              # 7 route modules
-│       ├── views/               # 30+ EJS templates
-│       ├── public/              # Static assets (CSS, JS)
-│       └── utils/               # API client & caching
-│
-└── scripts/                     # 🔧 Utilities
-    ├── seed-microservices.js
-    ├── migrate.js
-    ├── smoke-test.js
-    └── backup/restore scripts
+└── scripts/                     # Seed, migration, smoke-test, backup, restore, Kubernetes automation
 ```
 
 ---
@@ -290,84 +473,114 @@ Heavenly/
 ## 🛠️ Tech Stack
 
 | Category | Technology | Purpose |
-|----------|-----------|---------|
-| **Runtime** | Node.js 20 (Alpine) | Lightweight container runtime |
-| **Framework** | Express.js 5.2 | HTTP server for all services |
-| **Database** | MongoDB 7 | Per-service document storage |
+|----------|------------|---------|
+| **Runtime** | Node.js 20 | Service runtime |
+| **Framework** | Express.js 5.2 | HTTP servers, routes, middleware |
+| **Frontend Rendering** | EJS + ejs-mate | Server-rendered browser UI |
+| **Database** | MongoDB 7 | Service data persistence |
+| **ODM** | Mongoose | MongoDB models and queries |
 | **Message Broker** | RabbitMQ 3 | Event-driven async communication |
-| **Cache** | Redis 7 | JWT blacklist, geocoding cache |
-| **Authentication** | JWT + bcrypt | Stateless token-based auth |
-| **Validation** | Joi 18 | Request schema validation |
-| **File Storage** | Cloudinary | Image CDN and storage |
-| **Payment Gateway** | Razorpay 2.9 | Payment processing |
-| **Geocoding** | Nominatim (OSM) | Free address-to-coordinates API |
-| **Orchestration** | Docker Compose | Multi-container development |
-| **Templating** | EJS + ejs-mate 4 | Server-side HTML rendering |
+| **Cache** | Redis 7 | Cache and token blacklist support |
+| **Authentication** | JWT + bcrypt | Token auth and password hashing |
+| **Validation** | Joi | Request validation in supported services |
+| **File Uploads** | multer | Multipart upload handling |
+| **Media Storage** | Cloudinary | Image storage and deletion |
+| **Payment Gateway** | Razorpay | Payment order, verification, refund flows |
+| **Geocoding** | Nominatim / OpenStreetMap | Address-to-coordinate lookup |
+| **Maps** | MapLibre GL JS | Browser map rendering |
+| **Orchestration** | Docker Compose | Local multi-service environment |
+| **Kubernetes** | Minikube + kubectl | Local Kubernetes environment |
+| **Ingress** | NGINX Ingress | Routes `heavenly.local` to the BFF |
+| **Autoscaling** | Horizontal Pod Autoscaler | CPU-based scaling for stateless services |
+| **Metrics** | Prometheus + prom-client | App and container metrics |
+| **Dashboards** | Grafana | Metrics and log visualization |
+| **Logs** | Loki + Promtail | Centralized Kubernetes pod logs |
 
 ---
 
 ## 🔄 Communication Patterns
 
-The system utilizes both synchronous REST APIs (via the API Gateway) and asynchronous event-driven communication (via RabbitMQ) for cascade operations like user deletion.
+Heavenly uses synchronous REST calls for request/response workflows and RabbitMQ for asynchronous service coordination. The Gateway handles external API routing, while the BFF uses the Gateway as its backend API surface.
 
-👉 **See the [Architecture Guide](./ARCHITECTURE.md#communication-patterns) for detailed sequence diagrams and the full Event Catalog.**
-
----
-
-## 🔐 Security Features
-
-- **JWT Authentication**: Access tokens (15min) + Refresh tokens (7d)
-- **Token Blacklist**: Redis-backed logout mechanism
-- **Rate Limiting**: 500 req/15min per user, 20 req/15min for auth
-- **Role-Based Access**: User vs Admin permissions
-- **Password Hashing**: bcrypt with 12 salt rounds
-- **Input Validation**: Joi schemas on all endpoints
-- **CORS Protection**: Configured for production
-- **Secure Payment**: Razorpay signature verification
+👉 **See [Architecture Deep Dive](docs/02_ARCHITECTURE.md) and [Backend Services](docs/04b_BACKEND_SERVICES.md) for service flow details.**
 
 ---
 
-## 🧪 Testing
+## 🔐 Security Notes
+
+- **JWT authentication** is implemented through the Auth Service, Gateway validation, and shared middleware.
+- **Password hashing** uses bcrypt in the Auth Service user model.
+- **Rate limiting** is applied in the Gateway.
+- **CORS** is configured in the Gateway and service entry points.
+- **Input validation** uses Joi in supported route layers.
+- **Payment verification** uses Razorpay signature verification when Razorpay is enabled.
+
+👉 **For gaps and evidence, see the [Security Analysis](docs/09_SECURITY.md).**
+
+---
+
+## 🧪 Verification
 
 ### Smoke Test
 
-Run end-to-end health checks:
+Run the confirmed smoke test after the stack is running:
 
 ```bash
-cd scripts
-node smoke-test.js
+cd scripts && npm run smoke-test
 ```
 
-### Manual API Testing
+The repository does not currently include a formal unit/integration test suite. The smoke script is the confirmed verification path.
+
+### Manual API Checks
 
 ```bash
-# Test API Gateway
+# Gateway health
 curl http://localhost:3000/health
 
-# Test Auth Service
-curl -X POST http://localhost:3000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"testuser","email":"test@example.com","password":"password123"}'
+# BFF health
+curl http://localhost:8080/health
 
-# Test Listing Service
+# Public listings through Gateway
 curl http://localhost:3000/api/listings
 ```
 
 ---
 
-## 📊 Monitoring
+## 📊 Observability
 
 ### Health Checks
 
-All services expose `/health` endpoints for monitoring.
+The Gateway, BFF, and services expose `/health` endpoints.
 
 ### RabbitMQ Management UI
 
-Access at http://localhost:15672 (heavenly/heavenly123) to monitor:
-- Message rates
-- Queue depths
-- Consumer status
-- Exchange bindings
+Open http://localhost:15672 to inspect broker state.
+
+### Kubernetes Metrics and Logs
+
+All app services expose `/metrics` using `prom-client`. In Kubernetes, Prometheus scrapes annotated pods in the `heavenly` namespace, and Promtail ships pod stdout/stderr logs to Loki.
+
+```bash
+make k8s-grafana
+```
+
+Grafana includes a `Heavenly Services Overview` dashboard with request rate, P95 latency, CPU, memory, HPA desired replicas, and recent logs. You can also use:
+
+```text
+Explore -> Prometheus
+Explore -> Loki
+```
+
+Useful queries:
+
+```promql
+sum by (service) (rate(heavenly_http_requests_total[5m]))
+sum by (pod) (container_memory_working_set_bytes{namespace="heavenly"})
+```
+
+```logql
+{namespace="heavenly"}
+```
 
 ### Docker Logs
 
@@ -375,91 +588,104 @@ Access at http://localhost:15672 (heavenly/heavenly123) to monitor:
 # View all logs
 docker-compose logs -f
 
-# View specific service
+# View a specific service
 docker-compose logs -f auth-service
 
-# View last 100 lines
+# View recent booking logs
 docker-compose logs --tail=100 booking-service
 ```
+
+👉 **For logging, health checks, metrics, and Kubernetes observability, see [Observability](docs/10_OBSERVABILITY.md) and [Kubernetes Guide](docs/KUBERNETES_GUIDE.md).**
 
 ---
 
 ## 🚀 Deployment
 
-The project is fully containerized and production-ready.
+The repository includes Dockerfiles for the BFF, Gateway, and service packages, plus `docker-compose.yml`, `docker-compose.prod.yml`, and a local Kubernetes stack under `k8s/`.
 
-👉 **See the [Architecture Guide](./ARCHITECTURE.md#deployment) for production considerations, secrets management, and Kubernetes deployment examples.**
+The Kubernetes stack targets Minikube for local learning and validation. It is cloud-portable in shape, but it is not yet packaged as a production Helm chart and does not include Terraform, Pulumi, CI/CD, TLS certificate automation, or cloud load-balancer configuration.
+
+👉 **See [DevOps & Infrastructure](docs/07_DEVOPS_INFRASTRUCTURE.md), [Kubernetes Guide](docs/KUBERNETES_GUIDE.md), and [Kubernetes Runbook](docs/KUBERNETES_RUNBOOK.md).**
 
 ---
 
 ## 📚 Documentation
 
-For detailed documentation on each service, architecture decisions, and implementation details, see:
+The project docs are kept in [`docs/`](docs/):
 
-- [Architecture Guide](./ARCHITECTURE.md) - Complete technical documentation
+| Topic | File |
+|-------|------|
+| Documentation Index | [docs/INDEX.md](docs/INDEX.md) |
+| Reconnaissance | [docs/00_PHASE0_RECONNAISSANCE.md](docs/00_PHASE0_RECONNAISSANCE.md) |
+| Project Overview | [docs/01_PROJECT_OVERVIEW.md](docs/01_PROJECT_OVERVIEW.md) |
+| Architecture | [docs/02_ARCHITECTURE.md](docs/02_ARCHITECTURE.md) |
+| Folder Structure | [docs/03_FOLDER_STRUCTURE.md](docs/03_FOLDER_STRUCTURE.md) |
+| Backend Routes | [docs/04a_BACKEND_ROUTES.md](docs/04a_BACKEND_ROUTES.md) |
+| Backend Services | [docs/04b_BACKEND_SERVICES.md](docs/04b_BACKEND_SERVICES.md) |
+| Frontend | [docs/05_FRONTEND.md](docs/05_FRONTEND.md) |
+| Database | [docs/06_DATABASE.md](docs/06_DATABASE.md) |
+| DevOps | [docs/07_DEVOPS_INFRASTRUCTURE.md](docs/07_DEVOPS_INFRASTRUCTURE.md) |
+| Environment Variables | [docs/08_ENVIRONMENT_VARIABLES.md](docs/08_ENVIRONMENT_VARIABLES.md) |
+| Security | [docs/09_SECURITY.md](docs/09_SECURITY.md) |
+| Observability | [docs/10_OBSERVABILITY.md](docs/10_OBSERVABILITY.md) |
+| Dependencies | [docs/11_DEPENDENCIES.md](docs/11_DEPENDENCIES.md) |
+| Setup Guide | [docs/12_SETUP_GUIDE.md](docs/12_SETUP_GUIDE.md) |
+| Scripts Reference | [docs/13_SCRIPTS_REFERENCE.md](docs/13_SCRIPTS_REFERENCE.md) |
+| Troubleshooting | [docs/14_TROUBLESHOOTING.md](docs/14_TROUBLESHOOTING.md) |
+| Improvements | [docs/15_IMPROVEMENTS.md](docs/15_IMPROVEMENTS.md) |
+| Kubernetes Guide | [docs/KUBERNETES_GUIDE.md](docs/KUBERNETES_GUIDE.md) |
+| Kubernetes Runbook | [docs/KUBERNETES_RUNBOOK.md](docs/KUBERNETES_RUNBOOK.md) |
+| Kubernetes Troubleshooting | [docs/KUBERNETES_TROUBLESHOOTING.md](docs/KUBERNETES_TROUBLESHOOTING.md) |
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Common Issues
+### Services Won't Start
 
-**Services won't start**:
 ```bash
-# Clean up and rebuild
-make clean
+make down
 make up-build
 ```
 
-**Database connection errors**:
+### Database Connection Issues
+
 ```bash
-# Check MongoDB health
 make mongo
-# In mongo shell: db.adminCommand('ping')
+# In mongosh:
+db.adminCommand('ping')
 ```
 
-**Port conflicts**:
+### Port Conflicts
+
 ```bash
-# Check what's using a port
 lsof -i :3000
-
-# Kill process
-kill -9 <PID>
+lsof -i :8080
 ```
 
-**Service crashes**:
+### Service Crashes
+
 ```bash
-# View logs
 docker-compose logs --tail=100 <service-name>
-
-# Restart specific service
-make restart-<service-name>
+docker-compose restart <service-name>
 ```
 
----
+### Kubernetes Checks
 
-## 🤝 Contributing
+```bash
+kubectl get pods -n heavenly
+kubectl get pods -n monitoring
+kubectl get hpa -n heavenly
+kubectl get ingress -n heavenly
+```
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-feature`)
-3. Commit changes (`git commit -m 'Add new feature'`)
-4. Push to branch (`git push origin feature/new-feature`)
-5. Open a Pull Request
-
-### Contribution Guidelines
-
-- Follow existing code structure and naming conventions
-- Add health checks to new services
-- Document API endpoints
-- Add event names to `shared/events/eventNames.js`
-- Update docker-compose.yml for new services
-- Add Makefile commands for common operations
+👉 **See [Troubleshooting](docs/14_TROUBLESHOOTING.md) and [Kubernetes Troubleshooting](docs/KUBERNETES_TROUBLESHOOTING.md).**
 
 ---
 
 ## 📄 License
 
-This project is licensed under the ISC License.
+No root `LICENSE` file is currently present in this repository.
 
 ---
 
@@ -472,17 +698,9 @@ This project is licensed under the ISC License.
 
 ---
 
-## 🙏 Acknowledgments
-
-- **Inspiration**: Airbnb and Booking.com architecture patterns
-- **Technologies**: Express.js, MongoDB, RabbitMQ, Redis, and Docker communities
-- **Payment Processing**: Razorpay for seamless payment integration
-
----
-
 <div align="center">
 
-**Built with ❤️ using microservices architecture**
+**Built with ❤️ using Node.js, Express, MongoDB, RabbitMQ, Redis, Docker Compose, Kubernetes, and Grafana**
 
 [⬆ Back to Top](#-heavenly)
 

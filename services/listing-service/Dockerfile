@@ -7,4 +7,5 @@ RUN cd services/listing-service && npm install --production
 COPY shared/ shared/
 COPY services/listing-service/ services/listing-service/
 EXPOSE 3002
+USER node
 CMD ["node", "services/listing-service/src/index.js"]

@@ -1,0 +1,47 @@
+loki:
+  enabled: true
+  isDefault: false
+  persistence:
+    enabled: true
+    size: 5Gi
+  config:
+    schema_config:
+      configs:
+        - from: "2024-01-01"
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: loki_index_
+            period: 24h
+    storage_config:
+      filesystem:
+        directory: /data/loki/chunks
+    compactor:
+      working_directory: /data/loki/compactor
+      retention_enabled: true
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+    limits_config:
+      retention_period: 168h
+promtail:
+  enabled: true
+  config:
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+    snippets:
+      pipelineStages:
+        - cri: {}
+      extraRelabelConfigs:
+        - source_labels: [__meta_kubernetes_namespace]
+          action: keep
+          regex: heavenly
+        - source_labels: [__meta_kubernetes_pod_label_app]
+          target_label: service
+grafana:
+  enabled: false
+  sidecar:
+    datasources:
+      enabled: false
+prometheus:
+  enabled: false

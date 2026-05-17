@@ -1,0 +1,258 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: heavenly
+  labels: &authLabels
+    app: auth-service
+    component: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: *authLabels
+  template:
+    metadata:
+      labels: *authLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "3001"
+    spec:
+      containers:
+        - name: auth-service
+          image: heavenly/auth-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+          env:
+            - { name: NODE_ENV, valueFrom: { configMapKeyRef: { name: heavenly-config, key: NODE_ENV } } }
+            - { name: PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: AUTH_PORT } } }
+            - { name: MONGO_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: MONGO_URL_AUTH } } }
+            - { name: REDIS_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: REDIS_URL } } }
+            - { name: RABBITMQ_USER, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_USER } } }
+            - { name: RABBITMQ_PASS, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_PASS } } }
+            - { name: RABBITMQ_HOST, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_HOST } } }
+            - { name: RABBITMQ_PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_PORT } } }
+            - { name: RABBITMQ_URL, value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@$(RABBITMQ_HOST):$(RABBITMQ_PORT)" }
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: JWT_SECRET } } }
+            - { name: JWT_REFRESH_SECRET, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: JWT_REFRESH_SECRET } } }
+          resources:
+            requests: { memory: 128Mi, cpu: 100m }
+            limits: { memory: 256Mi, cpu: 250m }
+          livenessProbe: &httpProbe3001
+            httpGet: { path: /health, port: 3001 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            <<: *httpProbe3001
+            initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: heavenly
+spec:
+  type: ClusterIP
+  selector:
+    app: auth-service
+    component: backend
+  ports:
+    - { name: http, port: 3001, targetPort: 3001 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: listing-service
+  namespace: heavenly
+  labels: &listingLabels
+    app: listing-service
+    component: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: *listingLabels
+  template:
+    metadata:
+      labels: *listingLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "3002"
+    spec:
+      containers:
+        - name: listing-service
+          image: heavenly/listing-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3002
+          env: &commonRabbitEnv
+            - { name: NODE_ENV, valueFrom: { configMapKeyRef: { name: heavenly-config, key: NODE_ENV } } }
+            - { name: RABBITMQ_USER, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_USER } } }
+            - { name: RABBITMQ_PASS, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_PASS } } }
+            - { name: RABBITMQ_HOST, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_HOST } } }
+            - { name: RABBITMQ_PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_PORT } } }
+            - { name: RABBITMQ_URL, value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@$(RABBITMQ_HOST):$(RABBITMQ_PORT)" }
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: JWT_SECRET } } }
+            - { name: PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: LISTING_PORT } } }
+            - { name: MONGO_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: MONGO_URL_LISTING } } }
+            - { name: MEDIA_SERVICE_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: MEDIA_SERVICE_URL } } }
+            - { name: SEARCH_SERVICE_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: SEARCH_SERVICE_URL } } }
+          resources:
+            requests: { memory: 128Mi, cpu: 100m }
+            limits: { memory: 256Mi, cpu: 250m }
+          livenessProbe: &httpProbe3002
+            httpGet: { path: /health, port: 3002 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            <<: *httpProbe3002
+            initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: listing-service
+  namespace: heavenly
+spec:
+  type: ClusterIP
+  selector:
+    app: listing-service
+    component: backend
+  ports:
+    - { name: http, port: 3002, targetPort: 3002 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: review-service
+  namespace: heavenly
+  labels: &reviewLabels
+    app: review-service
+    component: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: *reviewLabels
+  template:
+    metadata:
+      labels: *reviewLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "3003"
+    spec:
+      containers:
+        - name: review-service
+          image: heavenly/review-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3003
+          env:
+            - { name: NODE_ENV, valueFrom: { configMapKeyRef: { name: heavenly-config, key: NODE_ENV } } }
+            - { name: PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: REVIEW_PORT } } }
+            - { name: MONGO_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: MONGO_URL_REVIEW } } }
+            - { name: RABBITMQ_USER, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_USER } } }
+            - { name: RABBITMQ_PASS, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_PASS } } }
+            - { name: RABBITMQ_HOST, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_HOST } } }
+            - { name: RABBITMQ_PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_PORT } } }
+            - { name: RABBITMQ_URL, value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@$(RABBITMQ_HOST):$(RABBITMQ_PORT)" }
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: JWT_SECRET } } }
+          resources:
+            requests: { memory: 128Mi, cpu: 100m }
+            limits: { memory: 256Mi, cpu: 250m }
+          livenessProbe: &httpProbe3003
+            httpGet: { path: /health, port: 3003 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            <<: *httpProbe3003
+            initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: review-service
+  namespace: heavenly
+spec:
+  type: ClusterIP
+  selector:
+    app: review-service
+    component: backend
+  ports:
+    - { name: http, port: 3003, targetPort: 3003 }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booking-service
+  namespace: heavenly
+  labels: &bookingLabels
+    app: booking-service
+    component: backend
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: *bookingLabels
+  template:
+    metadata:
+      labels: *bookingLabels
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "3004"
+    spec:
+      containers:
+        - name: booking-service
+          image: heavenly/booking-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3004
+          env:
+            - { name: NODE_ENV, valueFrom: { configMapKeyRef: { name: heavenly-config, key: NODE_ENV } } }
+            - { name: PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: BOOKING_PORT } } }
+            - { name: MONGO_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: MONGO_URL_BOOKING } } }
+            - { name: LISTING_SERVICE_URL, valueFrom: { configMapKeyRef: { name: heavenly-config, key: LISTING_SERVICE_URL } } }
+            - { name: RABBITMQ_USER, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_USER } } }
+            - { name: RABBITMQ_PASS, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RABBITMQ_PASS } } }
+            - { name: RABBITMQ_HOST, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_HOST } } }
+            - { name: RABBITMQ_PORT, valueFrom: { configMapKeyRef: { name: heavenly-config, key: RABBITMQ_PORT } } }
+            - { name: RABBITMQ_URL, value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASS)@$(RABBITMQ_HOST):$(RABBITMQ_PORT)" }
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: JWT_SECRET } } }
+            - { name: RAZORPAY_KEY_ID, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RAZORPAY_KEY_ID } } }
+            - { name: RAZORPAY_KEY_SECRET, valueFrom: { secretKeyRef: { name: heavenly-secrets, key: RAZORPAY_KEY_SECRET } } }
+          resources:
+            requests: { memory: 128Mi, cpu: 100m }
+            limits: { memory: 256Mi, cpu: 250m }
+          livenessProbe: &httpProbe3004
+            httpGet: { path: /health, port: 3004 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            <<: *httpProbe3004
+            initialDelaySeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: booking-service
+  namespace: heavenly
+spec:
+  type: ClusterIP
+  selector:
+    app: booking-service
+    component: backend
+  ports:
+    - { name: http, port: 3004, targetPort: 3004 }

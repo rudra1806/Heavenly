@@ -32,6 +32,13 @@ const dashboardRoutes = require('./routes/dashboard.js');
 const adminRoutes = require('./routes/admin.js');
 const pageRoutes = require('./routes/pages.js');
 
+let setupMetrics;
+try {
+    ({ setupMetrics } = require('../../shared/src/metrics'));
+} catch {
+    ({ setupMetrics } = require('/app/shared/src/metrics'));
+}
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -42,6 +49,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 // ===== Middleware =====
 app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+setupMetrics(app, 'bff');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));

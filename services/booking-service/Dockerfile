@@ -7,4 +7,5 @@ RUN cd services/booking-service && npm install --production
 COPY shared/ shared/
 COPY services/booking-service/ services/booking-service/
 EXPOSE 3004
+USER node
 CMD ["node", "services/booking-service/src/index.js"]

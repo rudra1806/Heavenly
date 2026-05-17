@@ -27,12 +27,20 @@ try {
     ({ connectRabbitMQ, publishEvent, consumeEvent } = require('/app/shared'));
 }
 
+let setupMetrics;
+try {
+    ({ setupMetrics } = require('../../../shared/src/metrics'));
+} catch {
+    ({ setupMetrics } = require('/app/shared/src/metrics'));
+}
+
 const app = express();
 const PORT = process.env.PORT || 3003;
 const MONGO_URL = process.env.MONGO_URL || 'mongodb://localhost:27017/heavenly_reviews';
 
 // ===== Middleware =====
 app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+setupMetrics(app, 'review-service');
 app.use(cors());
 app.use(express.json());
 
