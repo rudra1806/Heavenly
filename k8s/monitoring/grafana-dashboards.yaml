@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: heavenly-services-overview-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  heavenly-services-overview.json: |
+    {
+      "title": "Heavenly Services Overview",
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "refresh": "15s",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "HTTP Request Rate",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "refId": "A",
+              "expr": "sum by (service) (rate(heavenly_http_requests_total{namespace=\"heavenly\"}[5m]))",
+              "legendFormat": "{{service}}"
+            }
+          ],
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+        },
+        {
+          "type": "timeseries",
+          "title": "P95 Request Latency",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "refId": "A",
+              "expr": "histogram_quantile(0.95, sum by (service, le) (rate(heavenly_http_request_duration_seconds_bucket{namespace=\"heavenly\"}[5m])))",
+              "legendFormat": "{{service}}"
+            }
+          ],
+          "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+        },
+        {
+          "type": "timeseries",
+          "title": "CPU Usage by Pod",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "refId": "A",
+              "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"heavenly\"}[5m]))",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory Usage by Pod",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "refId": "A",
+              "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"heavenly\"})",
+              "legendFormat": "{{pod}}"
+            }
+          ],
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+        },
+        {
+          "type": "timeseries",
+          "title": "HPA Desired Replicas",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "targets": [
+            {
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "refId": "A",
+              "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"heavenly\"}",
+              "legendFormat": "{{horizontalpodautoscaler}}"
+            }
+          ],
+          "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 }
+        },
+        {
+          "type": "logs",
+          "title": "Recent Heavenly Logs",
+          "datasource": { "type": "loki", "uid": "loki" },
+          "targets": [
+            {
+              "datasource": { "type": "loki", "uid": "loki" },
+              "refId": "A",
+              "expr": "{namespace=\"heavenly\"}"
+            }
+          ],
+          "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 }
+        }
+      ]
+    }

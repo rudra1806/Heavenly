@@ -1,0 +1,3 @@
+resources:
+  - edge-services.yaml
+  - ingress.yaml

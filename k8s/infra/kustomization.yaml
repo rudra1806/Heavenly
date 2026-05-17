@@ -1,0 +1,4 @@
+resources:
+  - mongodb.yaml
+  - redis.yaml
+  - rabbitmq.yaml

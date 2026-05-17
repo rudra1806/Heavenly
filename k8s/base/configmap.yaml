@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: heavenly-config
+  namespace: heavenly
+data:
+  NODE_ENV: "production"
+  MONGODB_HOST: "mongodb-service.heavenly.svc.cluster.local"
+  MONGODB_PORT: "27017"
+  REDIS_HOST: "redis-service.heavenly.svc.cluster.local"
+  REDIS_PORT: "6379"
+  RABBITMQ_HOST: "rabbitmq-service.heavenly.svc.cluster.local"
+  RABBITMQ_PORT: "5672"
+  MONGO_URL_AUTH: "mongodb://mongodb-service.heavenly.svc.cluster.local:27017/heavenly_auth"
+  MONGO_URL_LISTING: "mongodb://mongodb-service.heavenly.svc.cluster.local:27017/heavenly_listings"
+  MONGO_URL_REVIEW: "mongodb://mongodb-service.heavenly.svc.cluster.local:27017/heavenly_reviews"
+  MONGO_URL_BOOKING: "mongodb://mongodb-service.heavenly.svc.cluster.local:27017/heavenly_bookings"
+  REDIS_URL: "redis://redis-service.heavenly.svc.cluster.local:6379"
+  AUTH_SERVICE_URL: "http://auth-service:3001"
+  LISTING_SERVICE_URL: "http://listing-service:3002"
+  REVIEW_SERVICE_URL: "http://review-service:3003"
+  BOOKING_SERVICE_URL: "http://booking-service:3004"
+  MEDIA_SERVICE_URL: "http://media-service:3005"
+  SEARCH_SERVICE_URL: "http://search-service:3006"
+  ADMIN_SERVICE_URL: "http://admin-service:3007"
+  GATEWAY_URL: "http://gateway-service:3000"
+  CORS_ORIGIN: "http://heavenly.local"
+  AUTH_PORT: "3001"
+  LISTING_PORT: "3002"
+  REVIEW_PORT: "3003"
+  BOOKING_PORT: "3004"
+  MEDIA_PORT: "3005"
+  SEARCH_PORT: "3006"
+  ADMIN_PORT: "3007"
+  GATEWAY_PORT: "3000"
+  BFF_PORT: "8080"
