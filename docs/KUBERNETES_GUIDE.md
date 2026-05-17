@@ -18,6 +18,20 @@ This Kubernetes setup runs Heavenly locally on Minikube with application workloa
 - **Loki/Promtail**: collects stdout/stderr logs from pods and exposes them in Grafana.
 - **NetworkPolicy**: starts with restricted ingress, then allows internal app traffic, ingress traffic, and monitoring scrapes.
 
+## Runtime Flow
+
+```text
+Browser
+  -> heavenly.local
+  -> NGINX Ingress
+  -> bff-service:8080
+  -> gateway-service:3000
+  -> backend services
+  -> MongoDB / Redis / RabbitMQ
+```
+
+Prometheus scrapes annotated pods in `heavenly`; Promtail reads container logs from the node and sends them to Loki; Grafana queries Prometheus and Loki.
+
 ## Resource Layout
 
 - `k8s/base`: namespaces, ConfigMap, NetworkPolicies
@@ -30,3 +44,26 @@ This Kubernetes setup runs Heavenly locally on Minikube with application workloa
 ## Local Image Pattern
 
 `scripts/k8s-deploy.sh` runs `eval "$(minikube docker-env)"` and builds images directly inside Minikube's Docker daemon. This avoids pushing images to an external registry.
+
+The script pre-pulls `node:20-alpine` and retries image builds because local Docker Hub pulls can intermittently time out.
+
+## Monitoring Notes
+
+- Prometheus is installed through `kube-prometheus-stack`.
+- Grafana is installed with a persistent volume and a preloaded `Heavenly Services Overview` dashboard.
+- Loki is installed through `grafana/loki-stack`.
+- The `loki-stack` chart currently installs Loki `2.6.1`, so the local values use `schema: v11` with `boltdb-shipper` for compatibility.
+- Grafana's Loki datasource is provisioned with UID `loki`; dashboard log panels should use that UID.
+
+Useful Grafana queries:
+
+```promql
+sum by (service) (rate(heavenly_http_requests_total[5m]))
+sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="heavenly"}[5m]))
+sum by (pod) (container_memory_working_set_bytes{namespace="heavenly"})
+```
+
+```logql
+{namespace="heavenly"}
+{namespace="heavenly", service="bff"}
+```
