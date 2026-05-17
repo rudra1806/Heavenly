@@ -19,6 +19,13 @@ const { jwtValidation } = require('./middleware/jwtValidation');
 const { rateLimiter } = require('./middleware/rateLimiter');
 const { errorHandler } = require('./middleware/errorHandler');
 
+let setupMetrics;
+try {
+    ({ setupMetrics } = require('../../shared/src/metrics'));
+} catch {
+    ({ setupMetrics } = require('/app/shared/src/metrics'));
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -26,6 +33,7 @@ const PORT = process.env.PORT || 3000;
 
 // Request logging
 app.use(morgan('[:date[iso]] :method :url :status :res[content-length] - :response-time ms'));
+setupMetrics(app, 'gateway');
 
 // CORS — allow BFF and frontend to call the gateway
 app.use(cors({

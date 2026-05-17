@@ -28,11 +28,19 @@ try {
     ({ connectRabbitMQ, consumeEvent, serviceClient } = require('/app/shared'));
 }
 
+let setupMetrics;
+try {
+    ({ setupMetrics } = require('../../../shared/src/metrics'));
+} catch {
+    ({ setupMetrics } = require('/app/shared/src/metrics'));
+}
+
 const app = express();
 const PORT = process.env.PORT || 3006;
 
 // ===== Middleware =====
 app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+setupMetrics(app, 'search-service');
 app.use(cors());
 app.use(express.json());
 

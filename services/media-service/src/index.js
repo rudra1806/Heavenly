@@ -18,11 +18,19 @@ const cors = require('cors');
 // Routes
 const mediaRoutes = require('./routes/media.js');
 
+let setupMetrics;
+try {
+    ({ setupMetrics } = require('../../../shared/src/metrics'));
+} catch {
+    ({ setupMetrics } = require('/app/shared/src/metrics'));
+}
+
 const app = express();
 const PORT = process.env.PORT || 3005;
 
 // ===== Middleware =====
 app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+setupMetrics(app, 'media-service');
 app.use(cors());
 app.use(express.json());
 

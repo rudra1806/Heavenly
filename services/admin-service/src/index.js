@@ -29,11 +29,19 @@ try {
     ({ serviceClient } = require('/app/shared'));
 }
 
+let setupMetrics;
+try {
+    ({ setupMetrics } = require('../../../shared/src/metrics'));
+} catch {
+    ({ setupMetrics } = require('/app/shared/src/metrics'));
+}
+
 const app = express();
 const PORT = process.env.PORT || 3007;
 
 // ===== Middleware =====
 app.use(morgan('[:date[iso]] :method :url :status :response-time ms'));
+setupMetrics(app, 'admin-service');
 app.use(cors());
 app.use(express.json());
 
