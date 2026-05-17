@@ -4,7 +4,7 @@
 
 **Property Rental Platform with Microservices Architecture**
 
-*A distributed property rental platform with an Express/EJS BFF, API Gateway, service-oriented backend, event-driven workflows, and Docker Compose local orchestration.*
+*A distributed property rental platform with an Express/EJS BFF, API Gateway, service-oriented backend, event-driven workflows, Docker Compose local orchestration, and Minikube Kubernetes deployment with observability.*
 
 [![Node.js](https://img.shields.io/badge/Node.js-20-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-5.2-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
@@ -12,6 +12,12 @@
 [![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3-FF6600?style=for-the-badge&logo=rabbitmq&logoColor=white)](https://www.rabbitmq.com/)
 [![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Minikube-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)](https://minikube.sigs.k8s.io/)
+[![Helm](https://img.shields.io/badge/Helm-Charts-0F1689?style=for-the-badge&logo=helm&logoColor=white)](https://helm.sh/)
+[![NGINX](https://img.shields.io/badge/NGINX-Ingress-009639?style=for-the-badge&logo=nginx&logoColor=white)](https://kubernetes.github.io/ingress-nginx/)
+[![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![Grafana](https://img.shields.io/badge/Grafana-Observability-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com/)
+[![Loki](https://img.shields.io/badge/Loki-Logs-F46800?style=for-the-badge&logo=grafana&logoColor=white)](https://grafana.com/oss/loki/)
 
 [Overview](#-overview) • [Architecture](#-architecture) • [Services](#-services) • [Quick Start](#-quick-start) • [Features](#-features) • [Documentation](#-documentation)
 
@@ -34,6 +40,8 @@ Heavenly is a full-featured property rental platform built from multiple Node.js
 - **Cloudinary media upload/delete** through the media service
 - **Admin dashboard** for cross-service management workflows
 - **Docker Compose stack** for local development
+- **Kubernetes stack** for Minikube with NGINX Ingress, HPA, Prometheus, Grafana, Loki, and Promtail
+- **Prometheus metrics** through `/metrics` endpoints on all app services
 - **Operational scripts** for seed, migration, smoke test, backup, and restore
 
 ---
@@ -73,6 +81,80 @@ graph TD
     Booking --> Razorpay["Razorpay"]
 ```
 
+For Kubernetes, the same service graph runs in the `heavenly` namespace. MongoDB, Redis, and RabbitMQ run as StatefulSets with persistent volumes; stateless app services run as Deployments behind ClusterIP Services; NGINX Ingress routes `heavenly.local` to the BFF; Prometheus, Grafana, Loki, and Promtail run in the `monitoring` namespace.
+
+### Kubernetes Deployment Architecture
+
+```mermaid
+graph TB
+    Browser["Browser"] --> Hosts["/etc/hosts: heavenly.local"]
+    Hosts --> Ingress["NGINX Ingress Controller"]
+
+    subgraph Cluster["Minikube Cluster"]
+        subgraph Heavenly["Namespace: heavenly"]
+            BFF["BFF Deployment<br/>:8080"]
+            Gateway["Gateway Deployment<br/>:3000"]
+            Auth["Auth Service<br/>:3001"]
+            Listing["Listing Service<br/>:3002"]
+            Review["Review Service<br/>:3003"]
+            Booking["Booking Service<br/>:3004"]
+            Media["Media Service<br/>:3005"]
+            Search["Search Service<br/>:3006"]
+            Admin["Admin Service<br/>:3007"]
+
+            MongoDB[("MongoDB StatefulSet<br/>10Gi PVC")]
+            Redis[("Redis StatefulSet<br/>1Gi PVC")]
+            RabbitMQ[("RabbitMQ StatefulSet<br/>5Gi PVC")]
+
+            ConfigMap["heavenly-config<br/>ConfigMap"]
+            Secret["heavenly-secrets<br/>Secret"]
+            HPA["HPA<br/>CPU target 70%"]
+        end
+
+        subgraph Monitoring["Namespace: monitoring"]
+            Prometheus["Prometheus<br/>kube-prometheus-stack"]
+            Grafana["Grafana<br/>Dashboards"]
+            Loki["Loki<br/>Log storage"]
+            Promtail["Promtail<br/>DaemonSet"]
+        end
+    end
+
+    Ingress --> BFF
+    BFF --> Gateway
+    Gateway --> Auth
+    Gateway --> Listing
+    Gateway --> Review
+    Gateway --> Booking
+    Gateway --> Media
+    Gateway --> Search
+    Gateway --> Admin
+
+    Auth --> MongoDB
+    Listing --> MongoDB
+    Review --> MongoDB
+    Booking --> MongoDB
+    Auth --> Redis
+    Search --> Redis
+    Auth --> RabbitMQ
+    Listing --> RabbitMQ
+    Review --> RabbitMQ
+    Booking --> RabbitMQ
+    Search --> RabbitMQ
+
+    ConfigMap -.-> BFF
+    Secret -.-> BFF
+    HPA -.-> BFF
+    HPA -.-> Gateway
+    HPA -.-> Auth
+
+    Prometheus -.->|"scrapes /metrics"| BFF
+    Prometheus -.->|"scrapes /metrics"| Gateway
+    Prometheus -.->|"scrapes /metrics"| Auth
+    Promtail -.->|"ships pod logs"| Loki
+    Grafana --> Prometheus
+    Grafana --> Loki
+```
+
 👉 **For the evidence-backed deep dive, read the [Architecture Guide](docs/02_ARCHITECTURE.md).**
 
 ---
@@ -110,10 +192,11 @@ graph TD
 - **Docker** and **Docker Compose**
 - **Node.js 20+** for local package scripts
 - **Make** for convenience commands
+- **Minikube**, **kubectl**, and **Helm** for Kubernetes deployment and monitoring
 - **Cloudinary credentials** for real media uploads
 - **Razorpay credentials** for real payment processing
 
-### Installation
+### Docker Compose Installation
 
 ```bash
 # Clone the repository
@@ -186,6 +269,69 @@ cd scripts && node seed-microservices.js
 | **BFF** | http://localhost:8080 | Main browser application |
 | **API Gateway** | http://localhost:3000 | REST API entry point |
 | **RabbitMQ Management** | http://localhost:15672 | Broker management UI |
+
+### Kubernetes Quick Start
+
+The Kubernetes workflow runs the app locally on Minikube and exposes the BFF through `http://heavenly.local`.
+
+```bash
+# Create or update .env first
+cp .env.example .env
+
+# Start Minikube with the requested resources and addons
+make k8s-start
+
+# If an older Minikube profile already exists with different CPU/RAM:
+make k8s-reset
+
+# Build local images into Minikube and deploy app + monitoring
+make k8s-deploy
+```
+
+Add a hosts entry after deployment. With a normal Minikube IP:
+
+```text
+<minikube-ip> heavenly.local
+```
+
+On Docker Desktop for Mac, Minikube may ask you to run a tunnel. Keep this running in another terminal:
+
+```bash
+minikube tunnel
+```
+
+Then use:
+
+```text
+127.0.0.1 heavenly.local
+```
+
+Useful checks:
+
+```bash
+kubectl get pods -n heavenly
+kubectl get pods -n monitoring
+make k8s-status
+make k8s-verify
+```
+
+Open the app:
+
+```text
+http://heavenly.local
+```
+
+Open Grafana:
+
+```bash
+make k8s-grafana
+```
+
+Then visit `http://localhost:3000`. The username is `admin`; get the password with:
+
+```bash
+kubectl -n monitoring get secret kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+```
 
 ---
 
@@ -271,6 +417,15 @@ make ps              # Show running containers
 make status          # Service status and volumes
 make mongo           # Open MongoDB shell
 make redis           # Open Redis CLI
+
+# Kubernetes
+make k8s-start       # Start Minikube with ingress and metrics-server
+make k8s-reset       # Recreate Minikube with configured CPU/RAM
+make k8s-deploy      # Build images and deploy app + monitoring
+make k8s-status      # Show Kubernetes app resources
+make k8s-logs        # Tail Kubernetes logs
+make k8s-grafana     # Port-forward Grafana to localhost:3000
+make k8s-cleanup     # Remove app resources, keeping PVCs by default
 ```
 
 👉 **See the full [Scripts Reference](docs/13_SCRIPTS_REFERENCE.md) for every package script, Makefile target, and utility script.**
@@ -283,6 +438,13 @@ make redis           # Open Redis CLI
 Heavenly/
 ├── docker-compose.yml           # Local multi-container stack
 ├── docker-compose.prod.yml      # Production Compose variant
+├── k8s/                         # Minikube Kubernetes manifests
+│   ├── base/                    # Namespaces, ConfigMap, NetworkPolicies
+│   ├── infra/                   # MongoDB, Redis, RabbitMQ StatefulSets
+│   ├── apps/                    # Backend service Deployments
+│   ├── edge/                    # Gateway, BFF, Ingress
+│   ├── hpa/                     # HorizontalPodAutoscalers
+│   └── monitoring/              # Helm values and Grafana dashboard
 ├── .env.example                 # Environment variable template
 ├── Makefile                     # Development commands
 ├── README.md                    # Project entry point
@@ -303,7 +465,7 @@ Heavenly/
 │   ├── search-service/
 │   └── admin-service/
 │
-└── scripts/                     # Seed, migration, smoke-test, backup, restore
+└── scripts/                     # Seed, migration, smoke-test, backup, restore, Kubernetes automation
 ```
 
 ---
@@ -327,6 +489,12 @@ Heavenly/
 | **Geocoding** | Nominatim / OpenStreetMap | Address-to-coordinate lookup |
 | **Maps** | MapLibre GL JS | Browser map rendering |
 | **Orchestration** | Docker Compose | Local multi-service environment |
+| **Kubernetes** | Minikube + kubectl | Local Kubernetes environment |
+| **Ingress** | NGINX Ingress | Routes `heavenly.local` to the BFF |
+| **Autoscaling** | Horizontal Pod Autoscaler | CPU-based scaling for stateless services |
+| **Metrics** | Prometheus + prom-client | App and container metrics |
+| **Dashboards** | Grafana | Metrics and log visualization |
+| **Logs** | Loki + Promtail | Centralized Kubernetes pod logs |
 
 ---
 
@@ -388,6 +556,32 @@ The Gateway, BFF, and services expose `/health` endpoints.
 
 Open http://localhost:15672 to inspect broker state.
 
+### Kubernetes Metrics and Logs
+
+All app services expose `/metrics` using `prom-client`. In Kubernetes, Prometheus scrapes annotated pods in the `heavenly` namespace, and Promtail ships pod stdout/stderr logs to Loki.
+
+```bash
+make k8s-grafana
+```
+
+Grafana includes a `Heavenly Services Overview` dashboard with request rate, P95 latency, CPU, memory, HPA desired replicas, and recent logs. You can also use:
+
+```text
+Explore -> Prometheus
+Explore -> Loki
+```
+
+Useful queries:
+
+```promql
+sum by (service) (rate(heavenly_http_requests_total[5m]))
+sum by (pod) (container_memory_working_set_bytes{namespace="heavenly"})
+```
+
+```logql
+{namespace="heavenly"}
+```
+
 ### Docker Logs
 
 ```bash
@@ -401,17 +595,17 @@ docker-compose logs -f auth-service
 docker-compose logs --tail=100 booking-service
 ```
 
-👉 **For current logging, health-check, and observability gaps, see [Observability](docs/10_OBSERVABILITY.md).**
+👉 **For logging, health checks, metrics, and Kubernetes observability, see [Observability](docs/10_OBSERVABILITY.md) and [Kubernetes Guide](docs/KUBERNETES_GUIDE.md).**
 
 ---
 
 ## 🚀 Deployment
 
-The repository includes Dockerfiles for the BFF, Gateway, and service packages, plus `docker-compose.yml` and `docker-compose.prod.yml`.
+The repository includes Dockerfiles for the BFF, Gateway, and service packages, plus `docker-compose.yml`, `docker-compose.prod.yml`, and a local Kubernetes stack under `k8s/`.
 
-No Kubernetes, Helm, Terraform, Pulumi, or CI/CD configuration was found during repository reconnaissance.
+The Kubernetes stack targets Minikube for local learning and validation. It is cloud-portable in shape, but it is not yet packaged as a production Helm chart and does not include Terraform, Pulumi, CI/CD, TLS certificate automation, or cloud load-balancer configuration.
 
-👉 **See [DevOps & Infrastructure](docs/07_DEVOPS_INFRASTRUCTURE.md) for the verified infrastructure inventory.**
+👉 **See [DevOps & Infrastructure](docs/07_DEVOPS_INFRASTRUCTURE.md), [Kubernetes Guide](docs/KUBERNETES_GUIDE.md), and [Kubernetes Runbook](docs/KUBERNETES_RUNBOOK.md).**
 
 ---
 
@@ -439,6 +633,9 @@ The project docs are kept in [`docs/`](docs/):
 | Scripts Reference | [docs/13_SCRIPTS_REFERENCE.md](docs/13_SCRIPTS_REFERENCE.md) |
 | Troubleshooting | [docs/14_TROUBLESHOOTING.md](docs/14_TROUBLESHOOTING.md) |
 | Improvements | [docs/15_IMPROVEMENTS.md](docs/15_IMPROVEMENTS.md) |
+| Kubernetes Guide | [docs/KUBERNETES_GUIDE.md](docs/KUBERNETES_GUIDE.md) |
+| Kubernetes Runbook | [docs/KUBERNETES_RUNBOOK.md](docs/KUBERNETES_RUNBOOK.md) |
+| Kubernetes Troubleshooting | [docs/KUBERNETES_TROUBLESHOOTING.md](docs/KUBERNETES_TROUBLESHOOTING.md) |
 
 ---
 
@@ -473,7 +670,16 @@ docker-compose logs --tail=100 <service-name>
 docker-compose restart <service-name>
 ```
 
-👉 **See [Troubleshooting](docs/14_TROUBLESHOOTING.md) for the project-specific troubleshooting guide.**
+### Kubernetes Checks
+
+```bash
+kubectl get pods -n heavenly
+kubectl get pods -n monitoring
+kubectl get hpa -n heavenly
+kubectl get ingress -n heavenly
+```
+
+👉 **See [Troubleshooting](docs/14_TROUBLESHOOTING.md) and [Kubernetes Troubleshooting](docs/KUBERNETES_TROUBLESHOOTING.md).**
 
 ---
 
@@ -494,7 +700,7 @@ No root `LICENSE` file is currently present in this repository.
 
 <div align="center">
 
-**Built with ❤️ using Node.js, Express, MongoDB, RabbitMQ, Redis, and Docker Compose**
+**Built with ❤️ using Node.js, Express, MongoDB, RabbitMQ, Redis, Docker Compose, Kubernetes, and Grafana**
 
 [⬆ Back to Top](#-heavenly)
 
