@@ -32,13 +32,13 @@ Notable optimizations found:
 | Dependency manifests are copied before source code, allowing Docker layer reuse when source changes but package manifests do not. | `gateway/Dockerfile:10-19`, `bff/Dockerfile:3-8`, `services/auth-service/Dockerfile:9-18` |
 | `npm install --production` is used in Dockerfiles. | `gateway/Dockerfile:11`, `gateway/Dockerfile:15`, `bff/Dockerfile:4`, `bff/Dockerfile:6`, `services/auth-service/Dockerfile:10`, `services/auth-service/Dockerfile:14` |
 | Host `node_modules` are excluded from Docker build context. | `.dockerignore:5-7` |
+| Containers run as the non-root `node` user. | `gateway/Dockerfile`, `bff/Dockerfile`, `services/*/Dockerfile` |
 
 Issues found:
 
 | Issue | Evidence | Impact |
 |---|---|---|
 | Dockerfiles are single-stage builds. The gateway Dockerfile comment says "Multi-stage build", but the file contains only one `FROM`. | `gateway/Dockerfile:4-5`; other Dockerfiles also contain one `FROM` each | Larger final images are possible because dependency install and runtime happen in the same stage. |
-| No non-root user is configured in any Dockerfile. | No `USER` instruction in `gateway/Dockerfile`, `bff/Dockerfile`, or `services/*/Dockerfile` | Containers run with the base image default user. |
 | Healthchecks are not in Dockerfiles. | No `HEALTHCHECK` instruction in Dockerfiles; Compose healthchecks are defined instead in `docker-compose.yml` | Health monitoring depends on Compose configuration rather than image metadata. |
 
 
@@ -104,8 +104,29 @@ Notes:
 
 ### 7.4 — Kubernetes / Helm
 
-> **Not present:** Kubernetes / Helm
-> Evidence: No `k8s/`, `helm/`, or `manifests/` folder found in repository.
+Kubernetes manifests are present under `k8s/` for local Minikube deployment.
+
+| Path | Purpose |
+|---|---|
+| `k8s/base` | `heavenly` and `monitoring` namespaces, ConfigMap, and NetworkPolicies |
+| `k8s/infra` | MongoDB, Redis, and RabbitMQ StatefulSets with PVCs |
+| `k8s/apps` | Backend service Deployments and ClusterIP Services |
+| `k8s/edge` | Gateway, BFF, and NGINX Ingress for `heavenly.local` |
+| `k8s/hpa` | HorizontalPodAutoscalers for stateless services |
+| `k8s/monitoring` | Helm values for kube-prometheus-stack and loki-stack plus Grafana dashboard ConfigMap |
+
+Makefile targets:
+
+| Target | Purpose |
+|---|---|
+| `make k8s-start` | Starts Minikube and enables ingress plus metrics-server |
+| `make k8s-reset` | Recreates Minikube with the configured CPU/RAM |
+| `make k8s-deploy` | Builds local images into Minikube and applies Kubernetes/Helm resources |
+| `make k8s-status` | Shows app resources, Ingress, and HPA |
+| `make k8s-grafana` | Port-forwards Grafana to `http://localhost:3000` |
+| `make k8s-cleanup` | Removes app Kubernetes resources while keeping PVCs by default |
+
+Monitoring is installed with Helm using `prometheus-community/kube-prometheus-stack` and `grafana/loki-stack`.
 
 
 ### 7.5 — Cloud Infrastructure
@@ -123,5 +144,4 @@ Environment separation found:
 | Development | `docker-compose.yml` sets `NODE_ENV=development` for app services and bind-mounts source folders. | Source directories are mounted into containers; ports for all services and infrastructure are exposed locally. |
 | Production Compose override | `docker-compose.prod.yml` sets `NODE_ENV=production`, removes app bind mounts with `volumes: []`, adds `restart: unless-stopped`, and sets resource limits. | Containers use copied image contents instead of bind mounts; RabbitMQ management UI port is not exposed by the override. |
 
-No separate `.env.production`, `.env.development`, Kubernetes namespace, cloud account, or CI environment matrix was found in the repository scan or the infrastructure file scan.
-
+The repository does not include separate `.env.production`, `.env.development`, cloud account, or CI environment matrix files. Kubernetes namespaces are defined in `k8s/base/namespace.yaml`.
