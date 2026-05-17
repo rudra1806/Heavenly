@@ -1,4 +1,7 @@
-.PHONY: help up down restart rebuild logs backup restore seed clean
+.PHONY: help up down restart rebuild logs backup restore seed clean k8s-start k8s-reset k8s-deploy k8s-status k8s-logs k8s-cleanup k8s-restart k8s-grafana k8s-verify
+
+K8S_CPUS ?= 6
+K8S_MEMORY ?= 10240
 
 help: ## Show this help message
 	@echo "🏠 Heavenly Microservices - Development Commands"
@@ -95,3 +98,44 @@ status: ## Show service status and volumes
 	@echo ""
 	@echo "💾 Data Volumes:"
 	@docker volume ls | grep heavenly || echo "No volumes found"
+
+k8s-start: ## Start Minikube with ingress and metrics-server
+	minikube start --cpus=$(K8S_CPUS) --memory=$(K8S_MEMORY)
+	minikube addons enable ingress
+	minikube addons enable metrics-server
+
+k8s-reset: ## Delete and recreate Minikube with the requested CPU/RAM
+	minikube delete
+	minikube start --cpus=$(K8S_CPUS) --memory=$(K8S_MEMORY)
+	minikube addons enable ingress
+	minikube addons enable metrics-server
+
+k8s-deploy: ## Build images and deploy Heavenly to Kubernetes
+	@./scripts/k8s-deploy.sh
+
+k8s-status: ## Show Kubernetes resources
+	kubectl get all -n heavenly
+	kubectl get ingress,hpa -n heavenly
+
+k8s-logs: ## Tail Kubernetes logs (usage: make k8s-logs SERVICE=bff)
+	@if [ -z "$(SERVICE)" ]; then \
+		kubectl logs -n heavenly -l component=backend --tail=100 -f; \
+	else \
+		kubectl logs -n heavenly -l app=$(SERVICE) --tail=100 -f; \
+	fi
+
+k8s-cleanup: ## Remove Kubernetes app resources, keeping PVCs by default
+	@./scripts/k8s-cleanup.sh
+
+k8s-restart: ## Restart all Kubernetes deployments or one SERVICE
+	@if [ -z "$(SERVICE)" ]; then \
+		./scripts/k8s-restart.sh; \
+	else \
+		./scripts/k8s-restart.sh $(SERVICE); \
+	fi
+
+k8s-grafana: ## Port-forward Grafana to http://localhost:3000
+	kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80
+
+k8s-verify: ## Verify Kubernetes deployment health
+	@./scripts/verify-deployment.sh
