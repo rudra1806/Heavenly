@@ -4,38 +4,42 @@
 
 This implementation plan outlines the tasks required to migrate the Heavenly microservices platform from Docker Compose to Kubernetes with comprehensive monitoring and observability using Minikube locally.
 
+## Current Implementation Status
+
+The repository now contains the working Minikube implementation under `k8s/`, deployment automation under `scripts/`, Makefile targets, service-level Prometheus instrumentation, non-root service containers, HPA resources, and Helm-based Prometheus/Grafana/Loki monitoring. Remaining optional hardening includes richer split dashboards, RabbitMQ exporter metrics, formal end-to-end/load test scripts, CI/CD, TLS automation, and cloud/IaC packaging.
+
 ## Tasks
 
-- [ ] 1. Verify Minikube installation and configure cluster with 6 CPUs, 10GB RAM, and enable ingress and metrics-server addons
-- [ ] 2. Create k8s/ directory structure with subdirectories: base/, infra/, apps/, edge/, hpa/, monitoring/
-- [ ] 3. Create namespace.yaml defining 'heavenly' and 'monitoring' namespaces, and network-policies.yaml for pod-to-pod communication restrictions
-- [ ] 4. Create configmap.yaml with all non-sensitive configuration (service URLs, ports, database URLs using Kubernetes DNS format)
-- [ ] 5. Create Secret from .env file using kubectl create secret command with all sensitive credentials (JWT secrets, Cloudinary, RabbitMQ, Razorpay)
-- [ ] 6. Create mongodb-statefulset.yaml and mongodb-service.yaml with 10Gi PVC, health probes, resource limits (256Mi/250m request, 512Mi/500m limit), and NO authentication (matching docker-compose.yml)
-- [ ] 7. Create redis-statefulset.yaml and redis-service.yaml with 1Gi PVC, redis-cli health probes, and resource limits (64Mi/100m request, 128Mi/250m limit)
-- [ ] 8. Create rabbitmq-statefulset.yaml and rabbitmq-service.yaml with 5Gi PVC, rabbitmq-diagnostics health probes, and resource limits (128Mi/100m request, 256Mi/250m limit)
-- [ ] 8.5. Install prom-client in all 9 services, create shared/src/metrics.js with HTTP request metrics middleware, wire /metrics endpoint into each service's index.js, and update all Dockerfiles to add non-root USER node directive
-- [ ] 9. Build auth-service image and create auth-deployment.yaml and auth-service.yaml with environment variables from ConfigMap/Secret (ensure RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_HOST, RABBITMQ_PORT are declared BEFORE RABBITMQ_URL), /health probes, revisionHistoryLimit: 5, and resource limits (128Mi/100m request, 256Mi/250m limit)
-- [ ] 10. Build listing-service image and create listing-deployment.yaml and listing-service.yaml with port 3002 and MONGO_URL_LISTING configuration
-- [ ] 11. Build review-service image and create review-deployment.yaml and review-service.yaml with port 3003 and MONGO_URL_REVIEW configuration
-- [ ] 12. Build booking-service image and create booking-deployment.yaml and booking-service.yaml with port 3004, MONGO_URL_BOOKING, and Razorpay credentials
-- [ ] 13. Build media-service image and create media-deployment.yaml and media-service.yaml with port 3005, Cloudinary credentials, and adjusted resource limits (64Mi/50m request, 128Mi/150m limit)
-- [ ] 14. Build search-service image and create search-deployment.yaml and search-service.yaml with port 3006 and Redis configuration
-- [ ] 15. Build admin-service image and create admin-deployment.yaml and admin-service.yaml with port 3007, inject AUTH_SERVICE_URL, LISTING_SERVICE_URL, REVIEW_SERVICE_URL, BOOKING_SERVICE_URL from ConfigMap, and adjusted resource limits (64Mi/50m request, 128Mi/150m limit)
-- [ ] 16. Build gateway image and create gateway-deployment.yaml and gateway-service.yaml with port 3000 and all backend service URLs
-- [ ] 17. Build bff image and create bff-deployment.yaml and bff-service.yaml with port 8080, SESSION_SECRET, and GATEWAY_URL
-- [ ] 18. Create ingress.yaml routing heavenly.local to bff-service:8080 with NGINX ingress controller and timeout annotations, then add Minikube IP to /etc/hosts
-- [ ] 19. Create HPA manifests for all 9 stateless services with 70% CPU threshold, minReplicas=1, maxReplicas=5 (backend) or 3 (edge), and stabilization windows
-- [ ] 20. Add prometheus-community Helm repo, create prometheus-values.yaml with scraping config for heavenly namespace, and install kube-prometheus-stack in monitoring namespace
-- [ ] 21. Add grafana Helm repo, create loki-values.yaml with modern tsdb/v13 schema and compactor-based retention (NOT deprecated boltdb-shipper/table_manager), Promtail config for heavenly namespace, and install loki-stack in monitoring namespace
-- [ ] 22. Access Grafana UI and add Loki as data source (URL: http://loki:3100), verify both Prometheus and Loki data sources are working
-- [ ] 23. Create 7 Grafana dashboards: Heavenly Services Overview (health, pod count), Resource Usage (CPU/memory by pod), HPA Status (replicas, scaling events), RabbitMQ Monitoring (queue depths, message rates), Request Latency (P50/P95/P99), Pod Status (lifecycle events, restarts), and Logs Explorer (log querying)
-- [ ] 24. Create deployment scripts: k8s-deploy.sh (full deployment with PVC deletion BEFORE namespace deletion in cleanup), k8s-cleanup.sh (resource cleanup), k8s-restart.sh (service restart), and create-secret.sh (secret generation)
-- [ ] 25. Extend Makefile with Kubernetes targets: k8s-start, k8s-deploy, k8s-status, k8s-logs, k8s-cleanup with documentation
-- [ ] 26. Create verify-deployment.sh script that checks namespace, ConfigMap, Secret, all service pods, HPA, Ingress, and monitoring stack with colored pass/fail output
-- [ ] 27. Create docs/KUBERNETES_GUIDE.md explaining all Kubernetes concepts used (Pods, Deployments, StatefulSets, Services, Ingress, ConfigMaps, Secrets, PVCs, HPA, Namespaces, Health Probes, NetworkPolicies) with examples
-- [ ] 28. Create docs/KUBERNETES_RUNBOOK.md with operational procedures: starting/stopping cluster, deploying services, viewing logs, scaling, rollbacks, backups, accessing Grafana, common kubectl commands
-- [ ] 29. Create docs/KUBERNETES_TROUBLESHOOTING.md covering common failure scenarios (Pending, ImagePullBackOff, CrashLoopBackOff, CreateContainerConfigError, service issues, Ingress issues, HPA issues) with diagnostics and resolutions
+- [x] 1. Verify Minikube installation and configure cluster with 6 CPUs, 10GB RAM, and enable ingress and metrics-server addons
+- [x] 2. Create k8s/ directory structure with subdirectories: base/, infra/, apps/, edge/, hpa/, monitoring/
+- [x] 3. Create namespace.yaml defining 'heavenly' and 'monitoring' namespaces, and network-policies.yaml for pod-to-pod communication restrictions
+- [x] 4. Create configmap.yaml with all non-sensitive configuration (service URLs, ports, database URLs using Kubernetes DNS format)
+- [x] 5. Create Secret from .env file using kubectl create secret command with all sensitive credentials (JWT secrets, Cloudinary, RabbitMQ, Razorpay)
+- [x] 6. Create mongodb-statefulset.yaml and mongodb-service.yaml with 10Gi PVC, health probes, resource limits (256Mi/250m request, 512Mi/500m limit), and NO authentication (matching docker-compose.yml)
+- [x] 7. Create redis-statefulset.yaml and redis-service.yaml with 1Gi PVC, redis-cli health probes, and resource limits (64Mi/100m request, 128Mi/250m limit)
+- [x] 8. Create rabbitmq-statefulset.yaml and rabbitmq-service.yaml with 5Gi PVC, rabbitmq-diagnostics health probes, and resource limits (128Mi/100m request, 256Mi/250m limit)
+- [x] 8.5. Install prom-client in all 9 services, create shared/src/metrics.js with HTTP request metrics middleware, wire /metrics endpoint into each service's index.js, and update all Dockerfiles to add non-root USER node directive
+- [x] 9. Build auth-service image and create auth-deployment.yaml and auth-service.yaml with environment variables from ConfigMap/Secret (ensure RABBITMQ_USER, RABBITMQ_PASS, RABBITMQ_HOST, RABBITMQ_PORT are declared BEFORE RABBITMQ_URL), /health probes, revisionHistoryLimit: 5, and resource limits (128Mi/100m request, 256Mi/250m limit)
+- [x] 10. Build listing-service image and create listing-deployment.yaml and listing-service.yaml with port 3002 and MONGO_URL_LISTING configuration
+- [x] 11. Build review-service image and create review-deployment.yaml and review-service.yaml with port 3003 and MONGO_URL_REVIEW configuration
+- [x] 12. Build booking-service image and create booking-deployment.yaml and booking-service.yaml with port 3004, MONGO_URL_BOOKING, and Razorpay credentials
+- [x] 13. Build media-service image and create media-deployment.yaml and media-service.yaml with port 3005, Cloudinary credentials, and adjusted resource limits (64Mi/50m request, 128Mi/150m limit)
+- [x] 14. Build search-service image and create search-deployment.yaml and search-service.yaml with port 3006 and Redis configuration
+- [x] 15. Build admin-service image and create admin-deployment.yaml and admin-service.yaml with port 3007, inject AUTH_SERVICE_URL, LISTING_SERVICE_URL, REVIEW_SERVICE_URL, BOOKING_SERVICE_URL from ConfigMap, and adjusted resource limits (64Mi/50m request, 128Mi/150m limit)
+- [x] 16. Build gateway image and create gateway-deployment.yaml and gateway-service.yaml with port 3000 and all backend service URLs
+- [x] 17. Build bff image and create bff-deployment.yaml and bff-service.yaml with port 8080, SESSION_SECRET, and GATEWAY_URL
+- [x] 18. Create ingress.yaml routing heavenly.local to bff-service:8080 with NGINX ingress controller and timeout annotations, then add Minikube IP to /etc/hosts
+- [x] 19. Create HPA manifests for all 9 stateless services with 70% CPU threshold, minReplicas=1, maxReplicas=5 (backend) or 3 (edge), and stabilization windows
+- [x] 20. Add prometheus-community Helm repo, create prometheus-values.yaml with scraping config for heavenly namespace, and install kube-prometheus-stack in monitoring namespace
+- [x] 21. Add grafana Helm repo, create loki-values.yaml compatible with loki-stack/Loki 2.6.1 using schema v11 and boltdb-shipper storage, Promtail config for heavenly namespace, and install loki-stack in monitoring namespace
+- [x] 22. Access Grafana UI with Prometheus and Loki data sources pre-configured and verify both data sources are working
+- [x] 23. Create initial consolidated Grafana dashboard covering request rate, P95 latency, CPU/memory by pod, HPA desired replicas, and recent Heavenly logs. Optional follow-up: split this into 7 richer dashboards and add RabbitMQ exporter metrics.
+- [x] 24. Create deployment scripts: k8s-deploy.sh (full deployment with PVC deletion BEFORE namespace deletion in cleanup), k8s-cleanup.sh (resource cleanup), k8s-restart.sh (service restart), and create-secret.sh (secret generation)
+- [x] 25. Extend Makefile with Kubernetes targets: k8s-start, k8s-reset, k8s-deploy, k8s-status, k8s-logs, k8s-cleanup, k8s-restart, k8s-grafana, and k8s-verify with documentation
+- [x] 26. Create verify-deployment.sh script that checks namespace, ConfigMap, Secret, all service pods, HPA, Ingress, and monitoring stack with colored pass/fail output
+- [x] 27. Create docs/KUBERNETES_GUIDE.md explaining all Kubernetes concepts used (Pods, Deployments, StatefulSets, Services, Ingress, ConfigMaps, Secrets, PVCs, HPA, Namespaces, Health Probes, NetworkPolicies) with examples
+- [x] 28. Create docs/KUBERNETES_RUNBOOK.md with operational procedures: starting/stopping cluster, deploying services, viewing logs, scaling, rollbacks, backups, accessing Grafana, common kubectl commands
+- [x] 29. Create docs/KUBERNETES_TROUBLESHOOTING.md covering common failure scenarios (Pending, ImagePullBackOff, CrashLoopBackOff, CreateContainerConfigError, service issues, Ingress issues, HPA issues) with diagnostics and resolutions
 - [ ] 30. Perform end-to-end testing: access http://heavenly.local, test user registration/login, create listings/bookings/reviews, verify service communication, test data persistence across pod restarts
 - [ ] 31. Generate load on services using hey or Apache Bench to trigger HPA scaling, verify replica count increases when CPU exceeds 70%, verify scale-down after load stops, monitor in Grafana
 - [ ] 32. Validate monitoring: verify all Prometheus targets are UP, test PromQL queries for metrics, verify Loki receives logs from all pods, test LogQL queries, verify Grafana dashboards display real-time data
@@ -394,4 +398,3 @@ kubectl describe hpa <hpa-name> -n heavenly
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
 - [Loki Documentation](https://grafana.com/docs/loki/)
-

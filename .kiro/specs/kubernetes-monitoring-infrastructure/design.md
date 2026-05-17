@@ -263,7 +263,7 @@ graph TB
 
 ### Directory Structure
 
-The Kubernetes manifests will be organized in a `k8s/` directory at the project root:
+The Kubernetes manifests are organized in a `k8s/` directory at the project root:
 
 ```
 k8s/
@@ -300,18 +300,11 @@ k8s/
 │   ├── bff-service.yaml            # BFF ClusterIP service
 │   └── ingress.yaml                # NGINX Ingress for external access
 ├── hpa/
-│   ├── auth-hpa.yaml               # Auth HPA configuration
-│   ├── listing-hpa.yaml            # Listing HPA configuration
-│   ├── review-hpa.yaml             # Review HPA configuration
-│   ├── booking-hpa.yaml            # Booking HPA configuration
-│   ├── media-hpa.yaml              # Media HPA configuration
-│   ├── search-hpa.yaml             # Search HPA configuration
-│   ├── admin-hpa.yaml              # Admin HPA configuration
-│   ├── gateway-hpa.yaml            # Gateway HPA configuration
-│   └── bff-hpa.yaml                # BFF HPA configuration
+│   └── hpa.yaml                    # HPA configuration for all stateless services
 └── monitoring/
     ├── prometheus-values.yaml      # Helm values for kube-prometheus-stack
-    └── loki-values.yaml            # Helm values for loki-stack
+    ├── loki-values.yaml            # Helm values for loki-stack and Promtail
+    └── grafana-dashboards.yaml     # Dashboard ConfigMap for Grafana sidecar
 ```
 
 ### ConfigMap Design
@@ -380,7 +373,7 @@ The Secret stores sensitive credentials encoded in base64.
 apiVersion: v1
 kind: Secret
 metadata:
-  name: heavenly-secret
+  name: heavenly-secrets
   namespace: heavenly
 type: Opaque
 data:
@@ -409,7 +402,7 @@ data:
 
 ```bash
 # Create secret from .env file
-kubectl create secret generic heavenly-secret \
+kubectl create secret generic heavenly-secrets \
   --from-literal=JWT_SECRET="${JWT_SECRET}" \
   --from-literal=JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET}" \
   --from-literal=SESSION_SECRET="${SESSION_SECRET}" \
@@ -627,22 +620,22 @@ spec:
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
-              name: heavenly-secret
+              name: heavenly-secrets
               key: JWT_SECRET
         - name: JWT_REFRESH_SECRET
           valueFrom:
             secretKeyRef:
-              name: heavenly-secret
+              name: heavenly-secrets
               key: JWT_REFRESH_SECRET
         - name: RABBITMQ_USER
           valueFrom:
             secretKeyRef:
-              name: heavenly-secret
+              name: heavenly-secrets
               key: RABBITMQ_USER
         - name: RABBITMQ_PASS
           valueFrom:
             secretKeyRef:
-              name: heavenly-secret
+              name: heavenly-secrets
               key: RABBITMQ_PASS
         # Composite value — all referenced $(VAR) variables are declared above
         - name: RABBITMQ_URL
@@ -880,7 +873,7 @@ env:
 - name: JWT_SECRET
   valueFrom:
     secretKeyRef:
-      name: heavenly-secret
+      name: heavenly-secrets
       key: JWT_SECRET
 ```
 
@@ -893,12 +886,12 @@ env:
 - name: RABBITMQ_USER
   valueFrom:
     secretKeyRef:
-      name: heavenly-secret
+      name: heavenly-secrets
       key: RABBITMQ_USER
 - name: RABBITMQ_PASS
   valueFrom:
     secretKeyRef:
-      name: heavenly-secret
+      name: heavenly-secrets
       key: RABBITMQ_PASS
 - name: RABBITMQ_HOST
   valueFrom:
@@ -1203,60 +1196,24 @@ kube_horizontalpodautoscaler_status_current_replicas{namespace="heavenly"}
 
 Grafana provides visualization for Prometheus metrics.
 
-**Dashboard 1: Heavenly Services Overview**
+The current implementation ships one consolidated dashboard named **Heavenly Services Overview** through `k8s/monitoring/grafana-dashboards.yaml`.
 
 Panels:
-- Service health status (up/down)
-- Total pod count per service
-- CPU usage per service (gauge)
-- Memory usage per service (gauge)
 - Request rate per service (graph)
-- Error rate per service (graph)
+- P95 request latency per service (graph)
+- CPU usage by pod (graph)
+- Memory usage by pod (graph)
+- HPA desired replicas (graph)
+- Recent Heavenly logs from Loki (logs panel)
 
-**Dashboard 2: Resource Usage**
+The original design can still be expanded into separate dashboards as a future improvement:
 
-Panels:
-- CPU usage by pod (heatmap)
-- Memory usage by pod (heatmap)
-- CPU requests vs usage (comparison)
-- Memory requests vs usage (comparison)
-- Top 10 CPU consumers (table)
-- Top 10 memory consumers (table)
-
-**Dashboard 3: HPA Status**
-
-Panels:
-- Current replicas vs desired replicas (graph)
-- CPU utilization vs target (graph)
-- Scale-up events (timeline)
-- Scale-down events (timeline)
-- Replica count history (graph)
-
-**Dashboard 4: RabbitMQ Monitoring**
-
-Panels:
-- Queue depth per queue (graph)
-- Message publish rate (graph)
-- Message consume rate (graph)
-- Unacknowledged messages (gauge)
-- Consumer count per queue (table)
-
-**Dashboard 5: Request Latency**
-
-Panels:
-- P50, P95, P99 latency per service (graph)
-- Request duration histogram (heatmap)
-- Slow requests (table)
-- Error rate by status code (pie chart)
-
-**Dashboard 6: Pod Status**
-
-Panels:
-- Pod lifecycle events (timeline)
-- Pod restart count (table)
-- Failed pods (alert list)
-- Pending pods (alert list)
-- Node resource usage (graph)
+- Resource Usage
+- HPA Status
+- RabbitMQ Monitoring
+- Request Latency
+- Pod Status
+- Logs Explorer
 
 ### Loki Architecture
 
@@ -1325,28 +1282,28 @@ loki:
   
   # Configuration
   config:
-    # Retention via compactor (modern Loki 3.x approach, table_manager is deprecated)
+    # Retention via compactor
     compactor:
       retention_enabled: true
       retention_delete_delay: 2h
       delete_request_store: filesystem
     
-    # Chunk storage (updated to modern tsdb/v13 schema)
+    # Chunk storage compatible with grafana/loki-stack's Loki 2.6.x image
     schema_config:
       configs:
       - from: 2024-01-01
-        store: tsdb
+        store: boltdb-shipper
         object_store: filesystem
-        schema: v13
+        schema: v11
         index:
           prefix: index_
           period: 24h
     
     # Storage config
     storage_config:
-      tsdb_shipper:
-        active_index_directory: /data/loki/tsdb-shipper-active
-        cache_location: /data/loki/tsdb-shipper-cache
+      boltdb_shipper:
+        active_index_directory: /data/loki/boltdb-shipper-active
+        cache_location: /data/loki/boltdb-shipper-cache
         shared_store: filesystem
       filesystem:
         directory: /data/loki/chunks
@@ -1488,7 +1445,7 @@ Promtail runs on every node to collect logs.
 
 ### Prometheus Metrics Instrumentation
 
-> **IMPORTANT**: None of the Heavenly services currently expose a `/metrics` endpoint. This instrumentation is **required** before Prometheus can scrape application-level metrics. Without it, Prometheus annotations on pods will result in 404 scrape errors.
+All stateless Heavenly services now expose a `/metrics` endpoint through `shared/src/metrics.js`. This instrumentation is required for application-level Prometheus metrics; Kubernetes CPU/memory metrics still come from kubelet/cAdvisor and kube-state-metrics.
 
 Each stateless service must install `prom-client` and expose a `/metrics` endpoint.
 
@@ -1532,8 +1489,8 @@ const httpRequestsTotal = new client.Counter({
 
 function metricsMiddleware(serviceName) {
   return (req, res, next) => {
-    // Skip metrics and health endpoints
-    if (req.path === '/metrics' || req.path === '/health') {
+    // Skip the metrics endpoint itself
+    if (req.path === '/metrics') {
       return next();
     }
     const end = httpRequestDuration.startTimer();
@@ -1551,29 +1508,28 @@ function metricsMiddleware(serviceName) {
   };
 }
 
-async function metricsEndpoint(req, res) {
-  res.set('Content-Type', client.register.contentType);
-  res.end(await client.register.metrics());
+function setupMetrics(app, serviceName) {
+  app.use(metricsMiddleware(serviceName));
+  app.get('/metrics', async (req, res) => {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+  });
 }
 
-module.exports = { metricsMiddleware, metricsEndpoint, client };
+module.exports = { setupMetrics, client };
 ```
 
 **Step 3: Wire into each service's index.js**
 
 ```javascript
-const { metricsMiddleware, metricsEndpoint } = require('../../shared/src/metrics');
+const { setupMetrics } = require('../../shared/src/metrics');
 
-// Add before other middleware
-app.use(metricsMiddleware('auth-service'));
-
-// Add metrics endpoint (before rate limiting)
-app.get('/metrics', metricsEndpoint);
+setupMetrics(app, 'auth-service');
 ```
 
 ### Dockerfile Security Changes
 
-> **IMPORTANT**: All current Dockerfiles run as root. For Kubernetes security best practices (Requirement 27), add a non-root USER directive.
+All service Dockerfiles now run as the non-root `node` user. Keep this pattern for new services and future Dockerfile edits.
 
 Add the following lines to each Dockerfile, before the CMD instruction:
 
@@ -1956,10 +1912,10 @@ else
   echo "❌ ConfigMap 'heavenly-config' not found"
 fi
 
-if kubectl get secret heavenly-secret -n $NAMESPACE &> /dev/null; then
-  echo "✅ Secret 'heavenly-secret' exists"
+if kubectl get secret heavenly-secrets -n $NAMESPACE &> /dev/null; then
+  echo "✅ Secret 'heavenly-secrets' exists"
 else
-  echo "❌ Secret 'heavenly-secret' not found"
+  echo "❌ Secret 'heavenly-secrets' not found"
 fi
 
 echo ""
@@ -2106,7 +2062,7 @@ kubectl apply -f k8s/base/configmap.yaml
 if [ -f .env ]; then
   echo "🔐 Creating secret from .env file..."
   source .env
-  kubectl create secret generic heavenly-secret \
+  kubectl create secret generic heavenly-secrets \
     --from-literal=JWT_SECRET="${JWT_SECRET}" \
     --from-literal=JWT_REFRESH_SECRET="${JWT_REFRESH_SECRET}" \
     --from-literal=SESSION_SECRET="${SESSION_SECRET}" \
@@ -2360,7 +2316,7 @@ kubectl get pods -n heavenly
 kubectl get configmap heavenly-config -n heavenly
 
 # Verify Secret exists
-kubectl get secret heavenly-secret -n heavenly
+kubectl get secret heavenly-secrets -n heavenly
 ```
 
 **Resolution**:
@@ -2745,7 +2701,7 @@ echo "✅ RabbitMQ restored successfully"
    kubectl get configmap heavenly-config -n heavenly
    
    # Check Secret exists before deploying
-   kubectl get secret heavenly-secret -n heavenly
+   kubectl get secret heavenly-secrets -n heavenly
    ```
 
 5. **Schema Validation**:
@@ -3359,7 +3315,7 @@ kubectl describe pod <pod-name> -n heavenly
 # Common causes:
 # 1. Missing environment variables
 kubectl get configmap heavenly-config -n heavenly -o yaml
-kubectl get secret heavenly-secret -n heavenly -o yaml
+kubectl get secret heavenly-secrets -n heavenly -o yaml
 
 # 2. Dependency not ready
 kubectl get pods -n heavenly
@@ -3546,10 +3502,10 @@ kubectl get configmap heavenly-config -n heavenly -o yaml
 kubectl edit configmap heavenly-config -n heavenly
 
 # View Secret (base64 encoded)
-kubectl get secret heavenly-secret -n heavenly -o yaml
+kubectl get secret heavenly-secrets -n heavenly -o yaml
 
 # Decode secret value
-kubectl get secret heavenly-secret -n heavenly -o jsonpath='{.data.JWT_SECRET}' | base64 -d
+kubectl get secret heavenly-secrets -n heavenly -o jsonpath='{.data.JWT_SECRET}' | base64 -d
 ```
 
 **HPA Management**:
@@ -3755,7 +3711,7 @@ This section defines the invariants and properties that must hold true for the K
 
 **Property 2: Configuration Availability**
 - **Invariant**: ConfigMap and Secret MUST exist in the namespace before any Deployment references them
-- **Verification**: `kubectl get configmap heavenly-config -n heavenly` and `kubectl get secret heavenly-secret -n heavenly` succeed
+- **Verification**: `kubectl get configmap heavenly-config -n heavenly` and `kubectl get secret heavenly-secrets -n heavenly` succeed
 - **Impact**: Prevents pods from entering `CreateContainerConfigError` state
 
 **Property 3: Image Availability**
@@ -3864,7 +3820,7 @@ This section defines the invariants and properties that must hold true for the K
 
 **Property 21: Secret Encoding**
 - **Invariant**: All Secret values MUST be base64 encoded
-- **Verification**: `kubectl get secret heavenly-secret -n heavenly -o yaml` shows base64-encoded data
+- **Verification**: `kubectl get secret heavenly-secrets -n heavenly -o yaml` shows base64-encoded data
 - **Impact**: Ensures proper secret handling by Kubernetes
 
 **Property 22: Secret Injection**
@@ -3928,4 +3884,3 @@ This design document provides a comprehensive blueprint for migrating the Heaven
 7. Create Grafana dashboard templates
 8. Perform load testing and HPA validation
 9. Document cloud migration procedures
-
