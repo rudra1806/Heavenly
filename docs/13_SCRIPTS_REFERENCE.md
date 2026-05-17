@@ -58,8 +58,17 @@ Evidence: `gateway/package.json:7-10`, `bff/package.json:7-10`, `scripts/package
 | `make mongo` | `docker exec -it heavenly-mongodb mongosh` | Opens MongoDB shell inside the MongoDB container. | Inspect local MongoDB. | Running `heavenly-mongodb` container. |
 | `make redis` | `docker exec -it heavenly-redis redis-cli` | Opens Redis CLI inside the Redis container. | Inspect local Redis. | Running `heavenly-redis` container. |
 | `make status` | `docker-compose ps` plus Heavenly volume listing | Shows service status and data volumes. | Local stack status check. | Docker Compose and Docker CLI. |
+| `make k8s-start` | `minikube start --cpus=$(K8S_CPUS) --memory=$(K8S_MEMORY)` plus addons | Starts Minikube and enables ingress plus metrics-server. | Start local Kubernetes. | Docker Desktop, Minikube, kubectl. |
+| `make k8s-reset` | `minikube delete` then `minikube start ...` plus addons | Recreates Minikube with requested CPU/RAM. | Fix existing profile resource mismatch. | Docker Desktop, Minikube, kubectl. |
+| `make k8s-deploy` | `./scripts/k8s-deploy.sh` | Applies Kubernetes manifests, builds local images, installs monitoring. | Deploy Heavenly to Minikube. | Docker, Minikube, kubectl, Helm for monitoring. |
+| `make k8s-status` | `kubectl get all -n heavenly` plus ingress/HPA | Shows Kubernetes app resources. | Check app deployment. | kubectl configured for Minikube. |
+| `make k8s-logs SERVICE=...` | `kubectl logs -n heavenly -l app=$(SERVICE) --tail=100 -f` | Tails Kubernetes logs. | Debug app services in Kubernetes. | Running app pods. |
+| `make k8s-cleanup` | `./scripts/k8s-cleanup.sh` | Removes Kubernetes app resources while keeping PVCs by default. | Clean app resources. | kubectl. |
+| `make k8s-restart SERVICE=...` | `./scripts/k8s-restart.sh $(SERVICE)` | Restarts all or one Kubernetes Deployment. | Pick up ConfigMap/Secret/image changes. | Running app deployments. |
+| `make k8s-grafana` | `kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80` | Opens Grafana locally. | View metrics and logs. | Monitoring stack running. |
+| `make k8s-verify` | `./scripts/verify-deployment.sh` | Checks app and monitoring resource health. | Validate deployment. | kubectl; monitoring checks require Helm-installed stack. |
 
-Evidence: `Makefile:3-97`.
+Evidence: `Makefile`.
 
 
 ### 13.3 — Scripts Folder Files
@@ -76,9 +85,13 @@ Evidence: `Makefile:3-97`.
 | `scripts/smoke-test.js --gateway-url ...` | `cd scripts && node smoke-test.js --gateway-url http://localhost:3000` | Overrides Gateway URL for smoke checks. | Smoke test a non-default Gateway URL. | Running target Gateway. |
 | `scripts/smoke-test.js --bff-url ...` | `cd scripts && node smoke-test.js --bff-url http://localhost:8080` | Overrides BFF URL for smoke checks. | Smoke test a non-default BFF URL. | Running target BFF. |
 | `scripts/update-booking-emails.js` | `cd scripts && node update-booking-emails.js` | Populates `guestEmail` on existing bookings by looking up users in Auth DB. | Repair/migrate existing booking records missing guest email. | Booking DB and Auth DB; `BOOKING_DB_URL`/`AUTH_DB_URL` optional. |
+| `scripts/create-secret.sh` | `./scripts/create-secret.sh .env` | Creates/updates `heavenly-secrets` in the `heavenly` namespace from `.env`. | Before deploying Kubernetes resources that reference secrets. | kubectl and `.env`. |
+| `scripts/k8s-deploy.sh` | `./scripts/k8s-deploy.sh` | Applies base resources, creates Secret, builds local images into Minikube, deploys app resources, HPA, and monitoring. | Full Kubernetes deployment. | Docker, Minikube, kubectl, Helm for monitoring. |
+| `scripts/k8s-cleanup.sh` | `./scripts/k8s-cleanup.sh` | Deletes app Kubernetes resources; deletes PVCs only when `DELETE_PVCS=true`. | Cleanup local Kubernetes app resources. | kubectl. |
+| `scripts/k8s-restart.sh` | `./scripts/k8s-restart.sh [deployment]` | Restarts all app Deployments or one named Deployment. | Pick up config/image changes. | kubectl. |
+| `scripts/verify-deployment.sh` | `./scripts/verify-deployment.sh` | Runs pass/fail checks for namespaces, ConfigMap, Secret, app workloads, HPA, Ingress, and monitoring. | Deployment verification. | kubectl. |
 | `scripts/data.js` | Imported by `scripts/seed-microservices.js` | Provides sample listing seed data. | Not intended as a direct command; used by seed script. | `scripts/seed-microservices.js`. |
 | `scripts/package.json` | `cd scripts && npm run <script>` | Defines `migrate`, `migrate:dry`, and `smoke-test`. | npm entry point for script package commands. | npm. |
 | `scripts/package-lock.json` | Not executable | Locks dependencies for the scripts package. | Dependency reproducibility. | npm. |
 
 Evidence: `scripts/backup-data.sh:1-21`, `scripts/restore-data.sh:1-30`, `scripts/seed-data.sh:1-8`, `scripts/seed-microservices.js:1-18`, `scripts/migrate.js:20-38`, `scripts/smoke-test.js:12-20`, `scripts/update-booking-emails.js:1-17`, `scripts/data.js:1-17`.
-
