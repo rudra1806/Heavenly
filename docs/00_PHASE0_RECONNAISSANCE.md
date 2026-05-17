@@ -188,7 +188,7 @@ Files checked:
 | `jest.config.*` | ⬜ Not found | Jest config absent |
 | `.github/workflows/` | ⬜ Not found | GitHub Actions absent |
 | `.gitlab-ci.yml` | ⬜ Not found | GitLab CI absent |
-| `k8s/`, `helm/`, `manifests/` | ⬜ Not found | Kubernetes/Helm absent |
+| `k8s/`, `helm/`, `manifests/` | ✅ | Kubernetes manifests are present under `k8s/`; Helm values are present under `k8s/monitoring/` |
 | Terraform/CDK/Pulumi/SAM/serverless config | ⬜ Not found | Cloud infra-as-code absent |
 
 
@@ -212,14 +212,14 @@ Files checked:
 | Payment Processing | ✅ | Razorpay dependency and payment routes in `services/booking-service/src/routes/booking.js`; utility in `services/booking-service/src/utils/razorpay.js` | Section 4 |
 | Docker | ✅ | `gateway/Dockerfile`, `bff/Dockerfile`, and `services/*/Dockerfile` | Section 7 |
 | Docker Compose | ✅ | `docker-compose.yml`, `docker-compose.prod.yml` | Sections 7, 12 |
-| Kubernetes | ⬜ | No `k8s/`, `helm/`, or manifest folder found | Section 7 |
+| Kubernetes | ✅ | `k8s/` manifests, Minikube Makefile targets, and Helm values for monitoring are present | Section 7 |
 | CI/CD Pipeline | ⬜ | No `.github/workflows/`, `.gitlab-ci.yml`, Jenkinsfile, CircleCI, or Bitbucket pipeline config found | Section 7 |
 | Environment Variables | ✅ | `.env.example`, `docker-compose.yml` environment blocks, and `process.env.*` references across source | Section 8 |
 | Rate Limiting | ✅ | `express-rate-limit` dependency and `gateway/src/middleware/rateLimiter.js` | Section 9 |
 | CORS Config | ✅ | `cors` package and `app.use(cors(...))` in gateway/services | Section 9 |
 | Input Validation | ✅ | Joi validators in `services/listing-service/src/validators`, `services/booking-service/src/validators`, `services/review-service/src/validators`; Mongoose schema validation in models | Section 9 |
 | Logging Library | ✅ | `morgan` dependency and `app.use(morgan(...))` in gateway/BFF/services | Section 10 |
-| Metrics / APM | ⬜ | No `prom-client`, Datadog, New Relic, OpenTelemetry, or APM config found | Section 10 |
+| Metrics / APM | ✅ | `prom-client` metrics helper and Prometheus/Grafana Kubernetes monitoring are present; external APM is not present | Section 10 |
 | Error Tracking | ⬜ | No Sentry, Bugsnag, Rollbar, or equivalent found | Section 10 |
 | Health Check Endpoint | ✅ | `/health` routes in gateway, BFF, and services; Compose healthchecks for gateway/services and infra | Section 10 |
 | Test Suite | ⬜ | No `*.spec.*`, `*.test.*`, `tests/`, or framework test config found; `scripts/smoke-test.js` exists but is not a formal test suite | Sections 12, 13 |
@@ -263,7 +263,7 @@ Section 6 (Database):
 
 Section 7 (DevOps):
 - Covered: Dockerfiles, Docker Compose local stack, production Compose override, infra services, healthchecks, volumes/networks.
-- Not covered: Kubernetes, Helm, CI/CD, Terraform/CDK/Pulumi/SAM/serverless cloud infrastructure.
+- Not covered: CI/CD, Terraform/CDK/Pulumi/SAM/serverless cloud infrastructure.
 
 Section 8 (Environment Variables):
 - Covered: variables from `.env.example`, `docker-compose.yml`, and `process.env.*` references.

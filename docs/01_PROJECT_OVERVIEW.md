@@ -117,10 +117,8 @@ This project does not currently include:
 | gRPC services | No gRPC package or `.proto` files found |
 | Relational database | No PostgreSQL/MySQL service, Prisma, TypeORM, Sequelize, or SQL migration setup found |
 | Email sending | No `nodemailer`, SendGrid, SES, or email-send code found |
-| Kubernetes or Helm deployment | No `k8s/`, `helm/`, or manifest folder found |
 | CI/CD pipeline | No `.github/workflows/`, `.gitlab-ci.yml`, Jenkinsfile, CircleCI, or Bitbucket pipeline config found |
-| Metrics/APM | No `prom-client`, Datadog, New Relic, OpenTelemetry, or APM config found |
+| Distributed tracing/APM SaaS | No OpenTelemetry, Datadog, New Relic, Jaeger, or Zipkin config found |
 | Error tracking service | No Sentry, Bugsnag, Rollbar, or equivalent package/config found |
 | Formal test suite | No `*.spec.*`, `*.test.*`, `tests/`, or framework test config found; only `scripts/smoke-test.js` was found |
 | Formal workspace tooling | No root `package.json`, npm workspaces, `turbo.json`, pnpm workspace, or yarn workspace config found |
-

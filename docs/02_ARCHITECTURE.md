@@ -376,5 +376,4 @@ Confirmed Compose services:
 | `search-service` | `3006:3006` | Search and geocoding |
 | `admin-service` | `3007:3007` | Admin aggregation |
 
-`docker-compose.prod.yml` exists and changes services to `NODE_ENV=production`, removes bind mounts with `volumes: []`, adds `restart: unless-stopped`, and adds resource limits. Kubernetes, Helm, CI/CD, and cloud infrastructure files were not found, so deployment documentation stops at Docker Compose.
-
+`docker-compose.prod.yml` exists and changes services to `NODE_ENV=production`, removes bind mounts with `volumes: []`, adds `restart: unless-stopped`, and adds resource limits. Kubernetes manifests are now present under `k8s/`, with Helm values for Prometheus/Grafana/Loki monitoring under `k8s/monitoring/`. CI/CD and cloud infrastructure files are still not present, so cloud deployment documentation remains out of scope.
