@@ -13,145 +13,159 @@ The Heavenly platform consists of:
 
 ### High-Level Architecture
 
+> **Legend** — Solid lines: application traffic &nbsp;|&nbsp; Dashed lines: observability pipeline (metrics scrape / log shipping)
+
 ```mermaid
+%%{init: {'theme': 'dark'}}%%
 graph TB
-    subgraph "External Access"
-        Browser[Browser]
-        HostsFile["/etc/hosts"]
-    end
+    BROWSER(["🌐 Browser\nheavenly.local"]):::client
+    HOSTS["📝 /etc/hosts\nDNS mapping"]:::config
     
-    subgraph "Minikube Cluster"
-        subgraph "Ingress Layer"
-            Ingress[NGINX Ingress Controller]
-        end
-        
-        subgraph "Namespace: heavenly"
-            subgraph "Edge Services"
-                BFF[BFF<br/>Deployment]
-                Gateway[Gateway<br/>Deployment]
+    subgraph CLUSTER["MINIKUBE CLUSTER"]
+        INGRESS["NGINX Ingress Controller\nPathPrefix: /"]:::ingress
+
+        subgraph NS_APP["namespace: heavenly"]
+            subgraph EDGE_K["Edge Tier"]
+                direction LR
+                K_BFF["BFF\nDeployment\n:8080 · ClusterIP"]:::edgeK
+                K_GW["Gateway\nDeployment\n:3000 · ClusterIP"]:::edgeK
             end
-            
-            subgraph "Core Services"
-                Auth[Auth Service<br/>Deployment]
-                Listing[Listing Service<br/>Deployment]
-                Review[Review Service<br/>Deployment]
-                Booking[Booking Service<br/>Deployment]
+
+            subgraph BACKEND_K["Backend Tier — Deployments · ClusterIP"]
+                direction LR
+                K_AUTH["Auth\n:3001"]:::svcK
+                K_LST["Listing\n:3002"]:::svcK
+                K_REV["Review\n:3003"]:::svcK
+                K_BKG["Booking\n:3004"]:::svcK
+                K_MDA["Media\n:3005"]:::svcK
+                K_SRC["Search\n:3006"]:::svcK
+                K_ADM["Admin\n:3007"]:::svcK
             end
-            
-            subgraph "Supporting Services"
-                Media[Media Service<br/>Deployment]
-                Search[Search Service<br/>Deployment]
-                Admin[Admin Service<br/>Deployment]
+
+            subgraph INFRA_K["Infrastructure Tier — StatefulSets · PVC"]
+                direction LR
+                K_MDB[("MongoDB\n10Gi PVC")]:::dbK
+                K_RDS[("Redis\n1Gi PVC")]:::dbK
+                K_RMQ{{"RabbitMQ\n5Gi PVC"}}:::mqK
             end
-            
-            subgraph "Infrastructure"
-                MongoDB[(MongoDB<br/>StatefulSet)]
-                Redis[(Redis<br/>StatefulSet)]
-                RabbitMQ[(RabbitMQ<br/>StatefulSet)]
-            end
-            
-            subgraph "Configuration"
-                ConfigMap[ConfigMap]
-                Secret[Secret]
-            end
-            
-            subgraph "Storage"
-                PV_Mongo[PV: MongoDB]
-                PV_Redis[PV: Redis]
-                PV_RabbitMQ[PV: RabbitMQ]
+
+            subgraph PLATFORM_K["Platform Resources"]
+                direction LR
+                K_CM["ConfigMap\nheavenly-config"]:::cfgK
+                K_SEC["Secret\nheavenly-secrets"]:::cfgK
+                K_HPA["HPA\nCPU 70% · max 3‑5"]:::cfgK
+                K_NP["NetworkPolicy\ndefault-deny + allow"]:::cfgK
             end
         end
-        
-        subgraph "Namespace: monitoring"
-            Prometheus[Prometheus<br/>StatefulSet]
-            Grafana[Grafana<br/>Deployment]
-            Loki[Loki<br/>StatefulSet]
-            Promtail[Promtail<br/>DaemonSet]
-            
-            PV_Prom[PV: Prometheus]
-            PV_Graf[PV: Grafana]
+
+        subgraph NS_MON["namespace: monitoring"]
+            subgraph METRICS_K["Metrics Pipeline"]
+                direction LR
+                K_PROM["Prometheus\nkube-prometheus-stack"]:::monK
+                K_GRAF["Grafana\nDashboards · 2Gi PVC"]:::monK
+                K_AM["Alertmanager"]:::monK
+            end
+            subgraph LOGS_K["Logging Pipeline"]
+                direction LR
+                K_LOKI["Loki\nLog Aggregation · 5Gi PVC"]:::monK
+                K_PT["Promtail\nDaemonSet"]:::monK
+            end
         end
     end
-    
-    Browser -->|heavenly.local| HostsFile
-    HostsFile -->|Minikube IP| Ingress
-    Ingress --> BFF
-    BFF --> Gateway
-    Gateway --> Auth
-    Gateway --> Listing
-    Gateway --> Review
-    Gateway --> Booking
-    Gateway --> Media
-    Gateway --> Search
-    Gateway --> Admin
-    
-    Auth --> MongoDB
-    Listing --> MongoDB
-    Review --> MongoDB
-    Booking --> MongoDB
-    
-    Auth --> Redis
-    Gateway --> Redis
-    Search --> Redis
-    
-    Auth --> RabbitMQ
-    Listing --> RabbitMQ
-    Review --> RabbitMQ
-    Booking --> RabbitMQ
-    Search --> RabbitMQ
-    
-    MongoDB -.-> PV_Mongo
-    Redis -.-> PV_Redis
-    RabbitMQ -.-> PV_RabbitMQ
-    
-    Prometheus -.->|scrapes| Auth
-    Prometheus -.->|scrapes| Listing
-    Prometheus -.->|scrapes| Review
-    Prometheus -.->|scrapes| Booking
-    Prometheus -.-> PV_Prom
-    
-    Promtail -.->|collects logs| Auth
-    Promtail -.->|collects logs| Listing
-    Promtail -.->|ships to| Loki
-    
-    Grafana -.->|queries| Prometheus
-    Grafana -.->|queries| Loki
-    Grafana -.-> PV_Graf
+
+    %% ── Application Traffic ──
+    BROWSER --> HOSTS
+    HOSTS --> INGRESS
+    INGRESS --> K_BFF
+    K_BFF --> K_GW
+    K_GW --> K_AUTH
+    K_GW --> K_LST
+    K_GW --> K_REV
+    K_GW --> K_BKG
+    K_GW --> K_MDA
+    K_GW --> K_SRC
+    K_GW --> K_ADM
+
+    %% ── Infrastructure Connections ──
+    K_AUTH & K_LST & K_REV & K_BKG -.-> K_MDB
+    K_AUTH & K_GW & K_SRC -.-> K_RDS
+    K_AUTH & K_LST & K_REV & K_BKG & K_SRC -.-> K_RMQ
+
+    %% ── Observability Pipeline ──
+    K_PROM -.->|"scrapes /metrics\nall annotated pods"| K_BFF
+    K_PROM -.->|"scrapes /metrics"| K_GW
+    K_PROM -.->|"scrapes /metrics"| K_AUTH
+    K_PT -.->|"ships pod stdout/stderr"| K_LOKI
+    K_GRAF --> K_PROM
+    K_GRAF --> K_LOKI
+    K_PROM --> K_AM
+
+    %% ── Platform Config ──
+    K_CM -.-> K_BFF
+    K_SEC -.-> K_BFF
+    K_HPA -.-> K_BFF
+    K_HPA -.-> K_GW
+
+    %% ── Styles ──
+    classDef client fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe,stroke-width:2px
+    classDef config fill:#1f2937,stroke:#6b7280,color:#d1d5db,stroke-width:1px
+    classDef ingress fill:#1e3a5f,stroke:#60a5fa,color:#dbeafe,stroke-width:2px
+    classDef edgeK fill:#312e81,stroke:#818cf8,color:#e0e7ff,stroke-width:2px
+    classDef svcK fill:#4c1d95,stroke:#a78bfa,color:#ede9fe,stroke-width:2px
+    classDef dbK fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef mqK fill:#451a03,stroke:#fbbf24,color:#fef3c7,stroke-width:2px
+    classDef cfgK fill:#1f2937,stroke:#6b7280,color:#d1d5db,stroke-width:1px
+    classDef monK fill:#4c0519,stroke:#fb7185,color:#ffe4e6,stroke-width:2px
+
+    style CLUSTER fill:#0f172a,stroke:#334155,color:#94a3b8,stroke-width:3px
+    style NS_APP fill:#1e1b4b,stroke:#4338ca,color:#c7d2fe,stroke-width:2px
+    style NS_MON fill:#2c0a1a,stroke:#be123c,color:#fecdd3,stroke-width:2px
+    style EDGE_K fill:#1e1b4b,stroke:#6366f1,color:#c7d2fe,stroke-width:1px
+    style BACKEND_K fill:#2e1065,stroke:#7c3aed,color:#ddd6fe,stroke-width:1px
+    style INFRA_K fill:#0c1f17,stroke:#059669,color:#a7f3d0,stroke-width:1px
+    style PLATFORM_K fill:#111827,stroke:#374151,color:#9ca3af,stroke-width:1px
+    style METRICS_K fill:#3b0a1a,stroke:#e11d48,color:#fecdd3,stroke-width:1px
+    style LOGS_K fill:#3b0a1a,stroke:#e11d48,color:#fecdd3,stroke-width:1px
 ```
 
 ### Network Architecture
 
+> **Legend** — Solid lines: HTTP traffic flow &nbsp;|&nbsp; Dashed lines: protocol-specific connections
+
 ```mermaid
+%%{init: {'theme': 'dark'}}%%
 graph LR
-    subgraph "External"
-        Client[Client Browser]
+    subgraph EXT["External"]
+        Client(["👤 Client Browser"]):::client
     end
     
-    subgraph "Ingress Layer"
-        Ingress[NGINX Ingress<br/>Port 80]
+    subgraph ING["Ingress Layer"]
+        Ingress["NGINX Ingress\nPort 80"]:::ingress
     end
     
-    subgraph "Service Mesh (ClusterIP)"
-        BFF_Svc[bff-service<br/>8080]
-        GW_Svc[gateway-service<br/>3000]
-        Auth_Svc[auth-service<br/>3001]
-        Listing_Svc[listing-service<br/>3002]
-        Mongo_Svc[mongodb-service<br/>27017]
-        Redis_Svc[redis-service<br/>6379]
-        RMQ_Svc[rabbitmq-service<br/>5672]
+    subgraph MESH["Service Mesh — ClusterIP"]
+        direction TB
+        BFF_Svc["bff-service\n:8080"]:::svc
+        GW_Svc["gateway-service\n:3000"]:::svc
+        Auth_Svc["auth-service\n:3001"]:::svc
+        Listing_Svc["listing-service\n:3002"]:::svc
+        Mongo_Svc["mongodb-service\n:27017"]:::db
+        Redis_Svc["redis-service\n:6379"]:::cache
+        RMQ_Svc["rabbitmq-service\n:5672"]:::mq
     end
     
-    subgraph "Pods"
-        BFF_Pod[BFF Pods]
-        GW_Pod[Gateway Pods]
-        Auth_Pod[Auth Pods]
-        Listing_Pod[Listing Pods]
-        Mongo_Pod[MongoDB Pod]
-        Redis_Pod[Redis Pod]
-        RMQ_Pod[RabbitMQ Pod]
+    subgraph PODS["Pods"]
+        direction TB
+        BFF_Pod["BFF Pods"]:::pod
+        GW_Pod["Gateway Pods"]:::pod
+        Auth_Pod["Auth Pods"]:::pod
+        Listing_Pod["Listing Pods"]:::pod
+        Mongo_Pod["MongoDB Pod"]:::stateful
+        Redis_Pod["Redis Pod"]:::stateful
+        RMQ_Pod["RabbitMQ Pod"]:::stateful
     end
     
-    Client -->|heavenly.local| Ingress
+    Client -->|"heavenly.local"| Ingress
     Ingress --> BFF_Svc
     BFF_Svc --> BFF_Pod
     BFF_Pod -->|HTTP| GW_Svc
@@ -160,12 +174,26 @@ graph LR
     GW_Pod -->|HTTP| Listing_Svc
     Auth_Svc --> Auth_Pod
     Listing_Svc --> Listing_Pod
-    Auth_Pod -->|MongoDB Protocol| Mongo_Svc
-    Auth_Pod -->|Redis Protocol| Redis_Svc
-    Auth_Pod -->|AMQP| RMQ_Svc
+    Auth_Pod -.->|"MongoDB Protocol"| Mongo_Svc
+    Auth_Pod -.->|"Redis Protocol"| Redis_Svc
+    Auth_Pod -.->|AMQP| RMQ_Svc
     Mongo_Svc --> Mongo_Pod
     Redis_Svc --> Redis_Pod
     RMQ_Svc --> RMQ_Pod
+
+    classDef client fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe,stroke-width:2px
+    classDef ingress fill:#312e81,stroke:#818cf8,color:#e0e7ff,stroke-width:2px
+    classDef svc fill:#4c1d95,stroke:#a78bfa,color:#ede9fe,stroke-width:2px
+    classDef db fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef cache fill:#451a03,stroke:#fbbf24,color:#fef3c7,stroke-width:2px
+    classDef mq fill:#7c2d12,stroke:#fb923c,color:#fed7aa,stroke-width:2px
+    classDef pod fill:#134e4a,stroke:#2dd4bf,color:#ccfbf1,stroke-width:2px
+    classDef stateful fill:#0f3b3b,stroke:#0d9488,color:#ccfbf1,stroke-width:2px
+
+    style EXT fill:#1e1b4b,stroke:#4338ca,color:#c7d2fe,stroke-width:2px
+    style ING fill:#2e1065,stroke:#7c3aed,color:#ddd6fe,stroke-width:2px
+    style MESH fill:#0c1f17,stroke:#059669,color:#a7f3d0,stroke-width:2px
+    style PODS fill:#1f2937,stroke:#6b7280,color:#d1d5db,stroke-width:2px
 ```
 
 **Key Networking Concepts**:
@@ -177,45 +205,61 @@ graph LR
 
 ### Monitoring Architecture
 
+> **Legend** — Solid lines: query/visualization flow &nbsp;|&nbsp; Dashed lines: metrics scraping / log collection
+
 ```mermaid
+%%{init: {'theme': 'dark'}}%%
 graph TB
-    subgraph "Application Pods"
-        Pod1[Auth Pod<br/>/health<br/>/metrics]
-        Pod2[Listing Pod<br/>/health<br/>/metrics]
-        Pod3[Gateway Pod<br/>/health<br/>/metrics]
+    subgraph APP["Application Pods"]
+        direction LR
+        Pod1["Auth Pod\n/health\n/metrics"]:::pod
+        Pod2["Listing Pod\n/health\n/metrics"]:::pod
+        Pod3["Gateway Pod\n/health\n/metrics"]:::pod
     end
     
-    subgraph "Log Collection"
-        Promtail[Promtail DaemonSet<br/>Runs on every node]
+    subgraph LOG["Log Collection"]
+        Promtail["Promtail DaemonSet\nRuns on every node"]:::collector
     end
     
-    subgraph "Metrics Collection"
-        Prometheus[Prometheus<br/>Scrapes every 15s]
+    subgraph METRICS["Metrics Collection"]
+        Prometheus["Prometheus\nScrapes every 15s"]:::collector
     end
     
-    subgraph "Storage"
-        Loki[Loki<br/>Log Storage<br/>7-day retention]
-        PromStorage[Prometheus Storage<br/>15-day retention]
+    subgraph STORAGE["Storage"]
+        direction LR
+        Loki["Loki\nLog Storage\n7-day retention"]:::storage
+        PromStorage["Prometheus Storage\n15-day retention"]:::storage
     end
     
-    subgraph "Visualization"
-        Grafana[Grafana<br/>Dashboards & Queries]
+    subgraph VIZ["Visualization"]
+        Grafana["Grafana\nDashboards & Queries"]:::viz
     end
     
-    Pod1 -->|stdout/stderr| Promtail
-    Pod2 -->|stdout/stderr| Promtail
-    Pod3 -->|stdout/stderr| Promtail
+    Pod1 -.->|stdout/stderr| Promtail
+    Pod2 -.->|stdout/stderr| Promtail
+    Pod3 -.->|stdout/stderr| Promtail
     
-    Promtail -->|ships logs| Loki
+    Promtail -.->|ships logs| Loki
     
-    Pod1 -->|HTTP GET /metrics| Prometheus
-    Pod2 -->|HTTP GET /metrics| Prometheus
-    Pod3 -->|HTTP GET /metrics| Prometheus
+    Pod1 -.->|"HTTP GET /metrics"| Prometheus
+    Pod2 -.->|"HTTP GET /metrics"| Prometheus
+    Pod3 -.->|"HTTP GET /metrics"| Prometheus
     
     Prometheus --> PromStorage
     
     Grafana -->|PromQL queries| Prometheus
     Grafana -->|LogQL queries| Loki
+
+    classDef pod fill:#4c1d95,stroke:#a78bfa,color:#ede9fe,stroke-width:2px
+    classDef collector fill:#134e4a,stroke:#2dd4bf,color:#ccfbf1,stroke-width:2px
+    classDef storage fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef viz fill:#4c0519,stroke:#fb7185,color:#ffe4e6,stroke-width:2px
+
+    style APP fill:#2e1065,stroke:#7c3aed,color:#ddd6fe,stroke-width:2px
+    style LOG fill:#0f3b3b,stroke:#0d9488,color:#ccfbf1,stroke-width:2px
+    style METRICS fill:#0f3b3b,stroke:#0d9488,color:#ccfbf1,stroke-width:2px
+    style STORAGE fill:#0c1f17,stroke:#059669,color:#a7f3d0,stroke-width:2px
+    style VIZ fill:#2c0a1a,stroke:#be123c,color:#fecdd3,stroke-width:2px
 ```
 
 **Monitoring Data Flow**:

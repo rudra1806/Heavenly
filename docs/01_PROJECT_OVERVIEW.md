@@ -71,34 +71,47 @@ Without this system, the repository's implemented workflows for listing manageme
 
 ### 1.5 — High-Level Architecture Diagram
 
+> **Legend** — Solid lines: synchronous HTTP/REST &nbsp;|&nbsp; Dashed lines: data/cache/event connections
+
 ```mermaid
+%%{init: {'theme': 'dark'}}%%
 graph TD
-    User["User"] --> BFF["BFF: Express + EJS"]
-    BFF --> Gateway["API Gateway: Express proxy"]
-    Gateway --> Auth["Auth Service"]
-    Gateway --> Listing["Listing Service"]
-    Gateway --> Review["Review Service"]
-    Gateway --> Booking["Booking Service"]
-    Gateway --> Media["Media Service"]
-    Gateway --> Search["Search Service"]
-    Gateway --> Admin["Admin Service"]
+    User(["👤 User"]):::client --> BFF["BFF\nExpress + EJS\n:8080"]:::edge
+    BFF --> Gateway["API Gateway\nExpress proxy\n:3000"]:::edge
 
-    Auth --> MongoAuth[("MongoDB: heavenly_auth")]
-    Listing --> MongoListings[("MongoDB: heavenly_listings")]
-    Review --> MongoReviews[("MongoDB: heavenly_reviews")]
-    Booking --> MongoBookings[("MongoDB: heavenly_bookings")]
+    Gateway --> Auth["Auth Service\n:3001"]:::svc
+    Gateway --> Listing["Listing Service\n:3002"]:::svc
+    Gateway --> Review["Review Service\n:3003"]:::svc
+    Gateway --> Booking["Booking Service\n:3004"]:::svc
+    Gateway --> Media["Media Service\n:3005"]:::svc
+    Gateway --> Search["Search Service\n:3006"]:::svc
+    Gateway --> Admin["Admin Service\n:3007"]:::svc
 
-    Auth --> Redis["Redis"]
-    Search --> Redis
-    Search --> Nominatim["Nominatim / OpenStreetMap"]
-    Media --> Cloudinary["Cloudinary"]
-    Booking --> Razorpay["Razorpay"]
+    Auth -.-> MongoAuth[("MongoDB\nheavenly_auth")]:::db
+    Listing -.-> MongoListings[("MongoDB\nheavenly_listings")]:::db
+    Review -.-> MongoReviews[("MongoDB\nheavenly_reviews")]:::db
+    Booking -.-> MongoBookings[("MongoDB\nheavenly_bookings")]:::db
 
-    Auth --> RabbitMQ["RabbitMQ"]
-    Listing --> RabbitMQ
-    Review --> RabbitMQ
-    Booking --> RabbitMQ
-    Search --> RabbitMQ
+    Auth -.-> Redis[("Redis\nCache · Tokens")]:::cache
+    Search -.-> Redis
+    
+    Search -.-> Nominatim["🌐 Nominatim\nOpenStreetMap"]:::ext
+    Media -.-> Cloudinary["☁ Cloudinary\nImage CDN"]:::ext
+    Booking -.-> Razorpay["💳 Razorpay\nPayment Gateway"]:::ext
+
+    Auth -.-> RabbitMQ{{"RabbitMQ\nheavenly.events"}}:::mq
+    Listing -.-> RabbitMQ
+    Review -.-> RabbitMQ
+    Booking -.-> RabbitMQ
+    Search -.-> RabbitMQ
+
+    classDef client fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe,stroke-width:2px
+    classDef edge fill:#312e81,stroke:#818cf8,color:#e0e7ff,stroke-width:2px
+    classDef svc fill:#4c1d95,stroke:#a78bfa,color:#ede9fe,stroke-width:2px
+    classDef db fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef cache fill:#451a03,stroke:#fbbf24,color:#fef3c7,stroke-width:2px
+    classDef mq fill:#7c2d12,stroke:#fb923c,color:#fed7aa,stroke-width:2px
+    classDef ext fill:#164e63,stroke:#22d3ee,color:#cffafe,stroke-width:2px
 ```
 
 Evidence: `docker-compose.yml`, `gateway/src/proxy.js`, `bff/src/index.js`, `services/*/src/index.js`, `services/media-service/src/controllers/media.js`, `services/booking-service/src/utils/razorpay.js`, `services/search-service/src/controllers/search.js`, and `shared/events/broker.js`.
