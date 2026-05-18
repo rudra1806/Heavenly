@@ -781,12 +781,6 @@ kubectl get ingress -n heavenly
 
 ---
 
-## 📄 License
-
-No root `LICENSE` file is currently present in this repository.
-
----
-
 ## 👤 Author
 
 **Rudra Sanandiya**
