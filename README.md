@@ -48,111 +48,209 @@ Heavenly is a full-featured property rental platform built from multiple Node.js
 
 ## 🏗️ Architecture
 
-Heavenly uses a service-oriented architecture with a browser-facing BFF, a REST API Gateway, dedicated backend services, shared utilities, MongoDB, Redis, and RabbitMQ.
+Heavenly uses a layered service-oriented architecture. A server-rendered BFF handles browser sessions, an API Gateway manages routing and security, dedicated backend services own their domains, and shared infrastructure (MongoDB, Redis, RabbitMQ) provides persistence, caching, and event-driven coordination.
+
+### High-Level System Architecture
+
+> **Legend** — Solid lines: synchronous HTTP/REST &nbsp;|&nbsp; Dashed lines: asynchronous events via RabbitMQ
 
 ```mermaid
+%%{init: {'theme': 'dark'}}%%
 graph TD
-    User["👤 User"] --> BFF["BFF: Express + EJS"]
-    BFF --> Gateway["API Gateway"]
+    User(["👤 Browser Client"]):::client
 
-    Gateway --> Auth["Auth Service"]
-    Gateway --> Listing["Listing Service"]
-    Gateway --> Review["Review Service"]
-    Gateway --> Booking["Booking Service"]
-    Gateway --> Media["Media Service"]
-    Gateway --> Search["Search Service"]
-    Gateway --> Admin["Admin Service"]
+    subgraph EDGE["EDGE LAYER"]
+        direction TB
+        BFF["BFF · Express + EJS\n:8080"]:::edgeN
+        GW["API Gateway\nJWT · Rate Limit · CORS · :3000"]:::edgeN
+    end
 
-    Auth --> MongoDB[("MongoDB")]
-    Listing --> MongoDB
-    Review --> MongoDB
-    Booking --> MongoDB
-
-    Auth --> Redis["Redis"]
-    Search --> Redis
-
-    Auth --> RabbitMQ["RabbitMQ"]
-    Listing --> RabbitMQ
-    Review --> RabbitMQ
-    Booking --> RabbitMQ
-    Search --> RabbitMQ
-
-    Media --> Cloudinary["Cloudinary"]
-    Booking --> Razorpay["Razorpay"]
-```
-
-For Kubernetes, the same service graph runs in the `heavenly` namespace. MongoDB, Redis, and RabbitMQ run as StatefulSets with persistent volumes; stateless app services run as Deployments behind ClusterIP Services; NGINX Ingress routes `heavenly.local` to the BFF; Prometheus, Grafana, Loki, and Promtail run in the `monitoring` namespace.
-
-### Kubernetes Deployment Architecture
-
-```mermaid
-graph TB
-    Browser["Browser"] --> Hosts["/etc/hosts: heavenly.local"]
-    Hosts --> Ingress["NGINX Ingress Controller"]
-
-    subgraph Cluster["Minikube Cluster"]
-        subgraph Heavenly["Namespace: heavenly"]
-            BFF["BFF Deployment<br/>:8080"]
-            Gateway["Gateway Deployment<br/>:3000"]
-            Auth["Auth Service<br/>:3001"]
-            Listing["Listing Service<br/>:3002"]
-            Review["Review Service<br/>:3003"]
-            Booking["Booking Service<br/>:3004"]
-            Media["Media Service<br/>:3005"]
-            Search["Search Service<br/>:3006"]
-            Admin["Admin Service<br/>:3007"]
-
-            MongoDB[("MongoDB StatefulSet<br/>10Gi PVC")]
-            Redis[("Redis StatefulSet<br/>1Gi PVC")]
-            RabbitMQ[("RabbitMQ StatefulSet<br/>5Gi PVC")]
-
-            ConfigMap["heavenly-config<br/>ConfigMap"]
-            Secret["heavenly-secrets<br/>Secret"]
-            HPA["HPA<br/>CPU target 70%"]
+    subgraph SERVICES["APPLICATION SERVICES"]
+        direction LR
+        subgraph CORE["Core Domain"]
+            direction LR
+            AUTH["Auth\n:3001"]:::svcN
+            LST["Listing\n:3002"]:::svcN
+            REV["Review\n:3003"]:::svcN
+            BKG["Booking\n:3004"]:::svcN
         end
-
-        subgraph Monitoring["Namespace: monitoring"]
-            Prometheus["Prometheus<br/>kube-prometheus-stack"]
-            Grafana["Grafana<br/>Dashboards"]
-            Loki["Loki<br/>Log storage"]
-            Promtail["Promtail<br/>DaemonSet"]
+        subgraph SUPPORT["Supporting"]
+            direction LR
+            MDA["Media\n:3005"]:::supN
+            SRC["Search\n:3006"]:::supN
+            ADM["Admin\n:3007"]:::supN
         end
     end
 
-    Ingress --> BFF
-    BFF --> Gateway
-    Gateway --> Auth
-    Gateway --> Listing
-    Gateway --> Review
-    Gateway --> Booking
-    Gateway --> Media
-    Gateway --> Search
-    Gateway --> Admin
+    subgraph INFRA["DATA & MESSAGING LAYER"]
+        direction LR
+        RDS[("Redis\nCache · Token Blacklist")]:::dbN
+        MDB[("MongoDB\nDocument Store")]:::dbN
+        RMQ{{"RabbitMQ\nheavenly.events"}}:::mqN
+    end
 
-    Auth --> MongoDB
-    Listing --> MongoDB
-    Review --> MongoDB
-    Booking --> MongoDB
-    Auth --> Redis
-    Search --> Redis
-    Auth --> RabbitMQ
-    Listing --> RabbitMQ
-    Review --> RabbitMQ
-    Booking --> RabbitMQ
-    Search --> RabbitMQ
+    CLD["☁ Cloudinary\nImage CDN"]:::extN
+    RPY["💳 Razorpay\nPayment Gateway"]:::extN
 
-    ConfigMap -.-> BFF
-    Secret -.-> BFF
-    HPA -.-> BFF
-    HPA -.-> Gateway
-    HPA -.-> Auth
+    %% ── Primary Traffic Flow ──
+    User --> BFF
+    BFF -->|REST| GW
+    GW --> AUTH
+    GW --> LST
+    GW --> REV
+    GW --> BKG
+    GW --> MDA
+    GW --> SRC
+    GW --> ADM
 
-    Prometheus -.->|"scrapes /metrics"| BFF
-    Prometheus -.->|"scrapes /metrics"| Gateway
-    Prometheus -.->|"scrapes /metrics"| Auth
-    Promtail -.->|"ships pod logs"| Loki
-    Grafana --> Prometheus
-    Grafana --> Loki
+    %% ── Data Persistence ──
+    AUTH --> MDB
+    LST --> MDB
+    REV --> MDB
+    BKG --> MDB
+
+    %% ── Cache & Session ──
+    AUTH --> RDS
+    GW --> RDS
+    SRC --> RDS
+
+    %% ── Async Event Flows ──
+    AUTH -.->|"user.*"| RMQ
+    LST -.->|"listing.*"| RMQ
+    REV -.->|"review.*"| RMQ
+    BKG -.->|"booking.*"| RMQ
+    RMQ -.->|consumes| SRC
+
+    %% ── External Integrations ──
+    MDA -->|Upload API| CLD
+    BKG -->|Payment API| RPY
+
+    %% ── Styles ──
+    classDef client fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe,stroke-width:2px
+    classDef edgeN fill:#312e81,stroke:#818cf8,color:#e0e7ff,stroke-width:2px
+    classDef svcN fill:#4c1d95,stroke:#a78bfa,color:#ede9fe,stroke-width:2px
+    classDef supN fill:#134e4a,stroke:#2dd4bf,color:#ccfbf1,stroke-width:2px
+    classDef dbN fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef mqN fill:#451a03,stroke:#fbbf24,color:#fef3c7,stroke-width:2px
+    classDef extN fill:#164e63,stroke:#22d3ee,color:#cffafe,stroke-width:2px
+
+    style EDGE fill:#1e1b4b,stroke:#4338ca,color:#c7d2fe,stroke-width:2px
+    style SERVICES fill:#1a1a2e,stroke:#6d28d9,color:#ddd6fe,stroke-width:2px
+    style CORE fill:#2e1065,stroke:#7c3aed,color:#ddd6fe,stroke-width:1px
+    style SUPPORT fill:#0f3b3b,stroke:#0d9488,color:#ccfbf1,stroke-width:1px
+    style INFRA fill:#0c1f17,stroke:#059669,color:#a7f3d0,stroke-width:2px
+```
+
+### Kubernetes Deployment Architecture
+
+> **Legend** — Solid lines: application traffic &nbsp;|&nbsp; Dashed lines: observability pipeline (metrics scrape / log shipping)
+
+```mermaid
+%%{init: {'theme': 'dark'}}%%
+graph TD
+    BROWSER(["🌐 Browser\nheavenly.local"]):::client
+    INGRESS["NGINX Ingress Controller\nPathPrefix: /"]:::ingress
+
+    subgraph CLUSTER["MINIKUBE CLUSTER"]
+        subgraph NS_APP["namespace: heavenly"]
+            subgraph EDGE_K["Edge Tier"]
+                direction LR
+                K_BFF["BFF Deployment\n:8080 · ClusterIP"]:::edgeK
+                K_GW["Gateway Deployment\n:3000 · ClusterIP"]:::edgeK
+            end
+
+            subgraph BACKEND_K["Backend Tier — Deployments · ClusterIP"]
+                direction LR
+                K_AUTH["Auth\n:3001"]:::svcK
+                K_LST["Listing\n:3002"]:::svcK
+                K_REV["Review\n:3003"]:::svcK
+                K_BKG["Booking\n:3004"]:::svcK
+                K_MDA["Media\n:3005"]:::svcK
+                K_SRC["Search\n:3006"]:::svcK
+                K_ADM["Admin\n:3007"]:::svcK
+            end
+
+            subgraph INFRA_K["Infrastructure Tier — StatefulSets · PVC"]
+                direction LR
+                K_MDB[("MongoDB\n10Gi PVC")]:::dbK
+                K_RDS[("Redis\n1Gi PVC")]:::dbK
+                K_RMQ[("RabbitMQ\n5Gi PVC")]:::mqK
+            end
+
+            subgraph PLATFORM_K["Platform Resources"]
+                direction LR
+                K_CM["ConfigMap\nheavenly-config"]:::cfgK
+                K_SEC["Secret\nheavenly-secrets"]:::cfgK
+                K_HPA["HPA\nCPU 70% · max 3‑5"]:::cfgK
+                K_NP["NetworkPolicy\ndefault-deny + allow"]:::cfgK
+            end
+        end
+
+        subgraph NS_MON["namespace: monitoring"]
+            subgraph METRICS_K["Metrics Pipeline"]
+                direction LR
+                K_PROM["Prometheus\nkube-prometheus-stack"]:::monK
+                K_GRAF["Grafana\nDashboards · 2Gi PVC"]:::monK
+                K_AM["Alertmanager"]:::monK
+            end
+            subgraph LOGS_K["Logging Pipeline"]
+                direction LR
+                K_LOKI["Loki\nLog Aggregation · 5Gi PVC"]:::monK
+                K_PT["Promtail\nDaemonSet"]:::monK
+            end
+        end
+    end
+
+    %% ── Application Traffic ──
+    BROWSER --> INGRESS
+    INGRESS --> K_BFF
+    K_BFF --> K_GW
+    K_GW --> K_AUTH
+    K_GW --> K_LST
+    K_GW --> K_REV
+    K_GW --> K_BKG
+    K_GW --> K_MDA
+    K_GW --> K_SRC
+    K_GW --> K_ADM
+
+    %% ── Infrastructure Connections ──
+    K_AUTH & K_LST & K_REV & K_BKG --> K_MDB
+    K_AUTH & K_GW & K_SRC --> K_RDS
+    K_AUTH & K_LST & K_REV & K_BKG & K_SRC --> K_RMQ
+
+    %% ── Observability Pipeline ──
+    K_PROM -.->|"scrapes /metrics\nall annotated pods"| K_BFF
+    K_PROM -.->|"scrapes /metrics"| K_GW
+    K_PT -.->|"ships pod stdout/stderr"| K_LOKI
+    K_GRAF --> K_PROM
+    K_GRAF --> K_LOKI
+    K_PROM --> K_AM
+
+    %% ── Platform Config ──
+    K_CM -.-> K_BFF
+    K_SEC -.-> K_BFF
+    K_HPA -.-> K_BFF
+    K_HPA -.-> K_GW
+
+    %% ── Styles ──
+    classDef client fill:#1e3a5f,stroke:#3b82f6,color:#dbeafe,stroke-width:2px
+    classDef ingress fill:#1e3a5f,stroke:#60a5fa,color:#dbeafe,stroke-width:2px
+    classDef edgeK fill:#312e81,stroke:#818cf8,color:#e0e7ff,stroke-width:2px
+    classDef svcK fill:#4c1d95,stroke:#a78bfa,color:#ede9fe,stroke-width:2px
+    classDef dbK fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:2px
+    classDef mqK fill:#451a03,stroke:#fbbf24,color:#fef3c7,stroke-width:2px
+    classDef cfgK fill:#1f2937,stroke:#6b7280,color:#d1d5db,stroke-width:1px
+    classDef monK fill:#4c0519,stroke:#fb7185,color:#ffe4e6,stroke-width:2px
+
+    style CLUSTER fill:#0f172a,stroke:#334155,color:#94a3b8,stroke-width:3px
+    style NS_APP fill:#1e1b4b,stroke:#4338ca,color:#c7d2fe,stroke-width:2px
+    style NS_MON fill:#2c0a1a,stroke:#be123c,color:#fecdd3,stroke-width:2px
+    style EDGE_K fill:#1e1b4b,stroke:#6366f1,color:#c7d2fe,stroke-width:1px
+    style BACKEND_K fill:#2e1065,stroke:#7c3aed,color:#ddd6fe,stroke-width:1px
+    style INFRA_K fill:#0c1f17,stroke:#059669,color:#a7f3d0,stroke-width:1px
+    style PLATFORM_K fill:#111827,stroke:#374151,color:#9ca3af,stroke-width:1px
+    style METRICS_K fill:#3b0a1a,stroke:#e11d48,color:#fecdd3,stroke-width:1px
+    style LOGS_K fill:#3b0a1a,stroke:#e11d48,color:#fecdd3,stroke-width:1px
 ```
 
 👉 **For the evidence-backed deep dive, read the [Architecture Guide](docs/02_ARCHITECTURE.md).**
