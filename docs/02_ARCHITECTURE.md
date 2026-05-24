@@ -273,7 +273,7 @@ Confirmed consumer files:
 | Listing Service | `services/listing-service/src/events/consumers.js` | `user.deleted` |
 | Review Service | `services/review-service/src/events/consumers.js` | `listing.deleted`, `user.deleted` |
 | Search Service | `services/search-service/src/events/consumers.js` | `listing.created`, `listing.updated`, `listing.deleted` |
-| Booking Service | `services/booking-service/src/events/consumers.js` | Present; details to be documented in Section 4 |
+| Booking Service | `services/booking-service/src/events/consumers.js` | `listing.deleted`, `user.deleted` — hard-deletes bookings tied to the deleted listing or guest user. Consumer queue names: `booking-service.listing-deleted`, `booking-service.user-deleted`. |
 
 Relevant broker snippet:
 

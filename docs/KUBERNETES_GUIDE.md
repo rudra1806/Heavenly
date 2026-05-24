@@ -286,50 +286,39 @@ graph TB
 
 ## Directory Structure
 
-The Kubernetes manifests are organized in a `k8s/` directory at the project root:
+The Kubernetes manifests are organized in a `k8s/` directory at the project root. The layout is **Kustomize-based** — each subdirectory has a `kustomization.yaml` that bundles related resources, and most manifests combine a Service plus its workload (StatefulSet or Deployment) in a single file:
 
 ```
 k8s/
 ├── base/
-│   ├── namespace.yaml              # Namespace definitions
-│   ├── configmap.yaml              # Non-sensitive configuration
-│   ├── secret.yaml                 # Sensitive credentials (base64 encoded)
-│   └── network-policies.yaml       # Network access controls
+│   ├── kustomization.yaml          # Bundles namespace, configmap, network-policies
+│   ├── namespace.yaml              # heavenly + monitoring namespaces
+│   ├── configmap.yaml              # heavenly-config (non-secret config)
+│   └── network-policies.yaml       # default-deny + allow-internal/ingress/monitoring
 ├── infra/
-│   ├── mongodb-statefulset.yaml    # MongoDB with PVC
-│   ├── mongodb-service.yaml        # MongoDB ClusterIP service
-│   ├── redis-statefulset.yaml      # Redis with PVC
-│   ├── redis-service.yaml          # Redis ClusterIP service
-│   ├── rabbitmq-statefulset.yaml   # RabbitMQ with PVC
-│   └── rabbitmq-service.yaml       # RabbitMQ ClusterIP service
+│   ├── kustomization.yaml          # Bundles mongodb, redis, rabbitmq
+│   ├── mongodb.yaml                # MongoDB Service + StatefulSet (10Gi PVC)
+│   ├── redis.yaml                  # Redis Service + StatefulSet (1Gi PVC)
+│   └── rabbitmq.yaml               # RabbitMQ Service + StatefulSet (5Gi PVC)
 ├── apps/
-│   ├── auth-deployment.yaml        # Auth service deployment
-│   ├── auth-service.yaml           # Auth ClusterIP service
-│   ├── listing-deployment.yaml     # Listing service deployment
-│   ├── listing-service.yaml        # Listing ClusterIP service
-│   ├── review-deployment.yaml      # Review service deployment
-│   ├── review-service.yaml         # Review ClusterIP service
-│   ├── booking-deployment.yaml     # Booking service deployment
-│   ├── booking-service.yaml        # Booking ClusterIP service
-│   ├── media-deployment.yaml       # Media service deployment
-│   ├── media-service.yaml          # Media ClusterIP service
-│   ├── search-deployment.yaml      # Search service deployment
-│   ├── search-service.yaml         # Search ClusterIP service
-│   ├── admin-deployment.yaml       # Admin service deployment
-│   └── admin-service.yaml          # Admin ClusterIP service
+│   ├── kustomization.yaml          # Bundles stateless-services + supporting-services
+│   ├── stateless-services.yaml     # Auth + Listing + Review + Booking Deployments and Services
+│   └── supporting-services.yaml    # Media + Search + Admin Deployments and Services
 ├── edge/
-│   ├── gateway-deployment.yaml     # Gateway deployment
-│   ├── gateway-service.yaml        # Gateway ClusterIP service
-│   ├── bff-deployment.yaml         # BFF deployment
-│   ├── bff-service.yaml            # BFF ClusterIP service
-│   └── ingress.yaml                # NGINX Ingress for external access
+│   ├── kustomization.yaml          # Bundles edge-services + ingress
+│   ├── edge-services.yaml          # Gateway + BFF Deployments and Services
+│   └── ingress.yaml                # NGINX Ingress for heavenly.local → bff-service:8080
 ├── hpa/
-│   └── hpa.yaml                    # HPA configuration for all stateless services
+│   ├── kustomization.yaml          # Bundles all HPAs
+│   └── hpa.yaml                    # 9 HorizontalPodAutoscalers (CPU 70%)
 └── monitoring/
     ├── prometheus-values.yaml      # Helm values for kube-prometheus-stack
-    ├── loki-values.yaml            # Helm values for loki-stack and Promtail
-    └── grafana-dashboards.yaml     # Dashboard ConfigMap for Grafana sidecar
+    ├── loki-values.yaml            # Helm values for loki-stack (Loki + Promtail)
+    ├── grafana-dashboards.yaml     # ConfigMap with the "Heavenly Services Overview" dashboard
+    └── dashboards/                 # Reserved directory for additional dashboards (currently empty)
 ```
+
+The Kubernetes `Secret` (`heavenly-secrets`) is **never committed to the repo**. It is created at deploy time by `scripts/create-secret.sh .env`, which runs `kubectl create secret generic heavenly-secrets --from-env-file=.env` against the `heavenly` namespace.
 
 ## Local Image Build Pattern
 
@@ -343,26 +332,27 @@ All Deployments use `imagePullPolicy: Never` to use local images.
 
 ### Prometheus
 
-- Installed through `kube-prometheus-stack` Helm chart
-- Scrapes metrics every 15 seconds from annotated pods
-- 15-day retention period
-- Stores metrics in persistent volume (20Gi)
-- Includes Alertmanager, node-exporter, and kube-state-metrics
+- Installed through the `kube-prometheus-stack` Helm chart
+- Scrapes metrics every 15 seconds from annotated pods (`prometheus.io/scrape: "true"`)
+- 15-day retention (`prometheus.prometheusSpec.retention: 15d`)
+- Storage size for the Prometheus PVC is left at the chart default; the repo does not pin a size in `k8s/monitoring/prometheus-values.yaml`. *(Verify the actual PVC size on a deployed cluster with `kubectl -n monitoring get pvc`.)*
+- Bundles Alertmanager, node-exporter, and kube-state-metrics from the chart
 
 ### Grafana
 
-- Installed with kube-prometheus-stack
-- Persistent volume for dashboard storage (10Gi)
-- Pre-configured with Prometheus and Loki data sources
-- Includes preloaded `Heavenly Services Overview` dashboard
+- Installed alongside `kube-prometheus-stack`
+- Persistent volume for dashboard storage: **2Gi** (`grafana.persistence.size: 2Gi`)
+- `initChownData` is disabled to avoid local PV permission issues
+- Pre-configured with Prometheus (default) and Loki (UID `loki`, non-default) data sources
+- Loads the `Heavenly Services Overview` dashboard from the `grafana-dashboards.yaml` ConfigMap via the Grafana sidecar (label `grafana_dashboard`)
 - Access via `make k8s-grafana` (port-forward to localhost:3000)
 
 ### Loki
 
-- Installed through `grafana/loki-stack` Helm chart
-- Version 2.6.1 with `schema: v11` and `boltdb-shipper` for compatibility
-- 7-day log retention period
-- Persistent volume for log storage (20Gi)
+- Installed through the `grafana/loki-stack` Helm chart
+- Loki **2.6.1** with `schema: v11` and `store: boltdb-shipper` (these specific values are required by the chart version; do not bump them without bumping the chart)
+- 7-day log retention (`limits_config.retention_period: 168h`)
+- Persistent volume for log storage: **5Gi** (`loki.persistence.size: 5Gi`)
 - Grafana datasource provisioned with UID `loki`
 
 ### Promtail

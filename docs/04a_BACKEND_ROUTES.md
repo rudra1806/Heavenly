@@ -25,6 +25,8 @@ Gateway route mapping:
 | `/api/admin` | `/admin` | `gateway/src/proxy.js` |
 | `/api/dashboard` | `/dashboard` | `gateway/src/proxy.js` |
 
+> **Note — `/api/dashboard` is a dead route.** Gateway maps `/api/dashboard/*` to `admin-service` with prefix `/dashboard`, but Admin Service does not mount a `/dashboard*` router (only `/admin/*` is wired in `services/admin-service/src/routes/admin.js`). Calls to `/api/dashboard/*` will return a 404 from Admin Service's catch-all. The BFF currently uses `/api/admin/dashboard` (which works) and `/api/admin/user-dashboard/:userId`. The unused proxy entry is safe to remove from `gateway/src/proxy.js`.
+
 Relevant gateway proxy code:
 
 ```js

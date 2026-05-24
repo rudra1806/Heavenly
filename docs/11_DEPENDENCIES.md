@@ -25,6 +25,11 @@
 | `http-proxy-middleware` | `^3.0.3` | Gateway proxy | Proxies `/api/*` routes from Gateway to backend services. | `gateway/package.json:13`; import in `gateway/src/proxy.js:12` | WARNING: major-version behind latest (`3.0.5` wanted, `4.0.0` latest). |
 | `express-rate-limit` | `^7.5.0` | Rate limiting | Gateway global and auth rate limiters. | `gateway/package.json:16`; import/config in `gateway/src/middleware/rateLimiter.js:21-65` | WARNING: major-version behind latest (`7.5.1` wanted, `8.5.1` latest). |
 | `dotenv` | `^17.4.2` | Script env loading | Loads `.env` for seed and migration scripts. | `scripts/package.json:12`; import/use in `scripts/seed-microservices.js:14`, `services/booking-service/scripts/migrate-platform-fee.js:15` | - |
+| `prom-client` | `^15.1.3` | Prometheus metrics | Powers the `/metrics` endpoint and the shared metrics middleware on every app service. | `shared/package.json`, `gateway/package.json`, `bff/package.json`, and every `services/*/package.json`; implementation in `shared/src/metrics.js` (`heavenly_http_requests_total`, `heavenly_http_request_duration_seconds`, default Node metrics with `heavenly_` prefix) | - |
+
+> **Note — Gateway `redis@4.7.0` is currently unused at runtime.** It is declared in `gateway/package.json` but no Redis client is constructed in `gateway/src/index.js` or any gateway middleware. The Compose stack still passes `REDIS_URL` to the gateway in `docker-compose.yml`. Either remove the dependency or wire a Redis client into the gateway (for example to share rate-limit state across replicas).
+
+> **Note — No `engines` constraint is declared in any `package.json`.** Dockerfiles pin `node:20-alpine`, but local non-Docker setups can drift to other Node versions. Consider adding `"engines": { "node": ">=20" }` to each `package.json` so `npm install` warns on mismatch.
 
 Verified audit/outdated commands:
 

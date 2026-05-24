@@ -147,7 +147,7 @@ Hardcoded/default credential observations:
 | HTTPS enforced | ❌ | Not found | Add HTTPS redirect/HSTS at the gateway or reverse-proxy layer and document it here. |
 | No hardcoded credentials | ❌ | Hardcoded/default values found in `bff/src/index.js:53-60`, `.env.example:22-30`, `docker-compose.yml:42-43`, `scripts/seed-microservices.js:39-45` | Replace production defaults with required env validation; keep only safe placeholders in examples. |
 | Security headers with Helmet | ❌ | Not found | Add `helmet` or equivalent security-header middleware. |
-| Non-root Docker user | ❌ | Not found | Add `USER` instructions to `gateway/Dockerfile`, `bff/Dockerfile`, and `services/*/Dockerfile`. |
-| Dependencies audited | ❌ | Not found | Add a documented audit command or CI/dependency scanning step. |
+| Non-root Docker user | ✅ | Every Dockerfile declares `USER node` before `CMD`: `gateway/Dockerfile`, `bff/Dockerfile`, and each `services/*/Dockerfile`. | — |
+| Dependencies audited | ⚠️ Partial | `npm audit --omit=dev --json` and `npm outdated --omit=dev --json` are documented as run commands in `docs/11_DEPENDENCIES.md` and were last run on 2026-05-13. | No CI/CD step enforces this on every change yet (see `docs/15_IMPROVEMENTS.md`). |
 | SQL injection prevention | ⬜ N/A | Repository scan found no relational database, SQL query layer, Prisma, TypeORM, or Sequelize; MongoDB/Mongoose is used instead. | — |
 
